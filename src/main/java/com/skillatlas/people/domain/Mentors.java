@@ -2,11 +2,9 @@ package com.skillatlas.people.domain;
 
 import java.time.LocalDate;
 
-import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.RelationshipId;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;
 import org.springframework.data.neo4j.core.schema.TargetNode;
-import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,8 +20,7 @@ import lombok.Setter;
 public class Mentors {
 
     @RelationshipId
-    @GeneratedValue(generatorClass = UUIDStringGenerator.class)
-    private String id;
+    private Long id;
 
     private String skillId;
 
