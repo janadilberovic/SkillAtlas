@@ -1,0 +1,20 @@
+# Neo4j lokalno jednom komandom:  docker compose up -d
+# Alternativa Neo4j Desktop-u. Ako koristiš Desktop, ovaj fajl ti ne treba —
+# samo podesi .env da gađa Desktop instancu.
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: skillatlas-neo4j
+    ports:
+      - "7474:7474"   # Neo4j Browser (http://localhost:7474)
+      - "7687:7687"   # Bolt (driver se konektuje ovde)
+    environment:
+      # format: NEO4J_AUTH=neo4j/<password>
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-please-change-me}
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+
+volumes:
+  neo4j-data:
+  neo4j-logs:

@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: skillatlas
+
+  # --- Neo4j konekcija ---
+  # Vrednosti dolaze iz env varijabli (secrets NIKAD u repo).
+  # Za lokalni razvoj koristi .env / Neo4j Desktop (default bolt port je 7687).
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:please-change-me}
+
+  data:
+    neo4j:
+      database: ${NEO4J_DATABASE:neo4j}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Actuator: /actuator/health pokazuje i status Neo4j konekcije
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.data.neo4j: INFO
+    # Uključi da vidiš generisani Cypher tokom razvoja:
+    # org.springframework.data.neo4j.cypher: DEBUG
