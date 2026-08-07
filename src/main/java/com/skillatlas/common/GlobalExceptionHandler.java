@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.skillatlas.auth.exception.InvalidCredentialsException;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
+import com.skillatlas.projects.exception.ProjectNotFoundException;
 import com.skillatlas.skills.exception.SkillNameAlreadyExistsException;
 import com.skillatlas.skills.exception.SkillNotFoundException;
+import com.skillatlas.teams.exception.TeamNameAlreadyExistsException;
+import com.skillatlas.teams.exception.TeamNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -46,6 +49,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SkillNameAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> onSkillNameExists(SkillNameAlreadyExistsException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProjectNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> onProjectNotFound(ProjectNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(TeamNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> onTeamNotFound(TeamNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(TeamNameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> onTeamNameExists(TeamNameAlreadyExistsException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());
     }
 
