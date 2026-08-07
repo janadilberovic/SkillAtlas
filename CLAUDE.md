@@ -1,35 +1,37 @@
-# SkillAtlas — konvencije
+# SkillAtlas — conventions
 
-Graf platforma za mapiranje znanja firme (ljudi ↔ skillovi ↔ projekti ↔ timovi).
-Stack: **Java 21 + Spring Boot 4 + Spring Data Neo4j**. Baza je graf (Neo4j), ne relaciona.
+Graph platform for mapping a company's knowledge (people ↔ skills ↔ projects ↔ teams).
+Stack: **Java 21 + Spring Boot 3 + Spring Data Neo4j**. The database is a graph (Neo4j), not relational.
 
-## Arhitektura
-Feature-based paketi pod `com.skillatlas.<feature>` (people, skills, projects, teams, finder, graph, mentoring).
-Unutar feature-a slojevi:
+> **Before starting a task, check the project spec** — `SkillAtlas_Dokumentacija_za_praktikante.pdf` (root). It is the source of truth for domain fields, business rules, feature scope, and the API catalog. When a request is ambiguous or looks incomplete, read the relevant spec section before writing code.
 
-- `*Controller` — REST, `/api/v1/...`, validacija ulaza, mapiranje na DTO. **Bez Cypher-a.**
-- `*Service` — poslovna pravila.
-- `*Repository` — **jedino mesto gde sme Cypher.** Spring Data Neo4j interfejs (+ `@Query` po potrebi).
-- `dto/` — ulazni/izlazni oblici + Bean Validation (`@Valid`, `@NotNull`, `@Min`...).
+## Architecture
+Feature-based packages under `com.skillatlas.<feature>` (people, skills, projects, teams, finder, graph, mentoring).
+Layers within a feature:
 
-## Graf modelovanje (pazi!)
-- `level` (1–5) je **property na `KNOWS` relaciji**, ne na `Person` ni `Skill` čvoru.
-- Čvorovi: `Person`, `Skill`, `Project`, `Team`. Relacije: `KNOWS`, `WANTS_TO_LEARN`, `WORKED_ON`, `USES`, `MEMBER_OF`, `MENTORS`.
-- Ne dodaji čvorove/relacije za feature-e koje još ne gradiš.
+- `*Controller` — REST, `/api/v1/...`, input validation, mapping to DTOs. **No Cypher.**
+- `*Service` — business rules.
+- `*Repository` — **the only place Cypher is allowed.** Spring Data Neo4j interface (+ `@Query` when needed).
+- `dto/` — input/output shapes + Bean Validation (`@Valid`, `@NotNull`, `@Min`...).
 
-## Poslovna pravila (ključna)
-- **Soft delete**: osobe se nikad ne hard-delete-uju (`isDeleted` + `deletedAt`). Svaki read upit mora imati soft-delete filter.
-- Level je ceo broj 1–5; van opsega → validaciona greška (i server-side).
-- Import iz VacaYAY-a je **idempotentan** — dedup po emailu (`MERGE`, ne `CREATE`).
+## Graph modeling (careful!)
+- `level` (1–5) is a **property on the `KNOWS` relationship**, not on the `Person` or `Skill` node.
+- Nodes: `Person`, `Skill`, `Project`, `Team`. Relationships: `KNOWS`, `WANTS_TO_LEARN`, `WORKED_ON`, `USES`, `MEMBER_OF`, `MENTORS`.
+- Do not add nodes/relationships for features you are not building yet.
 
-## Security (nije opciono)
-- **Cypher injection**: uvek parametri (`$param`), nikad string concat. Test: input `React'}) DETACH DELETE (n) //` kroz pretragu ne sme ništa da obriše.
-- **IDOR**: ownership provera na serveru (`id == currentUserId` iz tokena), rola nije dovoljna.
-- **Mass assignment**: bind na DTO; `role`/`verified` se ne postavljaju kroz profil endpoint.
-- Lozinke: bcrypt/argon2, nikad plain, nikad u logovima.
-- Neo4j kredencijali kroz env (`.env`), nikad u repo ni u agentov kontekst kao plain vrednost.
+## Business rules (key)
+- **Soft delete**: people are never hard-deleted (`isDeleted` + `deletedAt`). Every read query must include a soft-delete filter.
+- Level is an integer 1–5; out of range → validation error (server-side too).
+- Import from VacaYAY is **idempotent** — dedup by email (`MERGE`, not `CREATE`).
+
+## Security (not optional)
+- **Cypher injection**: always use parameters (`$param`), never string concat. Test: the input `React'}) DETACH DELETE (n) //` through search must not delete anything.
+- **IDOR**: ownership check on the server (`id == currentUserId` from the token); a role is not enough.
+- **Mass assignment**: bind to a DTO; `role`/`verified` are not set through the profile endpoint.
+- Passwords: bcrypt/argon2, never plain, never in logs.
+- Neo4j credentials via env (`.env`), never in the repo nor in the agent's context as a plain value.
 
 ## Non-functional
-- Validacija server-side na svakom write-u.
-- Paginacija na svakoj listi; graf endpoint sa `LIMIT`.
-- Bez N+1 (poziv bazi u petlji). Unique constraints na `Person.email` i `Skill.name`.
+- Server-side validation on every write.
+- Pagination on every list; graph endpoint with `LIMIT`.
+- No N+1 (calling the database inside a loop). Unique constraints on `Person.email` and `Skill.name`.

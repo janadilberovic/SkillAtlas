@@ -18,6 +18,12 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+# JWT signing (HMAC). Secret from env; dev default is not for production.
+security:
+  jwt:
+    secret: ${JWT_SECRET:change-me-dev-only-secret-please-rotate-0123456789}
+    expiration-minutes: ${JWT_EXP_MINUTES:120}
+
 # Actuator: /actuator/health pokazuje i status Neo4j konekcije
 management:
   endpoints:

@@ -1,34 +1,34 @@
 # SkillAtlas
 
-Graf platforma za mapiranje znanja firme — ko šta zna, ko može biti mentor, gde su rupe u znanju.
-**Stack:** Java 21 · Spring Boot 4 · Spring Data Neo4j.
+Graph platform for mapping a company's knowledge — who knows what, who can mentor, and where the knowledge gaps are.
+**Stack:** Java 21 · Spring Boot 3 · Spring Data Neo4j.
 
-## Pokretanje (~5 min)
+## Getting started (~5 min)
 
-### 1. Neo4j baza
-Dve opcije:
+### 1. Neo4j database
+Two options:
 
-- **Neo4j Desktop** (već instaliran): napravi bazu, startuj je (bolt na `7687`).
-- **Docker**: `docker compose up -d` → Browser na http://localhost:7474
+- **Neo4j Desktop** (already installed): create a database and start it (Bolt on `7687`).
+- **Docker**: `docker compose up -d` → Browser at http://localhost:7474
 
-### 2. Env
+### 2. Environment
 ```bash
 cp .env.example .env
 ```
-Popuni `NEO4J_PASSWORD` (i ostalo ako treba). `.env` je u `.gitignore`.
+Fill in `NEO4J_PASSWORD` (and the rest if needed). `.env` is in `.gitignore`.
 
-### 3. Pokreni app
+### 3. Run the app
 Windows (PowerShell):
 ```bash
 .\mvnw.cmd spring-boot:run
 ```
-Provera da baza radi: http://localhost:8080/actuator/health → `neo4j` status `UP`.
+Verify the database is connected: http://localhost:8080/actuator/health → `neo4j` status `UP`.
 
 ## Build / test
 ```bash
 .\mvnw.cmd clean verify
 ```
 
-## Struktura (feature-based)
-Paketi pod `com.skillatlas.<feature>`; slojevi `Controller → Service → Repository (Cypher samo ovde) + dto`.
-Detaljne konvencije: [CLAUDE.md](CLAUDE.md). Domenski model i feature spec: dokumentacija za praktikante.
+## Structure (feature-based)
+Packages under `com.skillatlas.<feature>`; layers `Controller → Service → Repository (Cypher only here) + dto`.
+Detailed conventions: [CLAUDE.md](CLAUDE.md). Domain model and feature spec: intern documentation.
