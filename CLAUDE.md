@@ -35,3 +35,9 @@ Layers within a feature:
 - Server-side validation on every write.
 - Pagination on every list; graph endpoint with `LIMIT`.
 - No N+1 (calling the database inside a loop). Unique constraints on `Person.email` and `Skill.name`.
+
+## Git workflow (branching)
+- **Always branch each feature directly off `main`.** One feature = one branch = one PR targeting `main`.
+- **Never stack branches** — do not open a branch off another feature branch, and never point a PR's base at anything other than `main` (no "PR into PR", no nested/stacked PRs).
+- Keep branches short-lived: merge to `main`, then branch the next feature fresh from the updated `main`.
+- Before starting a feature, `git checkout main && git pull` so the new branch starts from the latest `main`.
