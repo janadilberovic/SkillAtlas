@@ -1,8 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, switchMap, tap } from 'rxjs';
 import { AuthApi } from '../api/api';
-import { Role } from '../models/models';
-import { PEOPLE } from '../mock/mock-data';
+import { Me, Role } from '../models/models';
 
 interface SessionUser {
   id: string;
@@ -26,22 +25,24 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this._user() !== null);
   readonly isAdmin = computed(() => this._user()?.role === 'ADMIN');
 
-  login(email: string, password: string): Observable<unknown> {
+  login(email: string, password: string): Observable<Me> {
     return this.api.login(email, password).pipe(
+      // Store the token first so the interceptor can attach it to GET /me.
       tap((res) => {
-        // While mocked we resolve the person locally; the real flow would call GET /me.
-        const p = PEOPLE.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
+        this._token.set(res.token);
+        localStorage.setItem(STORAGE_KEY + '.token', res.token);
+      }),
+      switchMap(() => this.api.me()),
+      tap((me) => {
         const user: SessionUser = {
-          id: p?.id ?? 'unknown',
-          fullName: p ? `${p.firstName} ${p.lastName}` : email,
-          initials: p ? (p.firstName[0] + p.lastName[0]).toUpperCase() : email.slice(0, 2).toUpperCase(),
-          role: res.role,
-          email,
+          id: me.id,
+          fullName: me.fullName,
+          initials: initialsFrom(me.fullName, me.email),
+          role: me.role,
+          email: me.email,
         };
         this._user.set(user);
-        this._token.set(res.token);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        localStorage.setItem(STORAGE_KEY + '.token', res.token);
       }),
     );
   }
@@ -52,6 +53,13 @@ export class AuthService {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_KEY + '.token');
   }
+}
+
+function initialsFrom(fullName: string, email: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length === 1 && parts[0].length >= 2) return parts[0].slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase();
 }
 
 function restore(): SessionUser | null {

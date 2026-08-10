@@ -5,26 +5,20 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import {
   AuthApi,
-  DashboardApi,
-  FinderApi,
-  GraphApi,
-  MentoringApi,
   PeopleApi,
+  PeopleSkillsApi,
   ProjectApi,
   SkillApi,
   TeamApi,
 } from './core/api/api';
 import {
-  MockAuthApi,
-  MockDashboardApi,
-  MockFinderApi,
-  MockGraphApi,
-  MockMentoringApi,
-  MockPeopleApi,
-  MockProjectApi,
-  MockSkillApi,
-  MockTeamApi,
-} from './core/api/mock-api';
+  HttpAuthApi,
+  HttpPeopleApi,
+  HttpPeopleSkillsApi,
+  HttpProjectApi,
+  HttpSkillApi,
+  HttpTeamApi,
+} from './core/api/http-api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -32,17 +26,15 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
     provideHttpClient(withInterceptors([authInterceptor])),
 
-    // --- API seam --------------------------------------------------------
-    // Bind each abstract API to its mock. To go live, replace the mock class with an
-    // Http* implementation here; no component changes required.
-    { provide: AuthApi, useClass: MockAuthApi },
-    { provide: PeopleApi, useClass: MockPeopleApi },
-    { provide: SkillApi, useClass: MockSkillApi },
-    { provide: ProjectApi, useClass: MockProjectApi },
-    { provide: TeamApi, useClass: MockTeamApi },
-    { provide: FinderApi, useClass: MockFinderApi },
-    { provide: GraphApi, useClass: MockGraphApi },
-    { provide: MentoringApi, useClass: MockMentoringApi },
-    { provide: DashboardApi, useClass: MockDashboardApi },
+    // --- API seam (live) -------------------------------------------------
+    // Features with a real backend are bound to their Http* implementations.
+    // Finder / Graph / Dashboard have no backend yet — their routes render the
+    // "waiting for the API" screen, so no API binding is needed for them.
+    { provide: AuthApi, useClass: HttpAuthApi },
+    { provide: PeopleApi, useClass: HttpPeopleApi },
+    { provide: PeopleSkillsApi, useClass: HttpPeopleSkillsApi },
+    { provide: SkillApi, useClass: HttpSkillApi },
+    { provide: ProjectApi, useClass: HttpProjectApi },
+    { provide: TeamApi, useClass: HttpTeamApi },
   ],
 };

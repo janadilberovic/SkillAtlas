@@ -11,14 +11,18 @@ export const routes: Routes = [
     loadComponent: () => import('./shared/components/app-shell/app-shell.component').then((m) => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'finder' },
+      { path: '', pathMatch: 'full', redirectTo: 'projects' },
       {
+        // Backend not built yet (E4.1). Shows the "waiting for the API" screen instead of mock data.
         path: 'finder',
-        loadComponent: () => import('./features/finder/expert-finder.component').then((m) => m.ExpertFinderComponent),
+        loadComponent: () =>
+          import('./shared/components/waiting-for-api/waiting-for-api.component').then((m) => m.WaitingForApiComponent),
       },
       {
+        // Backend not built yet (E5.1).
         path: 'graph',
-        loadComponent: () => import('./features/graph/graph-explorer.component').then((m) => m.GraphExplorerComponent),
+        loadComponent: () =>
+          import('./shared/components/waiting-for-api/waiting-for-api.component').then((m) => m.WaitingForApiComponent),
       },
       {
         path: 'people',
@@ -28,7 +32,9 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         canActivate: [adminGuard],
-        loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+        // Backend not built yet (E6.3).
+        loadComponent: () =>
+          import('./shared/components/waiting-for-api/waiting-for-api.component').then((m) => m.WaitingForApiComponent),
       },
       {
         path: 'skills',

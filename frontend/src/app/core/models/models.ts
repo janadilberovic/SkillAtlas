@@ -165,6 +165,23 @@ export interface GraphData {
   hops: number;
 }
 
+/** GET /people/{id}/skills — a person's self-declared knowledge (My Skills feature). */
+export interface MyKnownSkill {
+  skillId: string;
+  name: string;
+  level: number;
+}
+
+export interface MyWish {
+  skillId: string;
+  name: string;
+}
+
+export interface MySkills {
+  skills: MyKnownSkill[];
+  wishes: MyWish[];
+}
+
 /** PLANNED — a ranked mentor candidate for a mentee + skill (2g). */
 export interface MentorCandidate {
   person: Person;

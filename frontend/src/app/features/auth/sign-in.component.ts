@@ -25,7 +25,7 @@ export class SignInComponent {
     this.auth.login(this.email, this.password).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/finder']);
+        this.router.navigate(['/']);
       },
       error: (e: Error) => {
         this.loading.set(false);
