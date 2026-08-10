@@ -6,6 +6,7 @@ import {
   LoginResponse,
   Me,
   MentorCandidate,
+  MySkills,
   Page,
   Person,
   Project,
@@ -67,6 +68,15 @@ export abstract class ProjectApi {
 
 export abstract class TeamApi {
   abstract list(): Observable<Team[]>;
+}
+
+/** My Skills — a person manages their own KNOWS (level 1–5) and WANTS_TO_LEARN. Owner-only writes. */
+export abstract class PeopleSkillsApi {
+  abstract mine(personId: string): Observable<MySkills>;
+  abstract setSkill(personId: string, skillId: string, level: number): Observable<MySkills>;
+  abstract removeSkill(personId: string, skillId: string): Observable<MySkills>;
+  abstract addWish(personId: string, skillId: string): Observable<MySkills>;
+  abstract removeWish(personId: string, skillId: string): Observable<MySkills>;
 }
 
 export abstract class FinderApi {
