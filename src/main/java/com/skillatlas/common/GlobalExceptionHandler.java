@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.skillatlas.auth.exception.InvalidCredentialsException;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
+import com.skillatlas.people.exception.SkillAlreadyMasteredException;
 import com.skillatlas.projects.exception.ProjectNotFoundException;
 import com.skillatlas.skills.exception.SkillNameAlreadyExistsException;
 import com.skillatlas.skills.exception.SkillNotFoundException;
@@ -39,6 +40,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> onEmailExists(EmailAlreadyExistsException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SkillAlreadyMasteredException.class)
+    public ResponseEntity<Map<String, Object>> onSkillAlreadyMastered(SkillAlreadyMasteredException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());
     }
 
