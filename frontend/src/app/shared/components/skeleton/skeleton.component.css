@@ -1,0 +1,31 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--surface);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.bar.faint {
+  background: #1f2130;
+}
+.spacer {
+  flex: 1;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}

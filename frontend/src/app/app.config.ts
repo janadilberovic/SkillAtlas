@@ -3,11 +3,23 @@ import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
-import { AuthApi, FinderApi, GraphApi, PeopleApi, ProjectApi, SkillApi, TeamApi } from './core/api/api';
+import {
+  AuthApi,
+  DashboardApi,
+  FinderApi,
+  GraphApi,
+  MentoringApi,
+  PeopleApi,
+  ProjectApi,
+  SkillApi,
+  TeamApi,
+} from './core/api/api';
 import {
   MockAuthApi,
+  MockDashboardApi,
   MockFinderApi,
   MockGraphApi,
+  MockMentoringApi,
   MockPeopleApi,
   MockProjectApi,
   MockSkillApi,
@@ -30,5 +42,7 @@ export const appConfig: ApplicationConfig = {
     { provide: TeamApi, useClass: MockTeamApi },
     { provide: FinderApi, useClass: MockFinderApi },
     { provide: GraphApi, useClass: MockGraphApi },
+    { provide: MentoringApi, useClass: MockMentoringApi },
+    { provide: DashboardApi, useClass: MockDashboardApi },
   ],
 };

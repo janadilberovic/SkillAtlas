@@ -8,7 +8,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    loadComponent: () => import('./shared/components/app-shell.component').then((m) => m.AppShellComponent),
+    loadComponent: () => import('./shared/components/app-shell/app-shell.component').then((m) => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'finder' },
@@ -26,6 +26,24 @@ export const routes: Routes = [
         loadComponent: () => import('./features/people/people-list.component').then((m) => m.PeopleListComponent),
       },
       {
+        path: 'dashboard',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      },
+      {
+        path: 'skills',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/skills/skills-catalog.component').then((m) => m.SkillsCatalogComponent),
+      },
+      {
+        path: 'projects',
+        loadComponent: () => import('./features/projects/projects-list.component').then((m) => m.ProjectsListComponent),
+      },
+      {
+        path: 'projects/:id',
+        loadComponent: () => import('./features/projects/project-detail.component').then((m) => m.ProjectDetailComponent),
+      },
+      {
         path: 'people/:id',
         loadComponent: () => import('./features/profile/person-profile.component').then((m) => m.PersonProfileComponent),
       },
@@ -35,12 +53,12 @@ export const routes: Routes = [
       },
       {
         path: 'forbidden',
-        loadComponent: () => import('./shared/components/forbidden.component').then((m) => m.ForbiddenComponent),
+        loadComponent: () => import('./shared/components/forbidden/forbidden.component').then((m) => m.ForbiddenComponent),
       },
       {
         // Screens deferred to the second pass (Dashboard, Skills, Projects, Account).
         path: 'coming-soon',
-        loadComponent: () => import('./shared/components/coming-soon.component').then((m) => m.ComingSoonComponent),
+        loadComponent: () => import('./shared/components/coming-soon/coming-soon.component').then((m) => m.ComingSoonComponent),
       },
     ],
   },

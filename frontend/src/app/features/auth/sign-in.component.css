@@ -1,0 +1,130 @@
+.split {
+  background: var(--bg-screen);
+  display: grid;
+  /* Cap the form column so it stays a comfortable panel instead of drifting
+     across an ultra-wide screen; the art fills whatever's left. */
+  grid-template-columns: minmax(440px, 560px) 1fr;
+  /* Row is exactly the viewport (growing only if the form is taller). Without this
+     the art SVG's intrinsic 700x980 ratio stretches the row to ~1882px, which is
+     what left the big empty bands above/below the form and graph. */
+  grid-template-rows: minmax(100vh, max-content);
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding: 0 clamp(40px, 6vw, 90px);
+}
+.brand {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+.lead {
+  font-size: 14px;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 380px;
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+  color: var(--accent-text);
+}
+.error .mark {
+  width: 2px;
+  height: 16px;
+  background: var(--accent);
+}
+.fine {
+  max-width: 380px;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0;
+}
+.demo b {
+  color: var(--text-2);
+  font-weight: 500;
+}
+.art {
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  /* A fixed-pitch dot grid over the gradient: on a large monitor the slice-zoomed
+     constellation leaves big voids, and the grid makes that space read as an
+     intentional textured field rather than emptiness. */
+  background-color: var(--bg-screen);
+  background-image:
+    radial-gradient(rgba(145, 132, 217, 0.09) 1px, transparent 1.6px),
+    radial-gradient(90% 80% at 60% 45%, #1c2036 0%, #161826 72%);
+  background-size: 30px 30px, auto;
+}
+.art svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Pulsing rings radiating from the central node. */
+.ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ping 2.6s ease-out infinite;
+}
+.ping.d1 {
+  animation-delay: 0.87s;
+}
+.ping.d2 {
+  animation-delay: 1.74s;
+}
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(3.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(3.6);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ping {
+    animation: none;
+    opacity: 0.3;
+  }
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .art {
+    display: none;
+  }
+}

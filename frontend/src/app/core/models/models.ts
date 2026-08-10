@@ -164,3 +164,44 @@ export interface GraphData {
   rootLabel: string;
   hops: number;
 }
+
+/** PLANNED — a ranked mentor candidate for a mentee + skill (2g). */
+export interface MentorCandidate {
+  person: Person;
+  skill: string;
+  level: number;
+  activeMentorships: number;
+  score: number;
+}
+
+/** PLANNED — admin skill-gap dashboard (2d). */
+export interface StatTile {
+  label: string;
+  value: string;
+  hint: string;
+  hintAccent?: boolean;
+}
+
+export interface SkillGapRow {
+  team: string;
+  skill: string;
+  projects: string[];
+  knows: number;
+}
+
+export interface BusFactorEntry {
+  skill: string;
+  person: string;
+}
+
+export interface MappingQueue {
+  total: number;
+  names: string[];
+}
+
+export interface DashboardData {
+  stats: StatTile[];
+  skillGap: SkillGapRow[];
+  busFactor: BusFactorEntry[];
+  mappingQueue: MappingQueue;
+}

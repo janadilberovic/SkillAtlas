@@ -2,20 +2,51 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import {
+  DashboardData,
   FinderMatch,
   FinderResult,
   GraphData,
   KnownSkill,
   LoginResponse,
   Me,
+  MentorCandidate,
   Page,
   Person,
   Project,
   Skill,
   Team,
 } from '../models/models';
-import { AuthApi, FinderApi, GraphApi, GraphQuery, PeopleApi, PeopleQuery, ProjectApi, SkillApi, TeamApi } from './api';
-import { GRAPH, MOCK_CREDENTIALS, PEOPLE, PROJECTS, SKILLS, TEAMS, person } from '../mock/mock-data';
+import {
+  AuthApi,
+  DashboardApi,
+  FinderApi,
+  GraphApi,
+  GraphQuery,
+  MemberInput,
+  MentoringApi,
+  PeopleApi,
+  PeopleQuery,
+  ProjectApi,
+  SkillApi,
+  SkillInput,
+  TeamApi,
+} from './api';
+import {
+  DASHBOARD,
+  GRAPH,
+  MOCK_CREDENTIALS,
+  PEOPLE,
+  PROJECTS,
+  SKILLS,
+  TEAMS,
+  addSkillMock,
+  assignMemberMock,
+  mentorCandidatesFor,
+  person,
+  removeMemberMock,
+  removeSkillMock,
+  setProjectActiveMock,
+} from '../mock/mock-data';
 
 // Simulated network latency so loading skeletons are exercised, not just theoretical.
 const LATENCY = 320;
@@ -87,17 +118,37 @@ export class MockPeopleApi extends PeopleApi {
 @Injectable()
 export class MockSkillApi extends SkillApi {
   list(): Observable<Skill[]> {
-    return respond(SKILLS);
+    return respond([...SKILLS]);
+  }
+  create(input: SkillInput): Observable<Skill> {
+    return respond(addSkillMock(input));
+  }
+  remove(id: string): Observable<void> {
+    removeSkillMock(id);
+    return respond(undefined);
   }
 }
 
 @Injectable()
 export class MockProjectApi extends ProjectApi {
   list(): Observable<Project[]> {
-    return respond(PROJECTS);
+    return respond([...PROJECTS]);
   }
   get(id: string): Observable<Project> {
     const pr = PROJECTS.find((x) => x.id === id);
+    if (!pr) return throwError(() => new Error('Project not found')).pipe(delay(LATENCY));
+    return respond(pr);
+  }
+  assignMember(projectId: string, personId: string, input: MemberInput): Observable<void> {
+    assignMemberMock(projectId, personId, input);
+    return respond(undefined);
+  }
+  removeMember(projectId: string, personId: string): Observable<void> {
+    removeMemberMock(projectId, personId);
+    return respond(undefined);
+  }
+  setActive(projectId: string, active: boolean): Observable<Project> {
+    const pr = setProjectActiveMock(projectId, active);
     if (!pr) return throwError(() => new Error('Project not found')).pipe(delay(LATENCY));
     return respond(pr);
   }
@@ -159,6 +210,24 @@ export class MockFinderApi extends FinderApi {
 export class MockGraphApi extends GraphApi {
   explore(_query: GraphQuery): Observable<GraphData> {
     return respond(GRAPH);
+  }
+}
+
+@Injectable()
+export class MockMentoringApi extends MentoringApi {
+  candidates(personId: string, skill: string): Observable<MentorCandidate[]> {
+    return respond(mentorCandidatesFor(personId, skill));
+  }
+  confirm(_mentorId: string, _menteeId: string, _skill: string): Observable<void> {
+    // Mock: the real endpoint (POST /mentorships) creates the MENTORS relation on admin confirm.
+    return respond(undefined);
+  }
+}
+
+@Injectable()
+export class MockDashboardApi extends DashboardApi {
+  overview(): Observable<DashboardData> {
+    return respond(DASHBOARD);
   }
 }
 

@@ -1,0 +1,10 @@
+<div class="empty card-flat">
+  @if (eyebrow) {
+    <span class="eyebrow eyebrow-mute">{{ eyebrow }}</span>
+  }
+  <span class="title">{{ title }}</span>
+  @if (message) {
+    <p class="muted msg">{{ message }}</p>
+  }
+  <ng-content></ng-content>
+</div>
