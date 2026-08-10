@@ -1,0 +1,175 @@
+/* SkillAtlas Nocturne — global theme tokens + base resets.
+   Colours lifted straight from the design doc so screens read as one system. */
+:root {
+  --bg-page: #0f1019;
+  --bg-screen: #161826;
+  --surface: #232532;
+  --surface-2: #1c1f30;
+  --surface-accent: #2b2741;
+  --surface-mute: #292b31;
+
+  --border: rgba(233, 233, 237, 0.16);
+  --border-strong: #3f424d;
+
+  --text: #e9e9ed;
+  --text-2: #b2b6ca;
+  --text-muted: #9397ab;
+  --text-dim: #75798c;
+
+  --accent: #9184d9;
+  --accent-text: #d2cefd;
+  --accent-2: #b5afe8;
+  --accent-deep: #5c5783;
+
+  --node-person: #9184d9;
+  --node-skill: #b5afe8;
+  --node-project: #75798c;
+  --node-faint: #595d6c;
+
+  --radius: 8px;
+  --radius-lg: 14px;
+  --shell-max: 1400px;
+
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+a:hover { color: #b5abfc; }
+
+h1, h2, h3, p { margin: 0; }
+
+button {
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: var(--font);
+  color: var(--text);
+}
+
+/* Shared primitives reused by many screens ------------------------------ */
+
+.btn {
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 15px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent-text);
+  border-radius: var(--radius);
+  transition: background 0.12s ease;
+}
+.btn:hover { background: rgba(145, 132, 217, 0.12); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  border-color: var(--border);
+  color: var(--text-2);
+}
+.btn-ghost:hover { background: var(--surface); }
+
+.btn-sm { padding: 6px 11px; font-size: 13px; }
+.btn-block { width: 100%; }
+
+.field {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 14px;
+  color: var(--text);
+  caret-color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+}
+.field:focus { border-color: var(--accent); }
+.field::placeholder { color: var(--text-dim); }
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow-mute { color: var(--text-dim); }
+
+.col-head {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.card {
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+.card-flat {
+  padding: 14px;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--surface-accent);
+  color: var(--accent-text);
+}
+.tag-outline {
+  background: transparent;
+  border: 1px solid var(--accent);
+}
+.tag-mute {
+  background: var(--surface-mute);
+  color: var(--text-muted);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+}
+.divider-fade {
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(233, 233, 237, 0) 0,
+    var(--border) 48px,
+    var(--border) calc(100% - 48px),
+    rgba(233, 233, 237, 0) 100%);
+}
+
+.muted { color: var(--text-muted); }
+.dim { color: var(--text-dim); }

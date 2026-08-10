@@ -1,0 +1,83 @@
+<div class="page">
+  <div>
+    <h1>Skill gap</h1>
+    <p class="muted sub">Where the company's knowledge is thin — by team, by skill, by person.</p>
+  </div>
+
+  @if (loading()) {
+    <sa-skeleton [rows]="4" />
+  } @else if (data(); as d) {
+    <div class="stats">
+      @for (s of d.stats; track s.label) {
+        <div class="card tile">
+          <span class="col-head">{{ s.label }}</span>
+          <span class="val">{{ s.value }}</span>
+          <span class="small" [class.accent]="s.hintAccent" [class.muted]="!s.hintAccent">{{ s.hint }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="cols">
+      <div class="card gap">
+        <div class="cardhead">
+          <span class="ctitle">Skill gap by team</span>
+          <span class="dim small">Used on projects · known by 0–1 people</span>
+        </div>
+        <div class="grow head-row">
+          <span class="col-head">Team</span>
+          <span class="col-head">Skill at risk</span>
+          <span class="col-head">Knows</span>
+          <span class="col-head">Action</span>
+        </div>
+        @for (g of d.skillGap; track g.team + g.skill) {
+          <div class="grow data">
+            <span>{{ g.team }}</span>
+            <span class="muted">{{ g.skill }} · {{ g.projects.join(', ') }}</span>
+            <span class="accent">{{ g.knows }}</span>
+            <a [routerLink]="['/finder']" [queryParams]="{ q: g.skill }" class="small">Find experts</a>
+          </div>
+        }
+      </div>
+
+      <div class="side">
+        <div class="card">
+          <span class="ctitle">Bus factor</span>
+          <span class="dim small">Skills known by exactly one active person</span>
+          @for (b of d.busFactor; track b.skill) {
+            <div class="busrow">
+              <span>{{ b.skill }}</span>
+              <span class="muted">{{ b.person }}</span>
+            </div>
+          }
+          <button class="btn btn-block" (click)="openMentor(d.busFactor[0].skill)">Suggest mentors for all {{ d.busFactor.length }}</button>
+        </div>
+
+        <div class="card-flat">
+          <div class="cardhead">
+            <span class="ctitle">Waiting for skill mapping</span>
+            <span class="tag">{{ d.mappingQueue.total }}</span>
+          </div>
+          <span class="dim small">Imported from VacaYAY, no skills yet</span>
+          <div class="chips">
+            @for (n of d.mappingQueue.names; track n) {
+              <span class="tag tag-mute">{{ n }}</span>
+            }
+            <span class="tag tag-mute">+{{ d.mappingQueue.total - d.mappingQueue.names.length }}</span>
+          </div>
+          <a routerLink="/people" class="btn btn-ghost btn-block center">Open mapping queue</a>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+@if (mentorSkill()) {
+  <sa-mentor-matching
+    menteeId=""
+    [menteeName]="'skill gap · ' + mentorSkill()"
+    [skill]="mentorSkill()!"
+    (closed)="onMentorClosed($event)" />
+}
+@if (mentorConfirmed()) {
+  <div class="toast">Mentor confirmed for {{ mentorConfirmed() }} — the MENTORS relation was created. (mock)</div>
+}

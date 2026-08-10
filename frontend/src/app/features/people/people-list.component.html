@@ -1,0 +1,74 @@
+<div class="page">
+  <div class="head">
+    <div>
+      <h1>People</h1>
+      <p class="muted sub">{{ subtitle() }}</p>
+    </div>
+    <a routerLink="/coming-soon" [queryParams]="{ screen: 'New person' }" class="btn">New person</a>
+  </div>
+
+  <div class="filters">
+    <input class="field" [(ngModel)]="search" (ngModelChange)="onFilter()" placeholder="Search by name or email" />
+    <select class="field team" [(ngModel)]="team" (ngModelChange)="onFilter()">
+      <option value="">All teams</option>
+      @for (t of teams(); track t.id) {
+        <option [value]="t.name">{{ t.name }}</option>
+      }
+    </select>
+    <select class="field team" [(ngModel)]="skill" (ngModelChange)="onFilter()">
+      <option value="">Any skill</option>
+      @for (s of skills(); track s.id) {
+        <option [value]="s.name">{{ s.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="row head-row">
+    <span class="col-head">Person</span>
+    <span class="col-head">Team</span>
+    <span class="col-head">Position</span>
+    <span class="col-head">Top skills</span>
+    <span class="col-head">Actions</span>
+  </div>
+
+  @if (loading()) {
+    <div class="pad"><sa-skeleton [rows]="6" /></div>
+  } @else if (data()) {
+    @for (p of data()!.content; track p.id) {
+      <div class="row data">
+        <div class="person">
+          <span>{{ p.firstName }} {{ p.lastName }}</span>
+          <span class="dim small">{{ p.email }}</span>
+        </div>
+        <span class="muted">{{ p.team }}</span>
+        <span class="muted">{{ p.position }}</span>
+        <div class="topskills">
+          @if (p.topSkills?.length) {
+            @for (k of p.topSkills; track k.skill.id) {
+              <span class="tag">{{ k.skill.name }} {{ k.level }}</span>
+            }
+          } @else {
+            <span class="imported small">No skills — imported</span>
+          }
+        </div>
+        <div class="actions">
+          <a [routerLink]="['/people', p.id]">Edit</a>
+          <a class="muted" (click)="softDelete(p)">Delete</a>
+        </div>
+      </div>
+    } @empty {
+      <p class="dim pad">No people match those filters.</p>
+    }
+
+    <div class="pager">
+      <span class="dim small">{{ rangeLabel() }}</span>
+      <div class="pagebtns">
+        <button class="pg" [disabled]="page() === 0" (click)="go(page() - 1)">Prev</button>
+        @for (n of pageNumbers(); track n) {
+          <button class="pg" [class.active]="n === page()" (click)="go(n)">{{ n + 1 }}</button>
+        }
+        <button class="pg" [disabled]="page() >= data()!.totalPages - 1" (click)="go(page() + 1)">Next</button>
+      </div>
+    </div>
+  }
+</div>

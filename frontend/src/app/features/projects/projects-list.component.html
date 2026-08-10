@@ -1,0 +1,33 @@
+<div class="page">
+  <div class="head">
+    <div>
+      <h1>Projects</h1>
+      <p class="muted sub">Technologies a project USES and who staffed it (WORKED_ON).</p>
+    </div>
+    @if (auth.isAdmin()) {
+      <a routerLink="/coming-soon" [queryParams]="{ screen: 'New project' }" class="btn">New project</a>
+    }
+  </div>
+
+  @if (loading()) {
+    <sa-skeleton [rows]="4" />
+  } @else {
+    <div class="grid">
+      @for (p of projects(); track p.id) {
+        <a class="card projcard" [routerLink]="['/projects', p.id]">
+          <div class="titlerow">
+            <span class="name">{{ p.name }}</span>
+            <span class="tag" [class.tag-mute]="!p.active">{{ p.active ? 'active' : 'archived' }}</span>
+          </div>
+          <span class="muted small">{{ p.description }}</span>
+          <div class="uses">
+            @for (s of p.skills; track s.id) {
+              <span class="tag">{{ s.name }}</span>
+            }
+          </div>
+          <span class="dim small">{{ p.members?.length ?? 0 }} people · {{ period(p) }}</span>
+        </a>
+      }
+    </div>
+  }
+</div>

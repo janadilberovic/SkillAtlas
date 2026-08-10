@@ -1,0 +1,77 @@
+<div class="split">
+  <section class="form">
+    <span class="brand">SkillAtlas</span>
+    <div>
+      <h1>Sign in</h1>
+      <p class="muted lead">Ko kod nas zna Neo4j — the answer is one query away.</p>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      <div class="group">
+        <label class="label">Email</label>
+        <input class="field" name="email" [(ngModel)]="email" autocomplete="username" />
+      </div>
+      <div class="group">
+        <label class="label">Password</label>
+        <input class="field" type="password" name="password" [(ngModel)]="password" autocomplete="current-password" />
+      </div>
+
+      @if (error()) {
+        <div class="error">
+          <span class="mark"></span>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <button class="btn" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    <p class="fine">
+      No account? Accounts are created by an admin — ask your team lead. Passwords are hashed and never logged.
+    </p>
+    <p class="fine demo">
+      Demo: <b>admin&#64;skillatlas.dev</b> (admin) or <b>sara.ilic&#64;firma.rs</b> (member) · <b>Password123!</b>
+    </p>
+  </section>
+
+  <aside class="art">
+    <svg viewBox="0 0 700 980" preserveAspectRatio="xMidYMid slice">
+      <g stroke="#3f424d" stroke-width="1">
+        <line x1="350" y1="490" x2="200" y2="330" />
+        <line x1="350" y1="490" x2="520" y2="360" />
+        <line x1="350" y1="490" x2="190" y2="660" />
+        <line x1="350" y1="490" x2="530" y2="640" />
+        <line x1="350" y1="490" x2="350" y2="250" />
+        <line x1="350" y1="490" x2="350" y2="740" />
+        <line x1="200" y1="330" x2="350" y2="250" />
+        <line x1="520" y1="360" x2="350" y2="250" />
+        <line x1="190" y1="660" x2="350" y2="740" />
+        <line x1="530" y1="640" x2="350" y2="740" />
+        <line x1="200" y1="330" x2="90" y2="450" />
+        <line x1="520" y1="360" x2="620" y2="470" />
+        <line x1="350" y1="490" x2="240" y2="470" />
+        <line x1="350" y1="490" x2="470" y2="450" />
+        <line x1="350" y1="490" x2="300" y2="610" />
+        <line x1="350" y1="490" x2="530" y2="600" />
+      </g>
+      <circle class="ping" cx="350" cy="490" r="18" fill="none" stroke="#9184d9" stroke-width="2" />
+      <circle class="ping d1" cx="350" cy="490" r="18" fill="none" stroke="#9184d9" stroke-width="2" />
+      <circle class="ping d2" cx="350" cy="490" r="18" fill="none" stroke="#9184d9" stroke-width="2" />
+      <circle cx="350" cy="490" r="18" fill="#9184d9" />
+      <circle cx="200" cy="330" r="12" fill="#b5afe8" />
+      <circle cx="520" cy="360" r="12" fill="#b5afe8" />
+      <circle cx="190" cy="660" r="11" fill="#75798c" />
+      <circle cx="530" cy="640" r="11" fill="#75798c" />
+      <circle cx="350" cy="250" r="11" fill="#9184d9" opacity="0.7" />
+      <circle cx="350" cy="740" r="11" fill="#9184d9" opacity="0.7" />
+      <circle cx="90" cy="450" r="9" fill="#595d6c" />
+      <circle cx="620" cy="470" r="9" fill="#595d6c" />
+      <circle cx="240" cy="470" r="6" fill="#595d6c" opacity="0.55" />
+      <circle cx="470" cy="450" r="6" fill="#b5afe8" opacity="0.5" />
+      <circle cx="300" cy="610" r="7" fill="#595d6c" opacity="0.55" />
+      <circle cx="530" cy="600" r="7" fill="#9184d9" opacity="0.5" />
+    </svg>
+  </aside>
+</div>

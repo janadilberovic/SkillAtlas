@@ -1,0 +1,19 @@
+.wrap {
+  display: grid;
+  place-items: center;
+  padding: 60px 22px;
+}
+.panel {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.title {
+  font-size: 22px;
+  font-weight: 500;
+}
+.btn {
+  text-decoration: none;
+}

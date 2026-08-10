@@ -1,0 +1,136 @@
+<div class="page">
+  <div class="main">
+    <h1>Expert finder</h1>
+    <p class="muted sub">Ko kod nas zna Neo4j — type a query, get ranked people.</p>
+
+    <form class="querybar" (ngSubmit)="search()">
+      <span class="dim small">Query</span>
+      @for (t of terms(); track t.name) {
+        <span class="tag">{{ t.name }}</span>
+        @if (!$last) {
+          <span class="dim small">+</span>
+        }
+      }
+      <input class="qinput" name="query" [(ngModel)]="query" placeholder="e.g. React + Neo4j > 3" />
+      <button class="btn" type="submit">Search</button>
+    </form>
+    @if (result()) {
+      <div class="parsed">
+        <span>Parsed: {{ result()!.parsed }}</span>
+        <span>Team: {{ team || 'All' }}</span>
+        <span>Sorted by: sum of levels</span>
+      </div>
+    }
+
+    <div class="divider-fade top-gap"></div>
+
+    <div class="resulthead">
+      @if (result()) {
+        <span class="muted small">{{ result()!.matches.length }} full matches · {{ result()!.totalActive }} active people</span>
+      }
+      <span class="dim small">Soft-deleted people excluded</span>
+    </div>
+
+    @if (loading()) {
+      <sa-skeleton [rows]="4" />
+    } @else if (result()) {
+      @if (result()!.matches.length) {
+        <div class="row head">
+          <span class="col-head">Person</span>
+          <span class="col-head">Matched skills</span>
+          <span class="col-head">Score</span>
+          <span class="col-head">Actions</span>
+        </div>
+        @for (m of result()!.matches; track m.person.id) {
+          <div class="row data">
+            <div class="person">
+              <span class="name">{{ m.person.firstName }} {{ m.person.lastName }}</span>
+              <span class="muted small">{{ personMeta(m) }}</span>
+            </div>
+            <div class="skills">
+              @for (k of m.matched; track k.skill.id) {
+                <div class="skillrow">
+                  <span class="sname">{{ k.skill.name }}</span>
+                  <sa-level-bar [level]="k.level" />
+                  <span class="small">{{ k.level }}</span>
+                </div>
+              }
+            </div>
+            <span class="score">{{ m.score }}</span>
+            <div class="actions">
+              <a [routerLink]="['/people', m.person.id]">Profile</a>
+              <a routerLink="/graph">In graph</a>
+            </div>
+          </div>
+        }
+      } @else {
+        <sa-empty-state
+          eyebrow="Expert finder · empty"
+          [title]="emptyTitle()"
+          message="This is an empty result, not an error — try lowering the level, or show partial matches.">
+          <div class="empty-actions">
+            <button class="btn" (click)="showPartial.set(true)">Show partial matches</button>
+          </div>
+        </sa-empty-state>
+      }
+
+      @if ((showPartial() || !result()!.matches.length) && result()!.partial.length) {
+        <div class="partial">
+          <div class="col-head part-head">Partial matches · knows some, not all</div>
+          <div class="partial-grid">
+            @for (m of result()!.partial; track m.person.id) {
+              <div class="partial-card">
+                <div>
+                  <span class="name">{{ m.person.firstName }} {{ m.person.lastName }}</span>
+                  <span class="muted small block">{{ partialMeta(m) }}</span>
+                </div>
+                <a [routerLink]="['/people', m.person.id]" class="small">Profile</a>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <aside class="rail">
+    <div class="card">
+      <span class="eyebrow">Result neighbourhood</span>
+      <span class="rail-title">{{ neighbourhood() }}</span>
+      <svg viewBox="0 0 320 180" class="mini">
+        <g stroke="#595d6c" stroke-width="1">
+          <line x1="160" y1="90" x2="70" y2="45" /><line x1="160" y1="90" x2="255" y2="50" />
+          <line x1="160" y1="90" x2="80" y2="145" /><line x1="160" y1="90" x2="250" y2="140" />
+          <line x1="70" y1="45" x2="255" y2="50" /><line x1="80" y1="145" x2="250" y2="140" />
+        </g>
+        <circle cx="160" cy="90" r="11" fill="#9184d9" />
+        <circle cx="70" cy="45" r="8" fill="#b2b6ca" /><circle cx="255" cy="50" r="8" fill="#b2b6ca" />
+        <circle cx="80" cy="145" r="8" fill="#b2b6ca" /><circle cx="250" cy="140" r="8" fill="#b2b6ca" />
+      </svg>
+      <a routerLink="/graph" class="btn btn-block center">Open in graph explorer</a>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Bus factor</span>
+      <span class="rail-title">Neo4j is known by 5 — Cypher tuning by 1</span>
+      <p class="muted small m0">Milan Kostić is the only person above level 3 on Cypher tuning. Projects using it: Atlas, Vega.</p>
+    </div>
+
+    <div class="card-flat">
+      <span class="eyebrow eyebrow-mute">Filters</span>
+      <div class="group">
+        <label class="label">Team</label>
+        <select class="field" [(ngModel)]="team" (ngModelChange)="search()">
+          <option value="">All teams</option>
+          @for (t of teams(); track t.id) {
+            <option [value]="t.name">{{ t.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="chiprow">
+        <span class="tag tag-outline">Level ≥ 3</span>
+        <span class="tag tag-mute">Active only</span>
+      </div>
+    </div>
+  </aside>
+</div>

@@ -1,0 +1,10 @@
+.track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+.fill {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--accent);
+}

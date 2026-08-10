@@ -1,0 +1,45 @@
+<div class="screen">
+  <header class="topbar">
+    <span class="brand">SkillAtlas</span>
+    <nav class="nav">
+      <a routerLink="/finder" routerLinkActive="active">Expert finder</a>
+      <a routerLink="/graph" routerLinkActive="active">Graph</a>
+      @if (auth.isAdmin()) {
+        <a routerLink="/people" routerLinkActive="active">People</a>
+      }
+      @if (auth.isAdmin()) {
+        <a routerLink="/skills" routerLinkActive="active">Skills</a>
+      }
+      <a routerLink="/projects" routerLinkActive="active">Projects</a>
+      @if (auth.isAdmin()) {
+        <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      }
+      <a routerLink="/me" routerLinkActive="active">My skills</a>
+    </nav>
+
+    @if (auth.isAdmin()) {
+      <button class="btn btn-sm" (click)="importVacaYay()">Import from VacaYAY</button>
+    }
+
+    <div class="user">
+      <sa-avatar [initials]="auth.user()?.initials ?? ''" />
+      <div class="who">
+        <span class="name">{{ shortName() }}</span>
+        <span class="role">{{ auth.user()?.role }}</span>
+      </div>
+      <button class="signout" title="Sign out" (click)="logout()">Sign out</button>
+    </div>
+  </header>
+
+  @if (importNote()) {
+    <div class="banner">
+      <span class="mark"></span>
+      <span>Import from VacaYAY is mocked in this build — no data was written.</span>
+      <button class="dismiss" (click)="importNote.set(false)">Dismiss</button>
+    </div>
+  }
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

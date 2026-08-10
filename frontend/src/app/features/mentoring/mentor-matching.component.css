@@ -1,0 +1,109 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  background: rgba(15, 16, 25, 0.72);
+}
+.modal {
+  width: 640px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--text-muted), 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+.small {
+  font-size: 12px;
+}
+.m0 {
+  margin: 0;
+}
+.mhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mtitle {
+  font-size: 20px;
+  font-weight: 500;
+}
+.x {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 15px;
+}
+.x:hover {
+  background: #2b2d3c;
+}
+.criteria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cand {
+  display: grid;
+  grid-template-columns: 20px 24px 1.4fr 0.9fr 0.9fr 0.7fr;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.cand.sel {
+  background: var(--surface-accent);
+}
+.cand input {
+  accent-color: var(--accent);
+}
+.rank {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.cand.sel .rank {
+  color: var(--accent-text);
+}
+.who {
+  display: flex;
+  flex-direction: column;
+}
+.cname {
+  font-size: 14px;
+  font-weight: 500;
+}
+.lvl,
+.load,
+.score {
+  font-size: 13px;
+}
+.cand.sel .lvl,
+.cand.sel .score {
+  color: var(--accent-text);
+}
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}

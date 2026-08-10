@@ -1,0 +1,160 @@
+.page {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 28px;
+  padding: 26px 22px;
+}
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.small {
+  font-size: 12px;
+}
+.block {
+  display: block;
+}
+.m0 {
+  margin: 0;
+}
+.phead {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+h1 {
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.pid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.phead-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.note,
+.err {
+  color: var(--accent-text);
+}
+.note {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+}
+.sep {
+  margin: 22px 0 20px;
+}
+.skillhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.addrow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.addrow .field {
+  flex: 1;
+}
+.addrow .lvl {
+  width: 70px;
+  flex: none;
+}
+.err {
+  display: block;
+  margin: -4px 0 10px;
+}
+.skillgrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.skillcard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.sname {
+  font-size: 14px;
+  flex: 1;
+}
+.lvlnum {
+  font-size: 13px;
+  width: 12px;
+}
+.wants {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.projects {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.projcard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.pname {
+  font-size: 14px;
+  font-weight: 500;
+}
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  min-width: 0;
+}
+.card,
+.card-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rail-title {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.mini {
+  width: 100%;
+}
+.mentrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pad {
+  padding: 12px 0;
+}
+@media (max-width: 1040px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .skillgrid {
+    grid-template-columns: 1fr;
+  }
+}

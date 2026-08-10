@@ -1,0 +1,108 @@
+<div class="page">
+  @if (loading()) {
+    <div class="pad"><sa-skeleton [rows]="5" /></div>
+  } @else if (project(); as p) {
+    <div class="main">
+      <div class="phead">
+        <div>
+          <div class="titlerow">
+            <h1>{{ p.name }}</h1>
+            <span class="tag" [class.tag-mute]="!p.active">{{ p.active ? 'active' : 'archived' }}</span>
+          </div>
+          <p class="muted sub">{{ p.description }} · {{ period(p.startDate, p.endDate) }} · {{ activeMembers(p).length }} people</p>
+        </div>
+        @if (auth.isAdmin()) {
+          <div class="acts">
+            <button class="btn btn-ghost" (click)="toggleArchive(p)">{{ p.active ? 'Archive' : 'Restore' }}</button>
+            <button class="btn" (click)="openAssign()">Assign person</button>
+          </div>
+        }
+      </div>
+
+      @if (assignOpen()) {
+        <div class="assign">
+          <select class="field" [(ngModel)]="assignPersonId">
+            <option value="">Select a person…</option>
+            @for (cand of assignable(); track cand.id) {
+              <option [value]="cand.id">{{ cand.firstName }} {{ cand.lastName }} · {{ cand.team }}</option>
+            }
+          </select>
+          <input class="field role" [(ngModel)]="assignRole" placeholder="Role (e.g. Backend dev)" />
+          <button class="btn" (click)="assign(p)">Add</button>
+          <button class="btn btn-ghost" (click)="assignOpen.set(false)">Cancel</button>
+        </div>
+      }
+
+      <div class="divider-fade sep"></div>
+
+      <div class="uses">
+        <span class="col-head">Uses</span>
+        @for (s of p.skills; track s.id) {
+          <span class="tag">{{ s.name }}</span>
+        }
+        <span class="tag add">+ add</span>
+      </div>
+
+      <div class="row head-row">
+        <span class="col-head">Person</span>
+        <span class="col-head">Role</span>
+        <span class="col-head">Period</span>
+        <span class="col-head">Actions</span>
+      </div>
+      @for (m of p.members ?? []; track m.personId) {
+        <div class="row data" [class.left]="m.left">
+          <span>{{ m.name }}</span>
+          <span class="muted">{{ m.role }}</span>
+          <span class="muted">{{ period(m.from, m.to) }}</span>
+          @if (m.left) {
+            <span class="dim small">left the company</span>
+          } @else if (auth.isAdmin()) {
+            <div class="mact">
+              <a [routerLink]="['/people', m.personId]">Edit</a>
+              <a class="muted" (click)="remove(p, m)">Remove</a>
+            </div>
+          } @else {
+            <a [routerLink]="['/people', m.personId]">Profile</a>
+          }
+        </div>
+      }
+      <p class="dim small note">
+        Soft-deleted people keep their WORKED_ON history — the project still knows who built it — but never
+        appear in search, graph or recommendations.
+      </p>
+    </div>
+
+    <aside class="rail">
+      <div class="card">
+        <span class="eyebrow">Coverage</span>
+        <span class="rail-title">{{ coveredCount() }} of {{ p.skills.length }} technologies safely covered</span>
+        @for (c of coverage(); track c.skill) {
+          <div class="covrow" [class.risk]="c.count <= 1">
+            <span class="cflex">{{ c.skill }}</span>
+            <span class="muted">{{ c.count === 1 ? '1 person' : c.count + ' people ≥ 3' }}</span>
+          </div>
+        }
+        @if (weakest(); as w) {
+          <a class="btn btn-block center" [routerLink]="['/finder']" [queryParams]="{ q: w }">Find experts for {{ w }}</a>
+        }
+      </div>
+
+      <div class="card-flat">
+        <span class="eyebrow eyebrow-mute">Project subgraph</span>
+        <svg viewBox="0 0 320 170" class="mini">
+          <g stroke="#595d6c" stroke-width="1">
+            <line x1="160" y1="85" x2="55" y2="40" /><line x1="160" y1="85" x2="265" y2="45" />
+            <line x1="160" y1="85" x2="60" y2="135" /><line x1="160" y1="85" x2="262" y2="132" />
+            <line x1="160" y1="85" x2="160" y2="20" /><line x1="160" y1="85" x2="160" y2="152" />
+          </g>
+          <circle cx="160" cy="85" r="13" fill="#75798c" />
+          <circle cx="55" cy="40" r="9" fill="#9184d9" /><circle cx="265" cy="45" r="9" fill="#9184d9" />
+          <circle cx="60" cy="135" r="9" fill="#9184d9" /><circle cx="262" cy="132" r="9" fill="#b5afe8" />
+          <circle cx="160" cy="20" r="8" fill="#b5afe8" /><circle cx="160" cy="152" r="8" fill="#b5afe8" />
+        </svg>
+      </div>
+    </aside>
+  } @else {
+    <p class="dim pad">Project not found.</p>
+  }
+</div>
