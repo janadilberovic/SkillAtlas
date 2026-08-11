@@ -6,12 +6,13 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MySkills, Person, Skill } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { LevelBarComponent } from '../../shared/components/level-bar/level-bar.component';
+import { SelectComponent } from '../../shared/components/select/select.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'sa-person-profile',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, LevelBarComponent, SkeletonComponent],
+  imports: [FormsModule, AvatarComponent, LevelBarComponent, SelectComponent, SkeletonComponent],
   templateUrl: './person-profile.component.html',
   styleUrl: './person-profile.component.css',
 })
@@ -33,6 +34,7 @@ export class PersonProfileComponent {
   newLevel = 3;
   newWishId = '';
 
+  readonly skillOptions = computed(() => this.catalog().map((s) => ({ value: s.id, label: s.name })));
   readonly isOwn = computed(() => this.person()?.id === this.auth.user()?.id);
   readonly known = computed(() => this.mySkills().skills);
   readonly wishes = computed(() => this.mySkills().wishes);
@@ -63,6 +65,10 @@ export class PersonProfileComponent {
 
   private loadSkills(id: string): void {
     this.peopleSkillsApi.mine(id).subscribe((ms) => this.mySkills.set(ms));
+  }
+
+  stepLevel(delta: number): void {
+    this.newLevel = Math.min(5, Math.max(1, this.newLevel + delta));
   }
 
   addSkill(): void {

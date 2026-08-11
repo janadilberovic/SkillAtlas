@@ -1,0 +1,39 @@
+<button
+  type="button"
+  class="control"
+  [class.is-open]="open()"
+  [class.is-placeholder]="!value()"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="listbox"
+  (click)="toggle()"
+  (keydown)="onKeydown($event)">
+  <span class="label">{{ label() }}</span>
+  <svg class="chev" viewBox="0 0 12 8" aria-hidden="true">
+    <path d="M1 1.75 6 6.25 11 1.75" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</button>
+
+@if (open()) {
+  <ul class="list" role="listbox">
+    <li role="option"
+        class="opt is-muted"
+        [class.is-active]="active() === -1"
+        [attr.aria-selected]="!value()"
+        (click)="clear()"
+        (mouseenter)="active.set(-1)">
+      {{ placeholder() }}
+    </li>
+    @for (o of options(); track o.value; let i = $index) {
+      <li role="option"
+          class="opt"
+          [class.is-active]="active() === i"
+          [class.is-selected]="o.value === value()"
+          [attr.aria-selected]="o.value === value()"
+          (click)="pick(o)"
+          (mouseenter)="active.set(i)">
+        {{ o.label }}
+      </li>
+    }
+  </ul>
+}
