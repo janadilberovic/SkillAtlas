@@ -28,7 +28,13 @@
               <option [value]="s.id">{{ s.name }}</option>
             }
           </select>
-          <input class="field lvl" type="number" min="1" max="5" [(ngModel)]="newLevel" />
+          <div class="stepper">
+            <button type="button" class="step" aria-label="Lower level"
+                    [disabled]="newLevel <= 1" (click)="stepLevel(-1)">−</button>
+            <span class="stepval" aria-live="polite">{{ newLevel }}</span>
+            <button type="button" class="step" aria-label="Raise level"
+                    [disabled]="newLevel >= 5" (click)="stepLevel(1)">+</button>
+          </div>
           <button class="btn" (click)="addSkill()">Add</button>
         </div>
         @if (addError()) {

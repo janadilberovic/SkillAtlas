@@ -65,6 +65,10 @@ export class PersonProfileComponent {
     this.peopleSkillsApi.mine(id).subscribe((ms) => this.mySkills.set(ms));
   }
 
+  stepLevel(delta: number): void {
+    this.newLevel = Math.min(5, Math.max(1, this.newLevel + delta));
+  }
+
   addSkill(): void {
     this.addError.set('');
     const level = Number(this.newLevel);

@@ -108,6 +108,23 @@ input, select, textarea {
 .field:focus { border-color: var(--accent); }
 .field::placeholder { color: var(--text-dim); }
 
+/* Native select chrome is the OS widget, which reads as a different app on a dark
+   surface. Drop it and draw our own chevron. */
+select.field {
+  appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.75 6 6.25 11 1.75' fill='none' stroke='%239397ab' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 11px;
+}
+/* The popup itself is OS-drawn; these are the only two properties it honours. */
+select.field option {
+  background: var(--surface);
+  color: var(--text);
+}
+
 .label {
   font-size: 12px;
   color: var(--text-muted);
