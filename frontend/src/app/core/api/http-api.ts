@@ -1,8 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, switchMap } from 'rxjs';
+import { Observable, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  Expert,
+  FinderResult,
   LoginResponse,
   Me,
   MySkills,
@@ -14,6 +16,7 @@ import {
 } from '../models/models';
 import {
   AuthApi,
+  FinderApi,
   MemberInput,
   PeopleApi,
   PeopleQuery,
@@ -23,6 +26,7 @@ import {
   SkillInput,
   TeamApi,
 } from './api';
+import { parseSkillQuery } from './finder-query';
 
 const BASE = environment.apiBaseUrl;
 
@@ -135,4 +139,43 @@ export class HttpPeopleSkillsApi extends PeopleSkillsApi {
   removeWish(personId: string, skillId: string): Observable<MySkills> {
     return this.http.delete<MySkills>(`${BASE}/people/${personId}/wishes/${skillId}`);
   }
+}
+
+@Injectable()
+export class HttpFinderApi extends FinderApi {
+  private readonly http = inject(HttpClient);
+
+  search(query: string, team?: string): Observable<FinderResult> {
+    const skills = parseSkillQuery(query);
+    // No skill in the box is an empty result, not a 400 round-trip.
+    if (!skills.length) {
+      return of(emptyResult('no skills recognised'));
+    }
+    let params = new HttpParams().set('skills', skills.join(',')).set('size', '50');
+    if (team) params = params.set('team', team);
+
+    return this.http.get<Page<Expert>>(`${BASE}/experts`, { params }).pipe(
+      map((page) => ({
+        parsed: `KNOWS ${skills.join(' AND KNOWS ')}`,
+        totalMatches: page.totalElements,
+        matches: page.content.map((e) => ({
+          person: {
+            id: e.id,
+            email: e.email,
+            firstName: e.firstName,
+            lastName: e.lastName,
+            position: e.position,
+          },
+          matched: e.matchedSkills,
+          score: e.score,
+          full: true,
+        })),
+        partial: [],
+      })),
+    );
+  }
+}
+
+function emptyResult(parsed: string): FinderResult {
+  return { parsed, totalMatches: 0, matches: [], partial: [] };
 }

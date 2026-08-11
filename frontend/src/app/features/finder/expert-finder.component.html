@@ -11,7 +11,7 @@
           <span class="dim small">+</span>
         }
       }
-      <input class="qinput" name="query" [(ngModel)]="query" placeholder="e.g. React + Neo4j > 3" />
+      <input class="qinput" name="query" [(ngModel)]="query" placeholder="e.g. React + Neo4j" />
       <button class="btn" type="submit">Search</button>
     </form>
     @if (result()) {
@@ -26,7 +26,7 @@
 
     <div class="resulthead">
       @if (result()) {
-        <span class="muted small">{{ result()!.matches.length }} full matches · {{ result()!.totalActive }} active people</span>
+        <span class="muted small">showing {{ result()!.matches.length }} of {{ result()!.totalMatches }} matches</span>
       }
       <span class="dim small">Soft-deleted people excluded</span>
     </div>
@@ -48,9 +48,9 @@
               <span class="muted small">{{ personMeta(m) }}</span>
             </div>
             <div class="skills">
-              @for (k of m.matched; track k.skill.id) {
+              @for (k of m.matched; track k.name) {
                 <div class="skillrow">
-                  <span class="sname">{{ k.skill.name }}</span>
+                  <span class="sname">{{ k.name }}</span>
                   <sa-level-bar [level]="k.level" />
                   <span class="small">{{ k.level }}</span>
                 </div>
@@ -67,11 +67,7 @@
         <sa-empty-state
           eyebrow="Expert finder · empty"
           [title]="emptyTitle()"
-          message="This is an empty result, not an error — try lowering the level, or show partial matches.">
-          <div class="empty-actions">
-            <button class="btn" (click)="showPartial.set(true)">Show partial matches</button>
-          </div>
-        </sa-empty-state>
+          message="This is an empty result, not an error — the search is a strict AND, so try fewer skills." />
       }
 
       @if ((showPartial() || !result()!.matches.length) && result()!.partial.length) {
@@ -128,7 +124,7 @@
         </select>
       </div>
       <div class="chiprow">
-        <span class="tag tag-outline">Level ≥ 3</span>
+        <span class="tag tag-outline">Knows all listed skills</span>
         <span class="tag tag-mute">Active only</span>
       </div>
     </div>

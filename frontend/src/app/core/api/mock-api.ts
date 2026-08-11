@@ -6,8 +6,8 @@ import {
   FinderMatch,
   FinderResult,
   GraphData,
-  KnownSkill,
   LoginResponse,
+  MatchedSkill,
   Me,
   MentorCandidate,
   Page,
@@ -176,10 +176,10 @@ export class MockFinderApi extends FinderApi {
 
     for (const p of pool) {
       const known = p.knows ?? [];
-      const hits: KnownSkill[] = [];
+      const hits: MatchedSkill[] = [];
       for (const name of wantedNames) {
         const k = known.find((x) => x.skill.name.toLowerCase() === name.toLowerCase() && x.level >= minLevel);
-        if (k) hits.push(k);
+        if (k) hits.push({ name: k.skill.name, level: k.level });
       }
       if (!wantedNames.length) continue;
       const score = hits.reduce((sum, k) => sum + k.level, 0);
@@ -199,7 +199,7 @@ export class MockFinderApi extends FinderApi {
 
     return respond({
       parsed,
-      totalActive: pool.length,
+      totalMatches: matches.length,
       matches,
       partial,
     });

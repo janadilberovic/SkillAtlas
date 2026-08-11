@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.skillatlas.auth.exception.InvalidCredentialsException;
+import com.skillatlas.finder.exception.NoSkillsSelectedException;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.people.exception.SkillAlreadyMasteredException;
@@ -71,6 +72,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TeamNameAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> onTeamNameExists(TeamNameAlreadyExistsException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(NoSkillsSelectedException.class)
+    public ResponseEntity<Map<String, Object>> onNoSkillsSelected(NoSkillsSelectedException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

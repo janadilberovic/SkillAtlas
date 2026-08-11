@@ -115,24 +115,47 @@ export interface Team {
   memberCount: number;
 }
 
-/** PLANNED — GET /finder result row (ranked person for an AND-across-skills query). */
+/** ExpertResponse — one ranked person from `GET /api/v1/experts?skills=a,b`. */
+export interface Expert {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  score: number;
+  matchedSkills: MatchedSkill[];
+}
+
+export interface MatchedSkill {
+  name: string;
+  level: number;
+}
+
+/** The subset of a person the finder rows render. Structurally a `Person` minus role/active. */
+export interface ExpertPerson {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  team?: string; // PLANNED
+  mentorsCount?: number; // PLANNED
+  projects?: PersonProject[]; // PLANNED
+}
+
+/** A finder row. `full` is always true today — the API does strict AND, so there are no partials. */
 export interface FinderMatch {
-  person: Person;
-  matched: KnownSkill[];
+  person: ExpertPerson;
+  matched: MatchedSkill[];
   score: number;
   full: boolean;
 }
 
 export interface FinderResult {
   parsed: string;
-  totalActive: number;
+  totalMatches: number;
   matches: FinderMatch[];
-  partial: FinderMatch[];
-}
-
-export interface ParsedSkillTerm {
-  name: string;
-  minLevel: number;
+  partial: FinderMatch[]; // PLANNED — no endpoint returns partial matches yet
 }
 
 /** PLANNED — GET /graph subgraph (server caps size; whole graph never sent). */
