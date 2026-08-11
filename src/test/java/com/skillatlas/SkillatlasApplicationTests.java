@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import com.skillatlas.support.AbstractNeo4jIT;
 
-// Boots the full application context against a real Neo4j (Testcontainers).
-// This also exercises SchemaInitializer (constraints) and DevSeeder on a clean database.
+// Boots the full application context against a real Neo4j.
+// This also exercises SchemaInitializer (constraints); DevSeeder is off in tests, see AbstractNeo4jIT.
 class SkillatlasApplicationTests extends AbstractNeo4jIT {
 
 	@Test

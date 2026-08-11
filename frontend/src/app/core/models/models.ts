@@ -122,8 +122,18 @@ export interface Expert {
   firstName: string;
   lastName: string;
   position: string | null;
+  teams: string[];
   score: number;
   matchedSkills: MatchedSkill[];
+}
+
+/** SkillCoverageResponse — `GET /api/v1/experts/coverage`, the bus-factor readout. */
+export interface SkillCoverage {
+  skill: string;
+  /** Non-deleted people with a KNOWS edge, at any level. */
+  knownBy: number;
+  /** Only the people at the go-to level; exactly one name is a bus factor of 1. */
+  experts: string[];
 }
 
 export interface MatchedSkill {

@@ -1,6 +1,7 @@
 package com.skillatlas.finder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -154,6 +155,103 @@ class FinderIT extends AbstractNeo4jIT {
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[?(@.id == '" + carlId + "')]").doesNotExist());
+    }
+
+    @Test
+    void levelThreshold_dropsPeopleBelowTheBar() throws Exception {
+        // Bob knows both, but only at 2 and 1 — "≥ 3" is what separates him from Ada.
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", neo4jSkill + ">=3," + dockerSkill + ">=3")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(adaId));
+    }
+
+    @Test
+    void levelThreshold_isPerSkillNotPerQuery() throws Exception {
+        // Ada is 5 on Neo4j and 3 on Docker: she clears "Neo4j ≥ 5 + Docker ≥ 3" ...
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", neo4jSkill + ">=5," + dockerSkill + ">=3")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(adaId));
+
+        // ... and fails the same query with the Docker bar raised, even though Neo4j still passes.
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", neo4jSkill + ">=5," + dockerSkill + ">=4")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    @Test
+    void strictGreaterThan_excludesTheLevelWritten() throws Exception {
+        // Ada is exactly 3 on Docker, so "> 3" must drop her while "≥ 3" keeps her.
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", dockerSkill + ">3")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", dockerSkill + ">=3")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(adaId));
+    }
+
+    @Test
+    void levelOutsideOneToFive_isBadRequest() throws Exception {
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", neo4jSkill + ">=6")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void teamMembership_isReturnedWithEachExpert() throws Exception {
+        mvc.perform(get("/api/v1/experts")
+                .param("skills", neo4jSkill + "," + dockerSkill)
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(adaId))
+                .andExpect(jsonPath("$.content[0].teams[0]").value(teamName))
+                // Bob is in no team; the field is an empty list, never null.
+                .andExpect(jsonPath("$.content[1].teams").isEmpty());
+    }
+
+    @Test
+    void coverage_countsKnowersAndNamesOnlyTheExperts() throws Exception {
+        // Neo4j: Ada 5, Bob 2, Carl 5 — Dana knows it at 5 too but is soft-deleted.
+        mvc.perform(get("/api/v1/experts/coverage")
+                .param("skills", neo4jSkill)
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].skill").value(neo4jSkill))
+                .andExpect(jsonPath("$[0].knownBy").value(3))
+                .andExpect(jsonPath("$[0].experts").value(contains("ada Lovelace", "carl Cache")));
+
+        // Docker: Ada 3 and Bob 1 — known, but nobody is at the go-to level.
+        mvc.perform(get("/api/v1/experts/coverage")
+                .param("skills", dockerSkill)
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].knownBy").value(2))
+                .andExpect(jsonPath("$[0].experts").isEmpty());
+    }
+
+    @Test
+    void coverage_reportsSkillsNobodyKnows() throws Exception {
+        String unknown = "cobol-" + UUID.randomUUID();
+
+        mvc.perform(get("/api/v1/experts/coverage")
+                .param("skills", unknown)
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].knownBy").value(0))
+                .andExpect(jsonPath("$[0].experts").isEmpty());
     }
 
     @Test

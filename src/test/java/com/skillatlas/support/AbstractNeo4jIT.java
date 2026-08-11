@@ -30,6 +30,9 @@ public abstract class AbstractNeo4jIT {
         registry.add("spring.neo4j.uri", () -> env("NEO4J_URI", "bolt://localhost:7687"));
         registry.add("spring.neo4j.authentication.username", () -> env("NEO4J_USERNAME", "neo4j"));
         registry.add("spring.neo4j.authentication.password", () -> env("NEO4J_PASSWORD", "testpassword"));
+        // Tests build their own fixtures; the demo seed would only add noise (and ~40 bcrypt
+        // hashes) to every context start.
+        registry.add("skillatlas.seed.enabled", () -> "false");
     }
 
     private static String env(String name, String fallback) {

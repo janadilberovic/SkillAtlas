@@ -14,8 +14,10 @@ import {
   Person,
   Project,
   Skill,
+  SkillCoverage,
   Team,
 } from '../models/models';
+import { SkillTerm, formatSkillTerm } from './finder-query';
 import {
   AuthApi,
   DashboardApi,
@@ -163,10 +165,10 @@ export class MockTeamApi extends TeamApi {
 
 @Injectable()
 export class MockFinderApi extends FinderApi {
-  search(query: string, team?: string): Observable<FinderResult> {
-    const terms = parseSkillTerms(query);
-    const minLevel = terms.length ? Math.max(...terms.map((t) => t.level)) : 1;
+  search(terms: SkillTerm[], team?: string): Observable<FinderResult> {
     const wantedNames = terms.map((t) => t.name);
+    const barFor = (name: string) =>
+      terms.find((t) => t.name.toLowerCase() === name.toLowerCase())?.minLevel ?? 1;
 
     let pool = PEOPLE.filter((p) => p.active);
     if (team && team !== 'All teams') pool = pool.filter((p) => p.team === team);
@@ -178,7 +180,9 @@ export class MockFinderApi extends FinderApi {
       const known = p.knows ?? [];
       const hits: MatchedSkill[] = [];
       for (const name of wantedNames) {
-        const k = known.find((x) => x.skill.name.toLowerCase() === name.toLowerCase() && x.level >= minLevel);
+        const k = known.find(
+          (x) => x.skill.name.toLowerCase() === name.toLowerCase() && x.level >= barFor(name),
+        );
         if (k) hits.push({ name: k.skill.name, level: k.level });
       }
       if (!wantedNames.length) continue;
@@ -193,8 +197,8 @@ export class MockFinderApi extends FinderApi {
     matches.sort((a, b) => b.score - a.score);
     partial.sort((a, b) => b.score - a.score);
 
-    const parsed = wantedNames.length
-      ? `KNOWS ${wantedNames.join(' AND KNOWS ')}, level ≥ ${minLevel}`
+    const parsed = terms.length
+      ? terms.map((t) => `KNOWS ${formatSkillTerm(t)}`).join(' AND ')
       : 'no skills recognised';
 
     return respond({
@@ -203,6 +207,28 @@ export class MockFinderApi extends FinderApi {
       matches,
       partial,
     });
+  }
+
+  coverage(terms: SkillTerm[]): Observable<SkillCoverage[]> {
+    const active = PEOPLE.filter((p) => p.active);
+    return respond(
+      terms.map((term) => {
+        const levels = active
+          .map((p) => (p.knows ?? []).find((k) => k.skill.name.toLowerCase() === term.name.toLowerCase()))
+          .filter((k): k is NonNullable<typeof k> => !!k);
+        return {
+          skill: term.name,
+          knownBy: levels.length,
+          experts: active
+            .filter((p) =>
+              (p.knows ?? []).some(
+                (k) => k.skill.name.toLowerCase() === term.name.toLowerCase() && k.level >= 4,
+              ),
+            )
+            .map((p) => `${p.firstName} ${p.lastName}`),
+        };
+      }),
+    );
   }
 }
 
@@ -231,18 +257,3 @@ export class MockDashboardApi extends DashboardApi {
   }
 }
 
-// Parses free text like "React + Neo4j > 3" / "React and Neo4j level ≥ 3" into skill terms.
-function parseSkillTerms(query: string): { name: string; level: number }[] {
-  const q = query.trim();
-  if (!q) return [];
-  const levelMatch = q.match(/(?:>=|≥|>|level\s*)\s*(\d)/i);
-  const level = levelMatch ? Math.min(5, Math.max(1, Number(levelMatch[1]))) : 3;
-  const found: { name: string; level: number }[] = [];
-  for (const s of SKILLS) {
-    const re = new RegExp(`\\b${s.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    if (re.test(q) && !found.some((f) => f.name === s.name)) {
-      found.push({ name: s.name, level });
-    }
-  }
-  return found;
-}
