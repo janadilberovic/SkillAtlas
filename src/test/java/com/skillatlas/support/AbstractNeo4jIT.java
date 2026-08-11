@@ -8,21 +8,18 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * Base class for integration tests that run against a real Neo4j.
  *
- * Points Spring Data Neo4j at the local Neo4j started via {@code docker compose up -d}
- * (bolt://localhost:7687). Start it before running the suite:
+ * <p>Reads the same {@code NEO4J_*} env vars as {@code application.yml}, so the tests hit whatever
+ * Neo4j you already run locally — a Neo4j Desktop instance or the {@code docker compose} one, no
+ * code change either way. Just start the database and set the password:
  *
  * <pre>
- *   NEO4J_PASSWORD=testpassword docker compose up -d
- *   ./mvnw test
+ *   $env:NEO4J_PASSWORD = "..."      # Neo4j Desktop: start the DBMS, use its password
+ *   ./mvnw.cmd verify                # or: NEO4J_PASSWORD=... docker compose up -d
  * </pre>
  *
- * The password defaults to {@code testpassword} (Neo4j 5 requires >= 8 chars) and can be
- * overridden with the NEO4J_PASSWORD env var
- * (the same variable docker-compose.yml reads), so the DB and the tests always agree.
- *
- * (Testcontainers was the original plan but docker-java can't talk to Docker Desktop 29.x over
- * the Windows named pipe on this machine; compose + CLI works. On a Linux CI a Testcontainers
- * variant can be reintroduced.)
+ * <p>(Testcontainers was the original plan, but docker-java can't talk to Docker Desktop 29.x over
+ * the Windows named pipe on this machine. On a Linux CI a Testcontainers variant can be
+ * reintroduced.)
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -30,9 +27,13 @@ public abstract class AbstractNeo4jIT {
 
     @DynamicPropertySource
     static void neo4jProperties(DynamicPropertyRegistry registry) {
-        String password = System.getenv().getOrDefault("NEO4J_PASSWORD", "testpassword");
-        registry.add("spring.neo4j.uri", () -> "bolt://localhost:7687");
-        registry.add("spring.neo4j.authentication.username", () -> "neo4j");
-        registry.add("spring.neo4j.authentication.password", () -> password);
+        registry.add("spring.neo4j.uri", () -> env("NEO4J_URI", "bolt://localhost:7687"));
+        registry.add("spring.neo4j.authentication.username", () -> env("NEO4J_USERNAME", "neo4j"));
+        registry.add("spring.neo4j.authentication.password", () -> env("NEO4J_PASSWORD", "testpassword"));
+    }
+
+    private static String env(String name, String fallback) {
+        String value = System.getenv(name);
+        return value == null || value.isBlank() ? fallback : value;
     }
 }
