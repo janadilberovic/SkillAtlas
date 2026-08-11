@@ -99,7 +99,13 @@ class FinderIT extends AbstractNeo4jIT {
         Team team = teamsService.create(new TeamCreateRequest(teamName));
         teamId = team.getId();
         // No MEMBER_OF write endpoint exists yet, so the fixture wires the edge directly.
-        neo4jClient.query("MATCH (p:Person {id: $pid}), (t:Team {id: $tid}) MERGE (p)-[:MEMBER_OF]->(t)")
+        // Separate MATCH clauses: one clause with two disconnected patterns triggers Neo4j's
+        // CartesianProduct notification, which spams the test log.
+        neo4jClient.query("""
+                MATCH (p:Person {id: $pid})
+                MATCH (t:Team {id: $tid})
+                MERGE (p)-[:MEMBER_OF]->(t)
+                """)
                 .bindAll(Map.of("pid", adaId, "tid", teamId))
                 .run();
 
