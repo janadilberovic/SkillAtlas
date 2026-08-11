@@ -65,7 +65,8 @@ h1 {
   gap: 8px;
   margin-bottom: 10px;
 }
-.addrow .field {
+.addrow .field,
+.addrow sa-select {
   flex: 1;
 }
 /* Level is 1–5, so a stepper beats a number input: no native spinners to fight,

@@ -22,12 +22,7 @@
 
       @if (isOwn() && addOpen()) {
         <div class="addrow">
-          <select class="field" [(ngModel)]="newSkillId">
-            <option value="">Select a skill…</option>
-            @for (s of catalog(); track s.id) {
-              <option [value]="s.id">{{ s.name }}</option>
-            }
-          </select>
+          <sa-select placeholder="Select a skill…" [options]="skillOptions()" [(value)]="newSkillId" />
           <div class="stepper">
             <button type="button" class="step" aria-label="Lower level"
                     [disabled]="newLevel <= 1" (click)="stepLevel(-1)">−</button>
@@ -71,12 +66,7 @@
         }
         @if (isOwn()) {
           <div class="addrow">
-            <select class="field" [(ngModel)]="newWishId">
-              <option value="">Want to learn…</option>
-              @for (s of catalog(); track s.id) {
-                <option [value]="s.id">{{ s.name }}</option>
-              }
-            </select>
+            <sa-select placeholder="Want to learn…" [options]="skillOptions()" [(value)]="newWishId" />
             <button class="btn btn-sm" (click)="addWish()">Add wish</button>
           </div>
         }
