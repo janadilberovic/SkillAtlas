@@ -13,10 +13,9 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'projects' },
       {
-        // Backend not built yet (E4.1). Shows the "waiting for the API" screen instead of mock data.
         path: 'finder',
         loadComponent: () =>
-          import('./shared/components/waiting-for-api/waiting-for-api.component').then((m) => m.WaitingForApiComponent),
+          import('./features/finder/expert-finder.component').then((m) => m.ExpertFinderComponent),
       },
       {
         // Backend not built yet (E5.1).

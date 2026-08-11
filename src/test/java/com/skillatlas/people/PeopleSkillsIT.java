@@ -6,11 +6,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.skillatlas.people.domain.Person;
@@ -34,6 +38,8 @@ class PeopleSkillsIT extends AbstractNeo4jIT {
     SkillsService skillsService;
     @Autowired
     JwtService jwtService;
+    @Autowired
+    Neo4jClient neo4jClient;
 
     String adaId;
     String bobId;
@@ -52,6 +58,14 @@ class PeopleSkillsIT extends AbstractNeo4jIT {
         bobId = bob.getId();
         skillId = skill.getId();
         adaToken = jwtService.issue(adaId, Role.MEMBER);
+    }
+
+    // The suite runs against a real, possibly shared database — leave nothing behind.
+    @AfterEach
+    void cleanup() {
+        neo4jClient.query("MATCH (n) WHERE n.id IN $ids DETACH DELETE n")
+                .bindAll(Map.of("ids", List.of(adaId, bobId, skillId)))
+                .run();
     }
 
     @Test

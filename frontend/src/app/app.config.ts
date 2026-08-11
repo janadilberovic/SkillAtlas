@@ -5,6 +5,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import {
   AuthApi,
+  FinderApi,
   PeopleApi,
   PeopleSkillsApi,
   ProjectApi,
@@ -13,6 +14,7 @@ import {
 } from './core/api/api';
 import {
   HttpAuthApi,
+  HttpFinderApi,
   HttpPeopleApi,
   HttpPeopleSkillsApi,
   HttpProjectApi,
@@ -28,9 +30,10 @@ export const appConfig: ApplicationConfig = {
 
     // --- API seam (live) -------------------------------------------------
     // Features with a real backend are bound to their Http* implementations.
-    // Finder / Graph / Dashboard have no backend yet — their routes render the
+    // Graph / Dashboard have no backend yet — their routes render the
     // "waiting for the API" screen, so no API binding is needed for them.
     { provide: AuthApi, useClass: HttpAuthApi },
+    { provide: FinderApi, useClass: HttpFinderApi },
     { provide: PeopleApi, useClass: HttpPeopleApi },
     { provide: PeopleSkillsApi, useClass: HttpPeopleSkillsApi },
     { provide: SkillApi, useClass: HttpSkillApi },
