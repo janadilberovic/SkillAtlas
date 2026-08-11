@@ -1,0 +1,4 @@
+# Code owners are automatically requested for review on every pull request.
+# Requires the listed users to have write access to this repository.
+
+* @fiste-ing
