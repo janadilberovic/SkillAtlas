@@ -119,11 +119,9 @@ select.field {
   background-position: right 11px center;
   background-size: 11px;
 }
-/* The popup itself is OS-drawn; these are the only two properties it honours. */
-select.field option {
-  background: var(--surface);
-  color: var(--text);
-}
+/* The open popup is drawn by the OS, not by us. Colouring `option` makes Chrome
+   on Windows drop the selection highlight, so you can't see what you're picking —
+   leave the popup native and only style the closed control. */
 
 .label {
   font-size: 12px;
