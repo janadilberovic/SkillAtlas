@@ -3,7 +3,8 @@
 # samo podesi .env da gađa Desktop instancu.
 services:
   neo4j:
-    image: neo4j:5-community
+    # Pinned: CI runs the same tag, so "green locally, red in CI" can't come from a silent bump.
+    image: neo4j:5.26-community
     container_name: skillatlas-neo4j
     ports:
       - "7474:7474"   # Neo4j Browser (http://localhost:7474)

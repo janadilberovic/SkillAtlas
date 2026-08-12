@@ -25,9 +25,20 @@ Windows (PowerShell):
 Verify the database is connected: http://localhost:8080/actuator/health → `neo4j` status `UP`.
 
 ## Build / test
+
+Unit tests only — no database needed, ~1 min:
+```bash
+.\mvnw.cmd test
+```
+
+Everything, including the integration tests — **needs Neo4j running** (Desktop or `docker compose up -d`):
 ```bash
 .\mvnw.cmd clean verify
 ```
+Integration tests are the `*IT` classes; they read `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD`
+from the environment and force `skillatlas.seed.enabled=false`, so they never touch demo data.
+
+CI runs both on every pull request — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## Structure (feature-based)
 Packages under `com.skillatlas.<feature>`; layers `Controller → Service → Repository (Cypher only here) + dto`.
