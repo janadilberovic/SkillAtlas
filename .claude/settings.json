@@ -10,6 +10,7 @@
       "Bash(git branch:*)",
       "Bash(git rev-parse:*)",
       "Bash(git worktree list:*)",
+      "Bash(git fetch:*)",
       "Bash(git checkout:*)",
       "Bash(git switch:*)",
       "Bash(git pull:*)",
@@ -28,7 +29,11 @@
       "Bash(npx tsc:*)",
       "Bash(docker compose up:*)",
       "Bash(docker compose ps:*)",
-      "Bash(curl.exe:*)"
+      "Bash(docker compose logs:*)",
+      "Bash(docker info:*)",
+      "Bash(docker version:*)",
+      "Bash(curl.exe:*)",
+      "Bash(curl:*)"
     ],
     "deny": [
       "Read(./.env)",
