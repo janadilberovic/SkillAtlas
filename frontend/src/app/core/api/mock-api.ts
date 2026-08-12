@@ -12,6 +12,7 @@ import {
   MentorCandidate,
   Page,
   Person,
+  PersonProfile,
   Project,
   Skill,
   SkillCoverage,
@@ -110,10 +111,32 @@ export class MockPeopleApi extends PeopleApi {
     });
   }
 
-  get(id: string): Observable<Person> {
+  profile(id: string): Observable<PersonProfile> {
     const p = person(id);
     if (!p) return throwError(() => new Error('Person not found')).pipe(delay(LATENCY));
-    return respond(p);
+    // The fixtures predate E4.2 and this class is bound to no token (see CLAUDE.md) — enough to
+    // satisfy the seam, not a second source of truth for the profile screen.
+    return respond({
+      ...p,
+      teams: p.team ? [p.team] : [],
+      skills: (p.knows ?? []).map((k) => ({
+        skillId: k.skill.id,
+        name: k.skill.name,
+        category: k.skill.category,
+        color: k.skill.color,
+        level: k.level,
+        since: null,
+      })),
+      wishes: (p.wantsToLearn ?? []).map((s) => ({
+        skillId: s.id,
+        name: s.name,
+        category: s.category,
+        color: s.color,
+      })),
+      projects: p.projects ?? [],
+      mentoring: { mentees: [], mentors: [] },
+      neighbourhood: { nodes: [], edges: [], truncated: false },
+    });
   }
 }
 

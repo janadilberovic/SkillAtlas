@@ -9,6 +9,7 @@ import {
   MySkills,
   Page,
   Person,
+  PersonProfile,
   Project,
   Skill,
   SkillCategory,
@@ -39,7 +40,8 @@ export interface PeopleQuery {
 
 export abstract class PeopleApi {
   abstract list(query: PeopleQuery): Observable<Page<Person>>;
-  abstract get(id: string): Observable<Person>;
+  /** The rich profile (E4.2) — the person plus skills, projects, mentoring and their neighbourhood. */
+  abstract profile(id: string): Observable<PersonProfile>;
 }
 
 export interface SkillInput {

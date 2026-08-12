@@ -8,6 +8,13 @@
         <div class="pid">
           <h1>{{ p.firstName }} {{ p.lastName }}</h1>
           <span class="muted">{{ p.position || '—' }} · {{ p.email }}</span>
+          @if (teams().length) {
+            <span class="teamrow">
+              @for (t of teams(); track t) {
+                <span class="tag tag-mute">{{ t }}</span>
+              }
+            </span>
+          }
         </div>
       </div>
 
@@ -72,15 +79,78 @@
         }
         <span class="dim small">A skill you already know at level 5 can't be added as a wish.</span>
       </div>
+
+      <div class="projects">
+        <span class="col-head">Projects</span>
+        @for (pr of projects(); track pr.projectId) {
+          <div class="projcard">
+            <div class="projmain">
+              <span class="pname">{{ pr.name }}</span>
+              <span class="muted small">
+                {{ pr.role }}
+                @if (period(pr.from, pr.to); as when) {
+                  · {{ when }}
+                }
+              </span>
+              @if (pr.uses.length) {
+                <span class="uses">
+                  @for (u of pr.uses; track u) {
+                    <span class="tag tag-mute">{{ u }}</span>
+                  }
+                </span>
+              }
+            </div>
+            <span class="tag" [class.tag-outline]="pr.active" [class.tag-mute]="!pr.active">
+              {{ pr.active ? 'Active' : 'Finished' }}
+            </span>
+          </div>
+        } @empty {
+          <span class="dim small">Not assigned to any project.</span>
+        }
+      </div>
     </div>
 
     <aside class="rail">
-      <div class="card-flat panel-wait">
-        <span class="eyebrow eyebrow-mute">Waiting for the API</span>
-        <p class="muted small m0">
-          Projects, mentorships, learning path and the neighbourhood graph will appear here once their
-          backend endpoints are built (rich profile, mentoring, graph). No mock data is shown.
-        </p>
+      <div class="card">
+        <span class="rail-title">Mentoring</span>
+        <span class="eyebrow eyebrow-mute">Mentored by</span>
+        @for (m of mentors(); track m.personId) {
+          <div class="mentrow">
+            <span class="small">{{ m.name }}</span>
+            <span class="tag tag-outline">{{ m.skill || 'skill removed' }}</span>
+          </div>
+        } @empty {
+          <span class="dim small">Nobody yet.</span>
+        }
+        <span class="eyebrow eyebrow-mute">Mentoring</span>
+        @for (m of mentees(); track m.personId) {
+          <div class="mentrow">
+            <span class="small">{{ m.name }}</span>
+            <span class="tag tag-outline">{{ m.skill || 'skill removed' }}</span>
+          </div>
+        } @empty {
+          <span class="dim small">Nobody yet.</span>
+        }
+      </div>
+
+      <div class="card-flat">
+        <span class="rail-title">Around them</span>
+        <span class="muted small m0">
+          {{ neighbourCount() }} {{ neighbourCount() === 1 ? 'connection' : 'connections' }} to
+          {{ neighbours().length }} {{ neighbours().length === 1 ? 'node' : 'nodes' }} — skills,
+          projects, teams and the people they mentor.
+        </span>
+        <span class="neigh">
+          @for (n of neighbours(); track n.id) {
+            <span class="tag tag-mute" [title]="n.meta || n.kind">{{ n.label }}</span>
+          } @empty {
+            <span class="dim small">No connections yet.</span>
+          }
+        </span>
+        @if (truncated()) {
+          <span class="dim small">Capped by the server — this is a sample, not the whole neighbourhood.</span>
+        }
+        <span class="dim small">The interactive graph lands with the explorer (E5.1).</span>
       </div>
     </aside>
   } @else {

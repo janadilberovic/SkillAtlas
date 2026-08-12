@@ -10,6 +10,7 @@ import {
   MySkills,
   Page,
   Person,
+  PersonProfile,
   Project,
   Skill,
   SkillCoverage,
@@ -57,8 +58,8 @@ export class HttpPeopleApi extends PeopleApi {
     if (query.search) params = params.set('search', query.search);
     return this.http.get<Page<Person>>(`${BASE}/people`, { params });
   }
-  get(id: string): Observable<Person> {
-    return this.http.get<Person>(`${BASE}/people/${id}`);
+  profile(id: string): Observable<PersonProfile> {
+    return this.http.get<PersonProfile>(`${BASE}/people/${id}`);
   }
 }
 

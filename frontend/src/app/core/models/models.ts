@@ -68,6 +68,70 @@ export interface Person {
   mentorsCount?: number; // PLANNED
 }
 
+/**
+ * GET /people/{id} — `PersonProfileResponse`: the person fields above plus the E4.2 aggregate.
+ * Every list is present, empty rather than absent, so the template needs no null guards.
+ */
+export interface PersonProfile extends Person {
+  teams: string[];
+  skills: ProfileSkill[];
+  wishes: ProfileWish[];
+  projects: PersonProject[];
+  mentoring: Mentoring;
+  neighbourhood: Neighbourhood;
+}
+
+/** A KNOWS edge on the profile: `level` and `since` belong to the relationship. */
+export interface ProfileSkill {
+  skillId: string;
+  name: string;
+  category: SkillCategory;
+  color: string;
+  level: number;
+  since: string | null;
+}
+
+export interface ProfileWish {
+  skillId: string;
+  name: string;
+  category: SkillCategory;
+  color: string;
+}
+
+/** One MENTORS edge; `skill` is null if the Skill node behind it is gone. */
+export interface ProfileMentorship {
+  personId: string;
+  name: string;
+  skill: string | null;
+  since: string | null;
+}
+
+export interface Mentoring {
+  mentees: ProfileMentorship[];
+  mentors: ProfileMentorship[];
+}
+
+/** The capped subgraph around the person. No coordinates — layout is the client's job (E5.1). */
+export interface NeighbourNode {
+  id: string;
+  kind: GraphNodeKind;
+  label: string;
+  meta: string | null;
+}
+
+export interface NeighbourEdge {
+  source: string;
+  target: string;
+  type: string;
+}
+
+export interface Neighbourhood {
+  nodes: NeighbourNode[];
+  edges: NeighbourEdge[];
+  /** True when the server hit its relationship cap: the picture is a sample, not the whole story. */
+  truncated: boolean;
+}
+
 /** WORKED_ON projected onto a person. */
 export interface PersonProject {
   projectId: string;
