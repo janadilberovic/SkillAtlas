@@ -44,8 +44,11 @@ import com.skillatlas.teams.dto.TeamCreateRequest;
  * company big enough to exercise the expert finder: six teams, ~30 skills, ~40 people with KNOWS
  * levels spread over 1–5, and two soft-deleted people who must never show up in a result.
  *
- * <p>Idempotent: every node is created only when it is missing, so restarting the app neither
- * duplicates nor overwrites anything you changed through the UI. Disable with
+ * <p>Idempotent, and self-healing where it can be: every node is created only when it is missing,
+ * and on each start the declared relationships (team membership, skills, project members,
+ * mentorships) are re-asserted through MERGE. So a level you lowered in the UI survives a restart,
+ * but a skill or membership you deleted comes back — this list is the declaration of what the demo
+ * company knows, and a half-emptied demo person is a broken fixture, not a preference. Disable with
  * {@code skillatlas.seed.enabled=false} (the integration tests do, so they get a quiet database).
  */
 @Component
@@ -132,27 +135,40 @@ public class DevSeeder implements CommandLineRunner {
     private int ensurePeople(Map<String, String> teamIds, Map<String, String> skillIds) {
         int created = 0;
         for (DemoPerson demo : PEOPLE) {
-            // Skips people who already exist, including soft-deleted ones — Person.email is unique
-            // in the database, so a second insert would fail the constraint rather than duplicate.
-            if (people.existsByEmail(demo.email())) {
-                continue;
+            Person person = people.findByEmailAndDeletedFalse(demo.email()).orElse(null);
+            if (person == null) {
+                // Already here but soft-deleted: leave it exactly as it is. Person.email is unique
+                // in the database ignoring the flag, so re-creating would fail the constraint too.
+                if (people.existsByEmail(demo.email())) {
+                    continue;
+                }
+                person = peopleService.create(new PersonCreateRequest(
+                        demo.email(), DEMO_PASSWORD, demo.firstName(), demo.lastName(),
+                        demo.position(), null, Role.MEMBER));
+                created++;
             }
-            Person person = peopleService.create(new PersonCreateRequest(
-                    demo.email(), DEMO_PASSWORD, demo.firstName(), demo.lastName(),
-                    demo.position(), null, Role.MEMBER));
-            teamsService.addMember(teamIds.get(demo.team()), person.getId());
-            for (String entry : demo.skills().split(",")) {
-                String[] parts = entry.split(":");
-                String skillId = skillIds.get(parts[0].trim().toLowerCase(Locale.ROOT));
-                peopleSkills.upsertKnows(person.getId(), skillId, Integer.parseInt(parts[1].trim()),
-                        LocalDate.of(2024, 1, 1));
-            }
+            wireGraph(person.getId(), demo, teamIds, skillIds);
             if (demo.softDeleted()) {
                 peopleService.softDelete(person.getId());
             }
-            created++;
         }
         return created;
+    }
+
+    /**
+     * Re-asserts the fixture's relationships, for people created just now and for people who were
+     * already here. Both writes are MERGE-shaped: a membership or a skill that is missing comes
+     * back, an existing KNOWS level is left exactly as it is.
+     */
+    private void wireGraph(String personId, DemoPerson demo, Map<String, String> teamIds,
+            Map<String, String> skillIds) {
+        teamsService.addMember(teamIds.get(demo.team()), personId);
+        for (String entry : demo.skills().split(",")) {
+            String[] parts = entry.split(":");
+            String skillId = skillIds.get(parts[0].trim().toLowerCase(Locale.ROOT));
+            peopleSkills.insertKnowsIfAbsent(personId, skillId, Integer.parseInt(parts[1].trim()),
+                    LocalDate.of(2024, 1, 1));
+        }
     }
 
     /**

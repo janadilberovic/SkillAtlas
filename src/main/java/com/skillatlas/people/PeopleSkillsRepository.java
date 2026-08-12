@@ -27,6 +27,19 @@ public interface PeopleSkillsRepository extends Neo4jRepository<Person, String> 
     @Query("MATCH (:Person {id: $personId})-[r:KNOWS]->(:Skill {id: $skillId}) DELETE r")
     void deleteKnows(@Param("personId") String personId, @Param("skillId") String skillId);
 
+    // Like upsertKnows but ON CREATE: an existing level is never touched. For the dev seed, which
+    // re-asserts its fixture on every boot and must not undo a level someone edited in the UI.
+    @Query("""
+            MATCH (p:Person {id: $personId}) WHERE p.isDeleted = false
+            MATCH (s:Skill {id: $skillId})
+            MERGE (p)-[r:KNOWS]->(s)
+            ON CREATE SET r.level = $level, r.since = $today
+            """)
+    void insertKnowsIfAbsent(@Param("personId") String personId,
+            @Param("skillId") String skillId,
+            @Param("level") int level,
+            @Param("today") LocalDate today);
+
     // Level of an existing KNOWS, or null when the person doesn't know the skill.
     @Query("MATCH (:Person {id: $personId})-[r:KNOWS]->(:Skill {id: $skillId}) RETURN r.level")
     Integer knownLevel(@Param("personId") String personId, @Param("skillId") String skillId);
