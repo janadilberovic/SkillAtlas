@@ -24,6 +24,14 @@ Windows (PowerShell):
 ```
 Verify the database is connected: http://localhost:8080/actuator/health → `neo4j` status `UP`.
 
+### 4. Demo data
+On first start `DevSeeder` fills an empty database with six teams, ~30 skills and ~40 people whose
+KNOWS levels are spread over 1–5 (plus two soft-deleted people, so you can see them *not* show up).
+Everyone signs in with `Password123!`; the admin is `admin@skillatlas.dev`.
+
+It only creates what is missing, so restarting never duplicates or overwrites your own edits. Turn
+it off with `skillatlas.seed.enabled=false`.
+
 ## Build / test
 
 Unit tests only — no database needed, ~1 min:

@@ -66,7 +66,9 @@ export class ProjectDetailComponent {
       this.coverage.set([]);
       return;
     }
-    forkJoin(p.skills.map((s) => this.finder.search(s.name))).subscribe((results) => {
+    forkJoin(
+      p.skills.map((s) => this.finder.search([{ name: s.name, minLevel: 3 }])),
+    ).subscribe((results) => {
       this.coverage.set(p.skills.map((s, i) => ({ skill: s.name, count: results[i].matches.length })));
     });
   }

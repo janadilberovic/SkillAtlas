@@ -12,8 +12,10 @@ import {
   Project,
   Skill,
   SkillCategory,
+  SkillCoverage,
   Team,
 } from '../models/models';
+import { SkillTerm } from './finder-query';
 
 /**
  * Abstract API surface. Components inject these tokens and never know whether the
@@ -80,7 +82,9 @@ export abstract class PeopleSkillsApi {
 }
 
 export abstract class FinderApi {
-  abstract search(query: string, team?: string): Observable<FinderResult>;
+  abstract search(terms: SkillTerm[], team?: string): Observable<FinderResult>;
+  /** Company-wide coverage of the same skills, for the bus-factor card. Team filter does not apply. */
+  abstract coverage(terms: SkillTerm[]): Observable<SkillCoverage[]>;
 }
 
 export interface GraphQuery {
