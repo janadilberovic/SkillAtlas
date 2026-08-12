@@ -3,7 +3,9 @@
 Graph platform for mapping a company's knowledge (people ↔ skills ↔ projects ↔ teams).
 Stack: **Java 21 + Spring Boot 3 + Spring Data Neo4j**. The database is a graph (Neo4j), not relational.
 
-> **Before starting a task, check the project spec** — `SkillAtlas_Dokumentacija_za_praktikante.pdf` (root). It is the source of truth for domain fields, business rules, feature scope, and the API catalog. When a request is ambiguous or looks incomplete, read the relevant spec section before writing code.
+> **Before starting a task, check the project spec** — [`docs/spec.md`](docs/spec.md), extracted from `SkillAtlas_Dokumentacija_za_praktikante.pdf` (root, authoritative for figures and tables). It is the source of truth for domain fields, business rules, feature scope, and the API catalog. When a request is ambiguous or looks incomplete, read the relevant spec section before writing code.
+>
+> Build order and what is already done: [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Architecture
 Feature-based packages under `com.skillatlas.<feature>` (people, skills, projects, teams, finder, graph, mentoring).
