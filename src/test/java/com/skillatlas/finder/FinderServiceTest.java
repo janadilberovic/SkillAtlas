@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
 import com.skillatlas.finder.dto.ExpertResponse;
+import com.skillatlas.finder.exception.InvalidSkillLevelException;
 import com.skillatlas.finder.exception.NoSkillsSelectedException;
 
 // Unit tests for the finder's query normalization and paging, with a mocked repository (no database).
@@ -38,8 +39,8 @@ class FinderServiceTest {
     FinderService service;
 
     @SuppressWarnings("unchecked")
-    private Collection<String> capturedSkillNames() {
-        ArgumentCaptor<Collection<String>> captor = ArgumentCaptor.forClass(Collection.class);
+    private Collection<SkillTerm> capturedTerms() {
+        ArgumentCaptor<Collection<SkillTerm>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(repository).findExperts(captor.capture(), any(), anyLong(), anyInt());
         return captor.getValue();
     }
@@ -50,7 +51,8 @@ class FinderServiceTest {
 
         service.findExperts(List.of("  Neo4j ", "DOCKER", "neo4j"), null, PageRequest.of(0, 20));
 
-        assertThat(capturedSkillNames()).containsExactly("neo4j", "docker");
+        assertThat(capturedTerms()).containsExactly(
+                new SkillTerm("neo4j", 1), new SkillTerm("docker", 1));
     }
 
     @Test
@@ -59,7 +61,7 @@ class FinderServiceTest {
 
         service.findExperts(Arrays.asList("Neo4j", "   ", null, ""), null, PageRequest.of(0, 20));
 
-        assertThat(capturedSkillNames()).containsExactly("neo4j");
+        assertThat(capturedTerms()).containsExactly(new SkillTerm("neo4j", 1));
     }
 
     @Test
@@ -70,6 +72,57 @@ class FinderServiceTest {
                 .isInstanceOf(NoSkillsSelectedException.class);
 
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void levelThreshold_isParsedPerSkill() {
+        when(repository.findExperts(any(), any(), anyLong(), anyInt())).thenReturn(List.of());
+
+        service.findExperts(List.of("Neo4j >= 4", "React", "Docker ≥ 2"), null, PageRequest.of(0, 20));
+
+        assertThat(capturedTerms()).containsExactly(
+                new SkillTerm("neo4j", 4), new SkillTerm("react", 1), new SkillTerm("docker", 2));
+    }
+
+    @Test
+    void strictGreaterThan_isOneLevelHigherThanWritten() {
+        when(repository.findExperts(any(), any(), anyLong(), anyInt())).thenReturn(List.of());
+
+        service.findExperts(List.of("Neo4j > 3"), null, PageRequest.of(0, 20));
+
+        assertThat(capturedTerms()).containsExactly(new SkillTerm("neo4j", 4));
+    }
+
+    @Test
+    void sameSkillTwice_keepsTheStricterThreshold() {
+        when(repository.findExperts(any(), any(), anyLong(), anyInt())).thenReturn(List.of());
+
+        service.findExperts(List.of("neo4j", "Neo4j>=5", "NEO4J >= 2"), null, PageRequest.of(0, 20));
+
+        assertThat(capturedTerms()).containsExactly(new SkillTerm("neo4j", 5));
+    }
+
+    @Test
+    void levelOutsideOneToFive_isRejected() {
+        assertThatThrownBy(() -> service.findExperts(List.of("neo4j >= 0"), null, PageRequest.of(0, 20)))
+                .isInstanceOf(InvalidSkillLevelException.class);
+        assertThatThrownBy(() -> service.findExperts(List.of("neo4j >= 6"), null, PageRequest.of(0, 20)))
+                .isInstanceOf(InvalidSkillLevelException.class);
+        // "> 5" would mean level 6, which no KNOWS edge can ever have.
+        assertThatThrownBy(() -> service.findExperts(List.of("neo4j > 5"), null, PageRequest.of(0, 20)))
+                .isInstanceOf(InvalidSkillLevelException.class);
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void injectionPayload_staysOneOrdinarySkillName() {
+        when(repository.findExperts(any(), any(), anyLong(), anyInt())).thenReturn(List.of());
+
+        service.findExperts(List.of("React'}) DETACH DELETE (n) //"), null, PageRequest.of(0, 20));
+
+        assertThat(capturedTerms())
+                .containsExactly(new SkillTerm("react'}) detach delete (n) //", 1));
     }
 
     @Test
@@ -103,7 +156,8 @@ class FinderServiceTest {
     @Test
     void shortFirstPage_skipsTheCountQuery() {
         when(repository.findExperts(any(), any(), anyLong(), anyInt())).thenReturn(List.of(
-                new ExpertResponse("p1", "ada@test.com", "Ada", "Lovelace", "Engineer", 8,
+                new ExpertResponse("p1", "ada@test.com", "Ada", "Lovelace", "Engineer",
+                        List.of("Backend"), 8,
                         List.of(new ExpertResponse.MatchedSkill("Neo4j", 5)))));
 
         Page<ExpertResponse> page = service.findExperts(List.of("neo4j"), null, PageRequest.of(0, 20));
@@ -119,5 +173,14 @@ class FinderServiceTest {
         service.findExperts(List.of("neo4j"), null, PageRequest.of(2, 10));
 
         verify(repository).findExperts(any(), isNull(), eq(20L), eq(10));
+    }
+
+    @Test
+    void coverage_ignoresLevelThresholdsAndAsksForTheExpertBar() {
+        when(repository.skillCoverage(any(), anyInt())).thenReturn(List.of());
+
+        service.coverage(List.of("Neo4j >= 5", "Docker"));
+
+        verify(repository).skillCoverage(List.of("neo4j", "docker"), FinderService.EXPERT_LEVEL);
     }
 }

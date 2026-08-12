@@ -6,21 +6,63 @@
     <form class="querybar" (ngSubmit)="search()">
       <span class="dim small">Query</span>
       @for (t of terms(); track t.name) {
-        <span class="tag">{{ t.name }}</span>
-        @if (!$last) {
-          <span class="dim small">+</span>
-        }
+        <span class="chip">
+          <span class="chip-name">{{ t.name }}</span>
+          <button
+            type="button"
+            class="chip-level"
+            [class.is-set]="t.minLevel > 1"
+            [title]="'Minimum level — click to raise'"
+            (click)="cycleLevel(t.name)">
+            {{ levelBadge(t) }}
+          </button>
+          <button type="button" class="chip-x" [attr.aria-label]="'Remove ' + t.name"
+                  (click)="removeTerm(t.name)">×</button>
+        </span>
       }
-      <input class="qinput" name="query" [(ngModel)]="query" placeholder="e.g. React + Neo4j" />
+      <span class="typeahead">
+        <input
+          #queryInput
+          class="qinput"
+          name="query"
+          autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          [attr.aria-expanded]="suggestions().length > 0"
+          [ngModel]="draft()"
+          (ngModelChange)="onDraftChange($event)"
+          (keydown)="onKeydown($event)"
+          (blur)="closeSuggestions()"
+          [placeholder]="terms().length ? 'add a skill…' : 'e.g. React + Neo4j > 3'" />
+        @if (suggestions().length) {
+          <ul class="suggestions" role="listbox">
+            @for (s of suggestions(); track s.id; let i = $index) {
+              <li
+                role="option"
+                class="suggestion"
+                [class.is-active]="activeSuggestion() === i"
+                [attr.aria-selected]="activeSuggestion() === i"
+                (mousedown)="pickSuggestion(s)"
+                (mouseenter)="activeSuggestion.set(i)">
+                <span class="dot" [style.background]="s.color"></span>
+                <span>{{ s.name }}</span>
+                <span class="dim small cat">{{ s.category }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </span>
       <button class="btn" type="submit">Search</button>
     </form>
-    @if (result()) {
-      <div class="parsed">
+    <div class="parsed">
+      @if (result()) {
         <span>Parsed: {{ result()!.parsed }}</span>
-        <span>Team: {{ team || 'All' }}</span>
+        <span>Team: {{ team() || 'All' }}</span>
         <span>Sorted by: sum of levels</span>
-      </div>
-    }
+      } @else {
+        <span>Type a skill and pick it from the list — add "&gt; 3" for a minimum level.</span>
+      }
+    </div>
 
     <div class="divider-fade top-gap"></div>
 
@@ -30,6 +72,10 @@
       }
       <span class="dim small">Soft-deleted people excluded</span>
     </div>
+
+    @if (error()) {
+      <p class="error small">{{ error() }}</p>
+    }
 
     @if (loading()) {
       <sa-skeleton [rows]="4" />
@@ -67,7 +113,7 @@
         <sa-empty-state
           eyebrow="Expert finder · empty"
           [title]="emptyTitle()"
-          message="This is an empty result, not an error — the search is a strict AND, so try fewer skills." />
+          message="This is an empty result, not an error — the search is a strict AND, so try fewer skills or a lower minimum level." />
       }
 
       @if ((showPartial() || !result()!.matches.length) && result()!.partial.length) {
@@ -92,36 +138,53 @@
   <aside class="rail">
     <div class="card">
       <span class="eyebrow">Result neighbourhood</span>
-      <span class="rail-title">{{ neighbourhood() }}</span>
-      <svg viewBox="0 0 320 180" class="mini">
-        <g stroke="#595d6c" stroke-width="1">
-          <line x1="160" y1="90" x2="70" y2="45" /><line x1="160" y1="90" x2="255" y2="50" />
-          <line x1="160" y1="90" x2="80" y2="145" /><line x1="160" y1="90" x2="250" y2="140" />
-          <line x1="70" y1="45" x2="255" y2="50" /><line x1="80" y1="145" x2="250" y2="140" />
-        </g>
-        <circle cx="160" cy="90" r="11" fill="#9184d9" />
-        <circle cx="70" cy="45" r="8" fill="#b2b6ca" /><circle cx="255" cy="50" r="8" fill="#b2b6ca" />
-        <circle cx="80" cy="145" r="8" fill="#b2b6ca" /><circle cx="250" cy="140" r="8" fill="#b2b6ca" />
+      <span class="rail-title">{{ neighbourhoodCaption() }}</span>
+      <svg viewBox="0 0 320 180" class="mini" role="img"
+           aria-label="The query in the middle, its top matches around it">
+        @if (neighbours().length) {
+          <g stroke="#595d6c" stroke-width="1">
+            @for (n of neighbours(); track n.id) {
+              <line x1="160" y1="90" [attr.x2]="n.x" [attr.y2]="n.y" />
+            }
+          </g>
+          <circle cx="160" cy="90" r="11" fill="#9184d9" />
+          @for (n of neighbours(); track n.id) {
+            <circle [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="n.r" fill="#b2b6ca">
+              <title>{{ n.label }}</title>
+            </circle>
+          }
+        } @else {
+          <circle cx="160" cy="90" r="11" fill="#3a3d4a" />
+        }
       </svg>
       <a routerLink="/graph" class="btn btn-block center">Open in graph explorer</a>
     </div>
 
     <div class="card">
       <span class="eyebrow">Bus factor</span>
-      <span class="rail-title">Neo4j is known by 5 — Cypher tuning by 1</span>
-      <p class="muted small m0">Milan Kostić is the only person above level 3 on Cypher tuning. Projects using it: Atlas, Vega.</p>
+      @if (coverage().length) {
+        @for (c of coverage(); track c.skill) {
+          <div class="bus">
+            <span class="rail-title" [class.warn]="isBusFactor(c)">{{ c.skill }}</span>
+            <p class="muted small m0">{{ busFactorLine(c) }}</p>
+          </div>
+        }
+      } @else {
+        <p class="muted small m0">
+          Search for a skill to see how many people know it — and whether it rests on one person.
+        </p>
+      }
     </div>
 
     <div class="card-flat">
       <span class="eyebrow eyebrow-mute">Filters</span>
       <div class="group">
         <label class="label">Team</label>
-        <select class="field" [(ngModel)]="team" (ngModelChange)="search()">
-          <option value="">All teams</option>
-          @for (t of teams(); track t.id) {
-            <option [value]="t.name">{{ t.name }}</option>
-          }
-        </select>
+        <sa-select
+          [options]="teamOptions()"
+          placeholder="All teams"
+          [value]="team()"
+          (valueChange)="onTeamChange($event)" />
       </div>
       <div class="chiprow">
         <span class="tag tag-outline">Knows all listed skills</span>

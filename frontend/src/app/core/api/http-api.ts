@@ -12,6 +12,7 @@ import {
   Person,
   Project,
   Skill,
+  SkillCoverage,
   Team,
 } from '../models/models';
 import {
@@ -26,7 +27,7 @@ import {
   SkillInput,
   TeamApi,
 } from './api';
-import { parseSkillQuery } from './finder-query';
+import { SkillTerm, formatSkillTerm, toSkillParam } from './finder-query';
 
 const BASE = environment.apiBaseUrl;
 
@@ -145,18 +146,17 @@ export class HttpPeopleSkillsApi extends PeopleSkillsApi {
 export class HttpFinderApi extends FinderApi {
   private readonly http = inject(HttpClient);
 
-  search(query: string, team?: string): Observable<FinderResult> {
-    const skills = parseSkillQuery(query);
+  search(terms: SkillTerm[], team?: string): Observable<FinderResult> {
     // No skill in the box is an empty result, not a 400 round-trip.
-    if (!skills.length) {
+    if (!terms.length) {
       return of(emptyResult('no skills recognised'));
     }
-    let params = new HttpParams().set('skills', skills.join(',')).set('size', '50');
+    let params = new HttpParams().set('skills', terms.map(toSkillParam).join(',')).set('size', '50');
     if (team) params = params.set('team', team);
 
     return this.http.get<Page<Expert>>(`${BASE}/experts`, { params }).pipe(
       map((page) => ({
-        parsed: `KNOWS ${skills.join(' AND KNOWS ')}`,
+        parsed: terms.map((t) => `KNOWS ${formatSkillTerm(t)}`).join(' AND '),
         totalMatches: page.totalElements,
         matches: page.content.map((e) => ({
           person: {
@@ -165,6 +165,7 @@ export class HttpFinderApi extends FinderApi {
             firstName: e.firstName,
             lastName: e.lastName,
             position: e.position,
+            team: (e.teams ?? []).join(' / ') || undefined,
           },
           matched: e.matchedSkills,
           score: e.score,
@@ -173,6 +174,16 @@ export class HttpFinderApi extends FinderApi {
         partial: [],
       })),
     );
+  }
+
+  coverage(terms: SkillTerm[]): Observable<SkillCoverage[]> {
+    if (!terms.length) {
+      return of([]);
+    }
+    // Names only: coverage is about the company's depth on a skill, not about the level the
+    // search happened to ask for.
+    const params = new HttpParams().set('skills', terms.map((t) => t.name).join(','));
+    return this.http.get<SkillCoverage[]>(`${BASE}/experts/coverage`, { params });
   }
 }
 

@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.skillatlas.people.PeopleRepository;
+import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.teams.domain.Team;
 import com.skillatlas.teams.dto.TeamCreateRequest;
 import com.skillatlas.teams.dto.TeamUpdateRequest;
@@ -15,9 +17,11 @@ import com.skillatlas.teams.exception.TeamNotFoundException;
 public class TeamsService {
 
     private final TeamsRepository repository;
+    private final PeopleRepository peopleRepository;
 
-    public TeamsService(TeamsRepository repository) {
+    public TeamsService(TeamsRepository repository, PeopleRepository peopleRepository) {
         this.repository = repository;
+        this.peopleRepository = peopleRepository;
     }
 
     @Transactional(readOnly = true)
@@ -54,5 +58,15 @@ public class TeamsService {
     public void delete(String id) {
         Team team = getById(id);
         repository.delete(team);
+    }
+
+    /** Puts a person in a team (MEMBER_OF). Idempotent — repeating it adds no second edge. */
+    @Transactional
+    public void addMember(String teamId, String personId) {
+        getById(teamId); // 404 if the team is missing
+        if (peopleRepository.findByIdAndDeletedFalse(personId).isEmpty()) {
+            throw new PersonNotFoundException(personId);
+        }
+        repository.addMember(teamId, personId);
     }
 }
