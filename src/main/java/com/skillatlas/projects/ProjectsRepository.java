@@ -1,6 +1,7 @@
 package com.skillatlas.projects;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,9 @@ import com.skillatlas.projects.domain.Project;
 public interface ProjectsRepository extends Neo4jRepository<Project, String> {
 
     Page<Project> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    // Used by the dev seed to stay idempotent; project names are not unique in the database.
+    Optional<Project> findByName(String name);
 
     // WORKED_ON is owned by Person; assign/unassign a member via parameterized Cypher.
     // Soft-deleted people can't be assigned; MERGE keeps one relationship per (person, project).

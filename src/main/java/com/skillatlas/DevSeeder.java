@@ -2,9 +2,11 @@ package com.skillatlas;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +14,19 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import com.skillatlas.people.MentorshipsRepository;
 import com.skillatlas.people.PeopleRepository;
 import com.skillatlas.people.PeopleService;
 import com.skillatlas.people.PeopleSkillsRepository;
 import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
 import com.skillatlas.people.enums.Role;
+import com.skillatlas.projects.ProjectsRepository;
+import com.skillatlas.projects.ProjectsService;
+import com.skillatlas.projects.domain.Project;
+import com.skillatlas.projects.dto.ProjectCreateRequest;
+import com.skillatlas.projects.dto.ProjectMemberRequest;
+import com.skillatlas.projects.dto.ProjectUpdateRequest;
 import com.skillatlas.skills.SkillsRepository;
 import com.skillatlas.skills.SkillsService;
 import com.skillatlas.skills.domain.Skill;
@@ -50,21 +59,29 @@ public class DevSeeder implements CommandLineRunner {
     private final PeopleRepository people;
     private final PeopleService peopleService;
     private final PeopleSkillsRepository peopleSkills;
+    private final MentorshipsRepository mentorships;
     private final SkillsRepository skills;
     private final SkillsService skillsService;
     private final TeamsRepository teams;
     private final TeamsService teamsService;
+    private final ProjectsRepository projects;
+    private final ProjectsService projectsService;
 
     public DevSeeder(PeopleRepository people, PeopleService peopleService,
-            PeopleSkillsRepository peopleSkills, SkillsRepository skills, SkillsService skillsService,
-            TeamsRepository teams, TeamsService teamsService) {
+            PeopleSkillsRepository peopleSkills, MentorshipsRepository mentorships,
+            SkillsRepository skills, SkillsService skillsService,
+            TeamsRepository teams, TeamsService teamsService,
+            ProjectsRepository projects, ProjectsService projectsService) {
         this.people = people;
         this.peopleService = peopleService;
         this.peopleSkills = peopleSkills;
+        this.mentorships = mentorships;
         this.skills = skills;
         this.skillsService = skillsService;
         this.teams = teams;
         this.teamsService = teamsService;
+        this.projects = projects;
+        this.projectsService = projectsService;
     }
 
     @Override
@@ -78,6 +95,8 @@ public class DevSeeder implements CommandLineRunner {
         Map<String, String> teamIds = ensureTeams();
         Map<String, String> skillIds = ensureSkills();
         int created = ensurePeople(teamIds, skillIds);
+        ensureProjects(skillIds);
+        ensureMentorships(skillIds);
 
         if (created > 0) {
             log.info("DevSeeder: created {} demo people (password {}), {} skills, {} teams",
@@ -136,7 +155,63 @@ public class DevSeeder implements CommandLineRunner {
         return created;
     }
 
+    /**
+     * Projects and their members (WORKED_ON). Re-running is safe: the project is created only when
+     * a project of that name is missing, and {@code assignMember} MERGEs the relationship.
+     */
+    private void ensureProjects(Map<String, String> skillIds) {
+        for (DemoProject demo : PROJECTS) {
+            String projectId = projects.findByName(demo.name())
+                    .map(Project::getId)
+                    .orElseGet(() -> createProject(demo, skillIds));
+            for (String entry : demo.members().split(",")) {
+                String[] parts = entry.split(":");
+                people.findByEmailAndDeletedFalse(parts[0].trim() + "@skillatlas.dev")
+                        .ifPresent(person -> projectsService.assignMember(projectId, person.getId(),
+                                new ProjectMemberRequest(parts[1].trim(), demo.startDate(), demo.endDate())));
+            }
+        }
+    }
+
+    private String createProject(DemoProject demo, Map<String, String> skillIds) {
+        Set<String> uses = new LinkedHashSet<>();
+        for (String name : demo.skills().split(",")) {
+            uses.add(skillIds.get(name.trim().toLowerCase(Locale.ROOT)));
+        }
+        Project project = projectsService.create(new ProjectCreateRequest(
+                demo.name(), demo.description(), demo.startDate(), demo.endDate(), uses));
+        if (!demo.active()) {
+            // create() always starts a project active; a finished one needs the follow-up update.
+            projectsService.update(project.getId(), new ProjectUpdateRequest(
+                    demo.name(), demo.description(), demo.startDate(), demo.endDate(), false, uses));
+        }
+        return project.getId();
+    }
+
+    /**
+     * MENTORS edges, so the profile has mentoring to show in both directions before E6.1 builds the
+     * admin flow that creates them for real.
+     */
+    private void ensureMentorships(Map<String, String> skillIds) {
+        for (DemoMentorship demo : MENTORSHIPS) {
+            String skillId = skillIds.get(demo.skill().toLowerCase(Locale.ROOT));
+            people.findByEmailAndDeletedFalse(demo.mentor() + "@skillatlas.dev").ifPresent(mentor ->
+                    people.findByEmailAndDeletedFalse(demo.mentee() + "@skillatlas.dev").ifPresent(mentee ->
+                            mentorships.upsertMentorship(mentor.getId(), mentee.getId(), skillId,
+                                    LocalDate.of(2024, 9, 1))));
+        }
+    }
+
     private record DemoSkill(String name, SkillCategory category, String color) {
+    }
+
+    /** {@code members} is an {@code email-local-part:role} list; {@code skills} names from {@link #SKILLS}. */
+    private record DemoProject(String name, String description, LocalDate startDate, LocalDate endDate,
+            boolean active, String skills, String members) {
+    }
+
+    /** Mentor and mentee by email local part; {@code skill} is a name from {@link #SKILLS}. */
+    private record DemoMentorship(String mentor, String mentee, String skill) {
     }
 
     /** {@code skills} is a {@code Name:level} list; the names must exist in {@link #SKILLS}. */
@@ -275,4 +350,38 @@ public class DevSeeder implements CommandLineRunner {
                     "Backend", "Neo4j:5,Java:5,Cypher tuning:5", true),
             new DemoPerson("vanja.arhivic@skillatlas.dev", "Vanja", "Arhivić", "Frontend Engineer",
                     "Frontend", "React:5,TypeScript:5", true));
+
+    // One finished project among the active ones, and people who span teams, so a profile shows a
+    // mix rather than one uniform block.
+    private static final List<DemoProject> PROJECTS = List.of(
+            new DemoProject("SkillAtlas", "Knowledge graph of the company.",
+                    LocalDate.of(2025, 1, 13), null, true,
+                    "Neo4j,Java,Spring Boot,Angular,Cypher tuning",
+                    "milan.kostic:Tech Lead,ada:Backend Engineer,ivana.peric:Backend Engineer,"
+                            + "vuk.stanic:Frontend Engineer,jovana.cvetkovic:QA Engineer"),
+            new DemoProject("VacaYAY Migration", "Moving the leave system off .NET.",
+                    LocalDate.of(2024, 9, 2), null, true,
+                    "C#,.NET,PostgreSQL,Docker,Java",
+                    "dusan.radic:Backend Engineer,jelena.matic:Backend Engineer,"
+                            + "goran.simic:DevOps Engineer"),
+            new DemoProject("Data Platform", "Streaming ingest and the reporting warehouse.",
+                    LocalDate.of(2024, 4, 1), null, true,
+                    "Python,Kafka,Elasticsearch,SQL,PostgreSQL",
+                    "natasa.djuric:Data Engineer,luka.arsic:Data Engineer,"
+                            + "andrej.popovic:Data Engineer,bojana.ristic:Data Engineer"),
+            new DemoProject("Mobile Companion", "Shipped; kept for the archive.",
+                    LocalDate.of(2023, 3, 6), LocalDate.of(2024, 6, 28), false,
+                    "Kotlin,TypeScript,React,GraphQL",
+                    "david.antic:Mobile Engineer,nevena.bogdanovic:Mobile Engineer,"
+                            + "lara.simovic:Mobile Engineer,ada:Backend Engineer"));
+
+    // Ada is on both ends on purpose: her profile is the one to open when checking that mentoring
+    // renders in both directions.
+    private static final List<DemoMentorship> MENTORSHIPS = List.of(
+            new DemoMentorship("milan.kostic", "ada", "Cypher tuning"),
+            new DemoMentorship("petar.ilic", "ada", "Kafka"),
+            new DemoMentorship("ada", "marija.jovic", "Java"),
+            new DemoMentorship("ada", "nikola.savic", "Neo4j"),
+            new DemoMentorship("lena.markovic", "sara.begic", "React"),
+            new DemoMentorship("goran.simic", "teodora.grubic", "Kubernetes"));
 }
