@@ -37,22 +37,22 @@
     @for (p of data()!.content; track p.id) {
       <div class="row data">
         <div class="person">
-          <span>{{ p.firstName }} {{ p.lastName }}</span>
+          <a class="pname" [routerLink]="['/people', p.id]">{{ p.firstName }} {{ p.lastName }}</a>
           <span class="dim small">{{ p.email }}</span>
         </div>
-        <span class="muted">{{ p.team }}</span>
+        <span class="muted">{{ p.teams?.length ? p.teams!.join(', ') : '—' }}</span>
         <span class="muted">{{ p.position }}</span>
         <div class="topskills">
           @if (p.topSkills?.length) {
-            @for (k of p.topSkills; track k.skill.id) {
-              <span class="tag">{{ k.skill.name }} {{ k.level }}</span>
+            @for (k of p.topSkills; track k.skillId) {
+              <span class="tag">{{ k.name }} {{ k.level }}</span>
             }
           } @else {
-            <span class="imported small">No skills — imported</span>
+            <span class="imported small">No skills yet</span>
           }
         </div>
         <div class="actions">
-          <a [routerLink]="['/people', p.id]">Edit</a>
+          <a [routerLink]="['/people', p.id]">Profile</a>
           <a class="muted" (click)="softDelete(p)">Delete</a>
         </div>
       </div>

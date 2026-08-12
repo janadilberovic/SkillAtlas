@@ -43,6 +43,13 @@ export interface Skill {
   wantedBy?: number; // PLANNED — count of WANTS_TO_LEARN
 }
 
+/** `PersonResponse.topSkills` — a KNOWS edge flattened to what a list row prints. */
+export interface TopSkill {
+  skillId: string;
+  name: string;
+  level: number;
+}
+
 /** A KNOWS edge projected for the UI (level is a relationship property, 1–5). */
 export interface KnownSkill {
   skill: Skill;
@@ -59,8 +66,11 @@ export interface Person {
   position: string | null;
   role: Role;
   active: boolean;
-  team?: string; // PLANNED
-  topSkills?: KnownSkill[]; // PLANNED
+  /** MEMBER_OF names, flattened for a list row. */
+  teams?: string[];
+  /** The strongest few KNOWS, level first — a summary for a row, not the whole profile. */
+  topSkills?: TopSkill[];
+  team?: string; // PLANNED — single-team shorthand, mock fixtures only
   knows?: KnownSkill[]; // PLANNED
   wantsToLearn?: Skill[]; // PLANNED
   projects?: PersonProject[]; // PLANNED

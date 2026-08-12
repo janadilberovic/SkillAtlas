@@ -1,5 +1,6 @@
 package com.skillatlas;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -59,6 +60,9 @@ public class DevSeeder implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "Password123!";
 
+    /** Fixed, not {@code now()}: a re-run should leave the graph byte-for-byte where it was. */
+    private static final Instant SEED_INSTANT = Instant.parse("2024-09-01T09:00:00Z");
+
     private final PeopleRepository people;
     private final PeopleService peopleService;
     private final PeopleSkillsRepository peopleSkills;
@@ -98,6 +102,7 @@ public class DevSeeder implements CommandLineRunner {
         Map<String, String> teamIds = ensureTeams();
         Map<String, String> skillIds = ensureSkills();
         int created = ensurePeople(teamIds, skillIds);
+        ensureWishes(skillIds);
         ensureProjects(skillIds);
         ensureMentorships(skillIds);
 
@@ -172,6 +177,25 @@ public class DevSeeder implements CommandLineRunner {
     }
 
     /**
+     * WANTS_TO_LEARN. Nothing seeded these before, so every demo profile claimed to want nothing.
+     * {@code upsertWish} MERGEs and skips soft-deleted people, so re-running changes nothing.
+     *
+     * <p>No wish here may name a skill its person already knows at level 5 — that combination is
+     * rejected by {@code PeopleSkillsService} (spec §4.1), and a fixture should not describe a
+     * state the application forbids.
+     */
+    private void ensureWishes(Map<String, String> skillIds) {
+        for (DemoWish demo : WISHES) {
+            people.findByEmailAndDeletedFalse(demo.person() + "@skillatlas.dev").ifPresent(person -> {
+                for (String name : demo.skills().split(",")) {
+                    peopleSkills.upsertWish(person.getId(),
+                            skillIds.get(name.trim().toLowerCase(Locale.ROOT)), SEED_INSTANT);
+                }
+            });
+        }
+    }
+
+    /**
      * Projects and their members (WORKED_ON). Re-running is safe: the project is created only when
      * a project of that name is missing, and {@code assignMember} MERGEs the relationship.
      */
@@ -228,6 +252,10 @@ public class DevSeeder implements CommandLineRunner {
 
     /** Mentor and mentee by email local part; {@code skill} is a name from {@link #SKILLS}. */
     private record DemoMentorship(String mentor, String mentee, String skill) {
+    }
+
+    /** Person by email local part; {@code skills} is a name list from {@link #SKILLS}. */
+    private record DemoWish(String person, String skills) {
     }
 
     /** {@code skills} is a {@code Name:level} list; the names must exist in {@link #SKILLS}. */
@@ -367,8 +395,57 @@ public class DevSeeder implements CommandLineRunner {
             new DemoPerson("vanja.arhivic@skillatlas.dev", "Vanja", "Arhivić", "Frontend Engineer",
                     "Frontend", "React:5,TypeScript:5", true));
 
+    // Wishes are what makes a profile read like a person rather than an inventory: some want the
+    // next level of what they already do, some want out of their current stack entirely. Nobody
+    // wishes for a skill they hold at 5 — the application rejects that pair.
+    private static final List<DemoWish> WISHES = List.of(
+            new DemoWish("ada", "Kubernetes,Kafka"),
+            new DemoWish("milan.kostic", "Kubernetes,Go"),
+            new DemoWish("jelena.matic", "Neo4j,Kafka"),
+            new DemoWish("nikola.savic", "Java,Cypher tuning"),
+            new DemoWish("petar.ilic", "Neo4j"),
+            new DemoWish("tamara.vukovic", "Cypher tuning"),
+            new DemoWish("stefan.pavlovic", "Terraform"),
+            new DemoWish("marija.jovic", "Spring Boot,Docker"),
+            new DemoWish("dusan.radic", "Java,Kubernetes"),
+            new DemoWish("ivana.peric", "Kafka"),
+
+            new DemoWish("lena.markovic", "Angular"),
+            new DemoWish("vuk.stanic", "Next.js"),
+            new DemoWish("anja.kovac", "Next.js,Node.js"),
+            new DemoWish("filip.novak", "React"),
+            new DemoWish("sara.begic", "Angular,Figma"),
+            new DemoWish("bojan.tosic", "GraphQL"),
+            new DemoWish("katarina.lukic", "Angular"),
+            new DemoWish("relja.mitrovic", "React,Neo4j"),
+
+            new DemoWish("goran.simic", "Go"),
+            new DemoWish("maja.zoric", "Terraform"),
+            new DemoWish("aleksa.mladenovic", "Go"),
+            new DemoWish("teodora.grubic", "Kubernetes"),
+            new DemoWish("igor.blagojevic", "Terraform"),
+
+            new DemoWish("natasa.djuric", "Neo4j"),
+            new DemoWish("luka.arsic", "Kafka"),
+            new DemoWish("milica.stevanovic", "Kubernetes"),
+            new DemoWish("bojana.ristic", "Cypher tuning"),
+            new DemoWish("zoran.babic", "Python"),
+            new DemoWish("andrej.popovic", "Elasticsearch"),
+
+            new DemoWish("jovana.cvetkovic", "Java"),
+            new DemoWish("marko.despotovic", "Playwright"),
+            new DemoWish("tijana.krstic", "Python"),
+            new DemoWish("slobodan.gajic", "Playwright"),
+            new DemoWish("emina.hodzic", "TypeScript"),
+
+            new DemoWish("david.antic", "Neo4j"),
+            new DemoWish("nevena.bogdanovic", "Figma"),
+            new DemoWish("uros.jankovic", "Kotlin"),
+            new DemoWish("lara.simovic", "Next.js"));
+
     // One finished project among the active ones, and people who span teams, so a profile shows a
-    // mix rather than one uniform block.
+    // mix rather than one uniform block. Between them these cover every active demo person: an
+    // empty Projects section should mean something, not just that the fixture stopped early.
     private static final List<DemoProject> PROJECTS = List.of(
             new DemoProject("SkillAtlas", "Knowledge graph of the company.",
                     LocalDate.of(2025, 1, 13), null, true,
@@ -389,7 +466,35 @@ public class DevSeeder implements CommandLineRunner {
                     LocalDate.of(2023, 3, 6), LocalDate.of(2024, 6, 28), false,
                     "Kotlin,TypeScript,React,GraphQL",
                     "david.antic:Mobile Engineer,nevena.bogdanovic:Mobile Engineer,"
-                            + "lara.simovic:Mobile Engineer,ada:Backend Engineer"));
+                            + "lara.simovic:Mobile Engineer,ada:Backend Engineer"),
+            new DemoProject("Nocturne Design System", "The component library the apps share.",
+                    LocalDate.of(2025, 3, 3), null, true,
+                    "Angular,TypeScript,Figma,React",
+                    "katarina.lukic:UX Engineer,lena.markovic:Frontend Engineer,"
+                            + "anja.kovac:Frontend Engineer,relja.mitrovic:Frontend Engineer"),
+            new DemoProject("Release Pipeline", "Build, sign and ship everything else.",
+                    LocalDate.of(2024, 11, 4), null, true,
+                    "CI/CD,Docker,Kubernetes,Terraform,Go",
+                    "goran.simic:DevOps Engineer,maja.zoric:DevOps Engineer,"
+                            + "aleksa.mladenovic:SRE,teodora.grubic:DevOps Engineer,"
+                            + "igor.blagojevic:Platform Engineer"),
+            new DemoProject("Regression Suite", "End-to-end coverage for the whole portfolio.",
+                    LocalDate.of(2025, 2, 10), null, true,
+                    "Playwright,TypeScript,CI/CD",
+                    "tijana.krstic:QA Lead,marko.despotovic:QA Engineer,"
+                            + "slobodan.gajic:QA Engineer,emina.hodzic:QA Engineer"),
+            new DemoProject("Search Revamp", "Rebuilt search; handed over to the platform team.",
+                    LocalDate.of(2024, 2, 5), LocalDate.of(2025, 4, 30), false,
+                    "Elasticsearch,SQL,Java,Kafka",
+                    "luka.arsic:Data Engineer,zoran.babic:Data Analyst,"
+                            + "milica.stevanovic:Data Scientist,petar.ilic:Tech Lead,"
+                            + "nikola.savic:Backend Engineer,tamara.vukovic:Backend Engineer"),
+            new DemoProject("Partner Portal", "Self-service for the partners who resell us.",
+                    LocalDate.of(2025, 5, 12), null, true,
+                    "Go,Next.js,Node.js,PostgreSQL,Kotlin",
+                    "stefan.pavlovic:Backend Engineer,marija.jovic:Junior Backend Engineer,"
+                            + "bojan.tosic:Frontend Engineer,filip.novak:Frontend Engineer,"
+                            + "sara.begic:Junior Frontend Engineer,uros.jankovic:Mobile Engineer"));
 
     // Ada is on both ends on purpose: her profile is the one to open when checking that mentoring
     // renders in both directions.
@@ -399,5 +504,14 @@ public class DevSeeder implements CommandLineRunner {
             new DemoMentorship("ada", "marija.jovic", "Java"),
             new DemoMentorship("ada", "nikola.savic", "Neo4j"),
             new DemoMentorship("lena.markovic", "sara.begic", "React"),
-            new DemoMentorship("goran.simic", "teodora.grubic", "Kubernetes"));
+            new DemoMentorship("goran.simic", "teodora.grubic", "Kubernetes"),
+            // Every mentor here holds the skill at 4 or 5, which is the bar E6.1 will rank by.
+            new DemoMentorship("milan.kostic", "ivana.peric", "Neo4j"),
+            new DemoMentorship("vuk.stanic", "filip.novak", "Angular"),
+            new DemoMentorship("katarina.lukic", "anja.kovac", "Figma"),
+            new DemoMentorship("natasa.djuric", "zoran.babic", "Python"),
+            new DemoMentorship("jovana.cvetkovic", "emina.hodzic", "Playwright"),
+            new DemoMentorship("tijana.krstic", "slobodan.gajic", "Playwright"),
+            new DemoMentorship("david.antic", "uros.jankovic", "Kotlin"),
+            new DemoMentorship("goran.simic", "igor.blagojevic", "Terraform"));
 }
