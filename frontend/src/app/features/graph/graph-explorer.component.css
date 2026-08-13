@@ -104,13 +104,22 @@
 .lbl {
   pointer-events: none;
   font-family: var(--font);
+  fill: var(--text);
+  /* Labels sit on top of edges and other nodes; the halo is what keeps them readable. */
+  paint-order: stroke;
+  stroke: var(--bg-screen);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.tray-cap {
   fill: var(--text-muted);
 }
 .tip {
   position: absolute;
-  left: 16px;
-  top: 16px;
-  width: 260px;
+  /* Offset from the cursor so the pointer never covers the name it is explaining. */
+  transform: translate(18px, -50%);
+  width: 240px;
+  max-width: calc(100% - 40px);
   display: flex;
   flex-direction: column;
   gap: 3px;

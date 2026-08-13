@@ -19,6 +19,9 @@ import { SelectComponent, SelectOption } from '../../shared/components/select/se
 /** The user-space box the layout is solved in; the SVG scales it to whatever the pane is. */
 const WIDTH = 1000;
 const HEIGHT = 760;
+/** Spacing of the tray that holds nodes with no edge in the current window. */
+const TRAY_STEP = 46;
+const TRAY_GAP = 40;
 
 interface PlacedNode extends GraphNode, SimulationNodeDatum {
   x: number;
@@ -78,6 +81,7 @@ export class GraphExplorerComponent {
   readonly failed = signal(false);
   readonly nodes = signal<PlacedNode[]>([]);
   readonly hovered = signal<string | null>(null);
+  readonly tip = signal<{ x: number; y: number } | null>(null);
   readonly selected = signal<PlacedNode | null>(null);
 
   readonly teams = signal<SelectOption[]>([]);
@@ -92,6 +96,10 @@ export class GraphExplorerComponent {
     PROJECT: true,
     TEAM: true,
   });
+
+  /** Y of the divider above the unconnected tray; null when every node has an edge. */
+  readonly trayTop = signal<number | null>(null);
+  readonly looseCount = signal(0);
 
   readonly zoom = signal(1);
   readonly panX = signal(0);
@@ -202,35 +210,63 @@ export class GraphExplorerComponent {
       x: 0,
       y: 0,
     }));
-    const byId = new Map(nodes.map((n) => [n.id, n]));
+
+    // Nodes with no edge *in this window* carry no structure, and leaving them in the simulation
+    // is what produced the orbiting ring: repulsion pushes them off the cluster, the positional
+    // force holds them at a radius, and the result eats the canvas the real graph needed. They
+    // get a tidy tray instead.
+    const linked = nodes.filter((n) => n.degree > 0);
+    const loose = nodes.filter((n) => n.degree === 0);
+    const trayHeight = loose.length ? trayRows(loose.length) * TRAY_STEP + TRAY_GAP : 0;
+    const fieldHeight = HEIGHT - trayHeight;
+
+    const byId = new Map(linked.map((n) => [n.id, n]));
     const links: SimulationLinkDatum<PlacedNode>[] = data.edges
       .filter((e) => byId.has(e.source) && byId.has(e.target))
       .map((e) => ({ source: e.source, target: e.target }));
 
-    const sim = forceSimulation(nodes)
+    const sim = forceSimulation(linked)
       .force(
         'link',
         forceLink<PlacedNode, SimulationLinkDatum<PlacedNode>>(links)
           .id((n) => n.id)
-          .distance(90)
-          .strength(0.35),
+          .distance(110)
+          .strength(0.25),
       )
-      // distanceMax plus the two positional forces are what keep this bounded. The subgraph is
-      // usually several disconnected components, and forceCenter only recentres the mean — with
-      // unbounded repulsion the components sail apart until Fit clamps to the minimum zoom and
-      // the whole map renders as dust.
-      .force('charge', forceManyBody().strength(-180).distanceMax(420))
-      .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
-      .force('x', forceX<PlacedNode>(WIDTH / 2).strength(0.06))
-      .force('y', forceY<PlacedNode>(HEIGHT / 2).strength(0.06))
+      // distanceMax bounds the repulsion; without it the disconnected components sail apart,
+      // since forceCenter only recentres the mean.
+      .force('charge', forceManyBody().strength(-320).distanceMax(600))
+      .force('center', forceCenter(WIDTH / 2, fieldHeight / 2))
+      .force('x', forceX<PlacedNode>(WIDTH / 2).strength(0.04))
+      .force('y', forceY<PlacedNode>(fieldHeight / 2).strength(0.04))
+      // Extra iterations because one pass per tick leaves the dense middle overlapping.
       .force(
         'collide',
-        forceCollide<PlacedNode>().radius((n) => n.r + 10),
+        forceCollide<PlacedNode>()
+          .radius((n) => n.r + 12)
+          .strength(1)
+          .iterations(3),
       )
       .stop();
 
     const ticks = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay()));
     for (let i = 0; i < ticks; i++) sim.tick();
+
+    // The tray is placed outside the simulation, so nothing stops a drifting node from landing on
+    // top of it. Keep the field in its own band.
+    if (loose.length) {
+      for (const n of linked) {
+        n.y = Math.min(n.y, fieldHeight - n.r - 8);
+      }
+    }
+
+    const perRow = Math.max(1, Math.floor(WIDTH / TRAY_STEP));
+    loose.forEach((n, i) => {
+      n.x = TRAY_STEP / 2 + (i % perRow) * TRAY_STEP;
+      n.y = fieldHeight + TRAY_GAP + Math.floor(i / perRow) * TRAY_STEP;
+    });
+    this.trayTop.set(loose.length ? fieldHeight + TRAY_GAP / 2 : null);
+    this.looseCount.set(loose.length);
     return nodes;
   }
 
@@ -250,6 +286,22 @@ export class GraphExplorerComponent {
     const id = this.hovered();
     return id ? (this.byId().get(id) ?? null) : null;
   });
+
+  /** The panel follows the cursor when nothing is pinned, so reading the map needs no clicking. */
+  readonly inspected = computed(() => this.selected() ?? this.hoveredNode());
+
+  onNodeEnter(node: PlacedNode, event: MouseEvent): void {
+    this.hovered.set(node.id);
+    const rect = (event.currentTarget as SVGElement).ownerSVGElement?.getBoundingClientRect();
+    if (rect) {
+      this.tip.set({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+    }
+  }
+
+  clearHover(): void {
+    this.hovered.set(null);
+    this.tip.set(null);
+  }
 
   /** The hovered node and everything one edge away — what the highlight lights up. */
   readonly lit = computed(() => {
@@ -306,7 +358,7 @@ export class GraphExplorerComponent {
   // --- selection panel ----------------------------------------------------
 
   readonly connections = computed<{ type: GraphEdgeType; nodes: PlacedNode[] }[]>(() => {
-    const node = this.selected();
+    const node = this.inspected();
     if (!node) return [];
     const index = this.byId();
     const grouped = new Map<GraphEdgeType, PlacedNode[]>();
@@ -423,6 +475,10 @@ export class GraphExplorerComponent {
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse());
     return { x: point.x, y: point.y };
   }
+}
+
+function trayRows(count: number): number {
+  return Math.ceil(count / Math.max(1, Math.floor(WIDTH / TRAY_STEP)));
 }
 
 function radius(kind: GraphNodeKind, degree: number): number {

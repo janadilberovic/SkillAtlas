@@ -64,9 +64,22 @@
       (pointermove)="onPointerMove($event)"
       (pointerup)="onPointerUp($event)"
       (pointercancel)="onPointerUp($event)"
-      (mouseleave)="hovered.set(null)"
+      (mouseleave)="clearHover()"
     >
       <g [attr.transform]="transform()">
+        @if (trayTop(); as ty) {
+          <line
+            [attr.x1]="0"
+            [attr.y1]="ty"
+            [attr.x2]="width"
+            [attr.y2]="ty"
+            stroke="var(--border)"
+            stroke-dasharray="4 6"
+          />
+          <text [attr.x]="6" [attr.y]="ty - 8" font-size="11" class="lbl tray-cap">
+            {{ looseCount() }} with no relation in this view
+          </text>
+        }
         <g stroke="var(--border-strong)" stroke-width="1">
           @for (e of segments(); track $index) {
             <line [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
@@ -101,7 +114,7 @@
             [attr.fill]="fill(n)"
             class="node"
             [class.dimmed]="lit().size && !lit().has(n.id)"
-            (mouseenter)="hovered.set(n.id)"
+            (mouseenter)="onNodeEnter(n, $event)"
             (click)="selected.set(n)"
           />
           @if (showLabel(n)) {
@@ -120,7 +133,7 @@
     </svg>
 
     @if (hoveredNode(); as h) {
-      <div class="tip">
+      <div class="tip" [style.left.px]="tip()?.x ?? 16" [style.top.px]="tip()?.y ?? 16">
         <span class="eyebrow">{{ h.kind | lowercase }}</span>
         <span class="tipname">{{ h.label }}</span>
         <span class="muted small">{{ h.meta }}</span>
@@ -152,8 +165,8 @@
 
   <!-- Selected node panel -->
   <div class="side right">
-    @if (selected(); as s) {
-      <span class="eyebrow">Selected node</span>
+    @if (inspected(); as s) {
+      <span class="eyebrow">{{ selected() ? 'Selected node' : 'Hovered node' }}</span>
       <div class="selhead">
         <span class="chip" [style.background]="fill(s)"></span>
         <div class="selid">
@@ -183,7 +196,7 @@
         }
       </div>
     } @else {
-      <span class="dim small">Hover to inspect, click a node to select it.</span>
+      <span class="dim small">Hover a node to inspect it, click to pin it here.</span>
     }
   </div>
 </div>
