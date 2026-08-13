@@ -9,6 +9,8 @@ import {
   forceLink,
   forceManyBody,
   forceSimulation,
+  forceX,
+  forceY,
 } from 'd3-force';
 import { GraphApi, GraphQuery, TeamApi } from '../../core/api/api';
 import { GraphData, GraphEdgeType, GraphNode, GraphNodeKind } from '../../core/models/models';
@@ -65,6 +67,13 @@ export class GraphExplorerComponent {
   private readonly svg = viewChild<ElementRef<SVGSVGElement>>('canvas');
 
   readonly graph = signal<GraphData | null>(null);
+  /** Kept outside `graph` so the legend still describes the company when nothing is drawn. */
+  readonly totals = signal<Record<GraphNodeKind, number>>({
+    PERSON: 0,
+    SKILL: 0,
+    PROJECT: 0,
+    TEAM: 0,
+  });
   readonly loading = signal(true);
   readonly failed = signal(false);
   readonly nodes = signal<PlacedNode[]>([]);
@@ -108,6 +117,15 @@ export class GraphExplorerComponent {
     const kinds = this.activeKinds();
     this.loading.set(true);
     this.failed.set(false);
+    // No `types` on the wire means "all kinds" to the server, so an empty selection must never
+    // become a request — every box off is an empty canvas, drawn without asking.
+    if (!kinds.length) {
+      this.graph.set(null);
+      this.nodes.set([]);
+      this.selected.set(null);
+      this.loading.set(false);
+      return;
+    }
     const query: GraphQuery = {
       limit: this.limit(),
       types: kinds,
@@ -118,6 +136,7 @@ export class GraphExplorerComponent {
     this.graphApi.explore(query).subscribe({
       next: (data) => {
         this.graph.set(data);
+        if (data.totals) this.totals.set(data.totals);
         this.nodes.set(this.layout(data));
         this.selected.set(null);
         this.fit();
@@ -133,11 +152,7 @@ export class GraphExplorerComponent {
   }
 
   toggle(kind: GraphNodeKind): void {
-    const next = { ...this.visible(), [kind]: !this.visible()[kind] };
-    // Every box off would ask the server for nothing and get the whole map back (no `types`
-    // means "all"), so the last one stays on.
-    if (ALL_KINDS.every((k) => !next[k])) return;
-    this.visible.set(next);
+    this.visible.update((v) => ({ ...v, [kind]: !v[kind] }));
     this.load();
   }
 
@@ -200,8 +215,14 @@ export class GraphExplorerComponent {
           .distance(90)
           .strength(0.35),
       )
-      .force('charge', forceManyBody().strength(-260))
+      // distanceMax plus the two positional forces are what keep this bounded. The subgraph is
+      // usually several disconnected components, and forceCenter only recentres the mean — with
+      // unbounded repulsion the components sail apart until Fit clamps to the minimum zoom and
+      // the whole map renders as dust.
+      .force('charge', forceManyBody().strength(-180).distanceMax(420))
       .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
+      .force('x', forceX<PlacedNode>(WIDTH / 2).strength(0.06))
+      .force('y', forceY<PlacedNode>(HEIGHT / 2).strength(0.06))
       .force(
         'collide',
         forceCollide<PlacedNode>().radius((n) => n.r + 10),
@@ -257,9 +278,24 @@ export class GraphExplorerComponent {
   /** Labels everywhere is noise past a few dozen nodes, so past that they follow attention. */
   readonly labelAll = computed(() => this.nodes().length <= 60);
 
+  /**
+   * The best-connected nodes stay labelled even in a crowded view — an unlabelled blob is not a
+   * map, and these are the ones a reader orients by.
+   */
+  private readonly anchors = computed(() => {
+    if (this.labelAll()) return new Set<string>();
+    return new Set(
+      [...this.nodes()]
+        .sort((a, b) => b.degree - a.degree)
+        .slice(0, 12)
+        .map((n) => n.id),
+    );
+  });
+
   showLabel(n: PlacedNode): boolean {
     return (
       this.labelAll() ||
+      this.anchors().has(n.id) ||
       n.id === this.rootId() ||
       n.id === this.hovered() ||
       n.id === this.selected()?.id ||
@@ -291,7 +327,7 @@ export class GraphExplorerComponent {
       kind,
       label: KIND_LABEL[kind],
       color: KIND_COLOR[kind],
-      total: this.graph()?.totals?.[kind] ?? 0,
+      total: this.totals()[kind],
     })),
   );
 
