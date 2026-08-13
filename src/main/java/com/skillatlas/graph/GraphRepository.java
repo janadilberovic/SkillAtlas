@@ -64,8 +64,14 @@ public class GraphRepository {
             RETURN id
             """;
 
-    // One pattern comprehension per relationship type, each gated on both of its endpoint kinds
-    // being requested — an edge to a node the caller filtered out is not a drawable edge.
+    // Two lists per seed person. `touched` is the nodes of each requested kind, gated on that kind
+    // alone: filtering people out must still leave the teams and skills standing, or "show me only
+    // teams" answers with an empty canvas — teams reach the graph only through people.
+    // `rels` is the edges, gated on *both* endpoint kinds: an edge into a node the caller filtered
+    // away is not drawable. The overlap between the two lists is deduplicated by id in Java.
+    // Both lists are collected per seed person, so the same USES edge arrives once per person on
+    // the project — hence the DISTINCT passes, which run *before* the cap. Without them duplicates
+    // would spend the budget and totalRelations would count the same edge many times.
     // The cap is applied in the database (rels[0..$limit]); size(rels) still reports the true
     // total, so "showing 150 of 1204" is not a guess.
     private static final String EDGES = """
@@ -74,6 +80,22 @@ public class GraphRepository {
             WITH p, {id: p.id, kind: 'PERSON',
                      label: p.firstName + ' ' + p.lastName, meta: p.position} AS self
             WITH p, self,
+                   CASE WHEN $skillNodes THEN
+                     [(p)-[:KNOWS|WANTS_TO_LEARN]->(s:Skill) |
+                        {id: s.id, kind: 'SKILL', label: s.name, meta: s.category}]
+                   + [(p)-[:WORKED_ON]->(:Project)-[:USES]->(s:Skill) |
+                        {id: s.id, kind: 'SKILL', label: s.name, meta: s.category}]
+                   ELSE [] END
+                 + CASE WHEN $projectNodes THEN
+                     [(p)-[:WORKED_ON]->(pr:Project) |
+                        {id: pr.id, kind: 'PROJECT', label: pr.name,
+                         meta: CASE WHEN pr.active THEN 'Active' ELSE 'Finished' END}]
+                   ELSE [] END
+                 + CASE WHEN $teamNodes THEN
+                     [(p)-[:MEMBER_OF]->(t:Team) |
+                        {id: t.id, kind: 'TEAM', label: t.name, meta: 'Team'}]
+                   ELSE [] END
+                 AS touched,
                    CASE WHEN $knows THEN
                      [(p)-[:KNOWS]->(s:Skill) |
                         {type: 'KNOWS', source: self,
@@ -109,9 +131,16 @@ public class GraphRepository {
                          target: {id: s.id, kind: 'SKILL', label: s.name, meta: s.category}}]
                    ELSE [] END
                  AS rels
-            WITH collect(self) AS selves, collect(rels) AS lists
-            WITH selves, reduce(all = [], l IN lists | all + l) AS rels
-            RETURN selves, size(rels) AS total, rels[0..$limit] AS window
+            WITH collect(self) AS selves, collect(touched) AS nodeLists, collect(rels) AS relLists
+            WITH selves,
+                 reduce(all = [], l IN nodeLists | all + l) AS touched,
+                 reduce(all = [], l IN relLists | all + l) AS rels
+            UNWIND (CASE WHEN touched = [] THEN [null] ELSE touched END) AS n
+            WITH selves, rels, [x IN collect(DISTINCT n) WHERE x IS NOT NULL] AS touched
+            UNWIND (CASE WHEN rels = [] THEN [null] ELSE rels END) AS r
+            WITH selves, touched, [x IN collect(DISTINCT r) WHERE x IS NOT NULL] AS rels
+            RETURN selves, touched[0..$limit] AS loose,
+                   size(rels) AS total, rels[0..$limit] AS window
             """;
 
     private static final String TOTALS = """
@@ -152,11 +181,17 @@ public class GraphRepository {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("ids", personIds);
         params.put("limit", limit);
-        params.put("knows", people && kinds.contains(GraphNodeKind.SKILL));
-        params.put("workedOn", people && kinds.contains(GraphNodeKind.PROJECT));
-        params.put("memberOf", people && kinds.contains(GraphNodeKind.TEAM));
+        boolean skills = kinds.contains(GraphNodeKind.SKILL);
+        boolean projects = kinds.contains(GraphNodeKind.PROJECT);
+        boolean teams = kinds.contains(GraphNodeKind.TEAM);
+        params.put("skillNodes", skills);
+        params.put("projectNodes", projects);
+        params.put("teamNodes", teams);
+        params.put("knows", people && skills);
+        params.put("workedOn", people && projects);
+        params.put("memberOf", people && teams);
         params.put("mentors", people);
-        params.put("uses", kinds.contains(GraphNodeKind.PROJECT) && kinds.contains(GraphNodeKind.SKILL));
+        params.put("uses", projects && skills);
 
         return client.query(EDGES)
                 .bindAll(params)
@@ -171,6 +206,10 @@ public class GraphRepository {
                             nodes.put(self.id(), self);
                         });
                     }
+                    record.get("loose").asList(v -> v).forEach(v -> {
+                        GraphNode loose = node(v);
+                        nodes.putIfAbsent(loose.id(), loose);
+                    });
                     Set<GraphEdge> edges = new LinkedHashSet<>();
                     record.get("window").asList(v -> v).forEach(v -> {
                         GraphNode source = node(v.get("source"));

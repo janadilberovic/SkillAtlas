@@ -45,12 +45,6 @@ public record PersonProfileResponse(
     public record Mentoring(List<Mentorship> mentees, List<Mentorship> mentors) {
     }
 
-    public record GraphNode(String id, String kind, String label, String meta) {
-    }
-
-    public record GraphEdge(String source, String target, String type) {
-    }
-
     /** {@code truncated}: the server hit its cap, so this is a sample of the surroundings. */
     public record Neighbourhood(List<GraphNode> nodes, List<GraphEdge> edges, boolean truncated) {
     }
