@@ -65,6 +65,7 @@
       (pointerup)="onPointerUp($event)"
       (pointercancel)="onPointerUp($event)"
       (mouseleave)="clearHover()"
+      (click)="onCanvasClick()"
     >
       <g [attr.transform]="transform()">
         @if (trayTop(); as ty) {
@@ -115,7 +116,7 @@
             class="node"
             [class.dimmed]="lit().size && !lit().has(n.id)"
             (mouseenter)="onNodeEnter(n, $event)"
-            (click)="selected.set(n)"
+            (click)="select(n, $event)"
           />
           @if (showLabel(n)) {
             <text
@@ -163,10 +164,10 @@
     </div>
   </div>
 
-  <!-- Selected node panel -->
+  <!-- Inspected node panel -->
   <div class="side right">
     @if (inspected(); as s) {
-      <span class="eyebrow">{{ selected() ? 'Selected node' : 'Hovered node' }}</span>
+      <span class="eyebrow">{{ selected() ? 'Pinned node' : 'Hovered node' }}</span>
       <div class="selhead">
         <span class="chip" [style.background]="fill(s)"></span>
         <div class="selid">
@@ -196,7 +197,7 @@
         }
       </div>
     } @else {
-      <span class="dim small">Hover a node to inspect it, click to pin it here.</span>
+      <span class="dim small">Hover a node to inspect it, click to pin it. Click it again, or the background, to unpin.</span>
     }
   </div>
 </div>

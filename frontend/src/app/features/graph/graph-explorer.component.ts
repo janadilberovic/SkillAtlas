@@ -105,6 +105,8 @@ export class GraphExplorerComponent {
   readonly panX = signal(0);
   readonly panY = signal(0);
   private drag: { pointer: number; x: number; y: number; panX: number; panY: number } | null = null;
+  /** A pan ends in a click event; without this the drag would also clear the pinned node. */
+  private dragMoved = false;
 
   readonly width = WIDTH;
   readonly height = HEIGHT;
@@ -303,9 +305,29 @@ export class GraphExplorerComponent {
     this.tip.set(null);
   }
 
-  /** The hovered node and everything one edge away — what the highlight lights up. */
+  /** Clicking the pinned node again unpins it — a pin must always be reversible. */
+  select(node: PlacedNode, event: MouseEvent): void {
+    event.stopPropagation();
+    this.selected.set(this.selected()?.id === node.id ? null : node);
+  }
+
+  /** A click on empty canvas clears the pin, unless it was the end of a pan. */
+  onCanvasClick(): void {
+    if (this.dragMoved) {
+      this.dragMoved = false;
+      return;
+    }
+    this.selected.set(null);
+  }
+
+  /**
+   * The hovered node and everything one edge away — what the rest of the map dims behind.
+   *
+   * <p>Hover only, deliberately: dimming for a pinned selection too would leave the map faded with
+   * no way back, since a pin outlives the cursor.
+   */
   readonly lit = computed(() => {
-    const node = this.hoveredNode() ?? this.selected();
+    const node = this.hoveredNode();
     const set = new Set<string>();
     if (!node) return set;
     set.add(node.id);
@@ -424,8 +446,11 @@ export class GraphExplorerComponent {
     if (!this.drag || this.drag.pointer !== event.pointerId) return;
     const point = this.toUserSpace(event);
     if (!point) return;
-    this.panX.set(this.drag.panX + (point.x - this.drag.x));
-    this.panY.set(this.drag.panY + (point.y - this.drag.y));
+    const dx = point.x - this.drag.x;
+    const dy = point.y - this.drag.y;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.dragMoved = true;
+    this.panX.set(this.drag.panX + dx);
+    this.panY.set(this.drag.panY + dy);
   }
 
   onPointerUp(event: PointerEvent): void {
