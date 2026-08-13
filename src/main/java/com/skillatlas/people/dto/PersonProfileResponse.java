@@ -3,14 +3,13 @@ package com.skillatlas.people.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.skillatlas.graph.dto.GraphEdge;
+import com.skillatlas.graph.dto.GraphNode;
 import com.skillatlas.people.enums.Role;
 
 /**
  * A superset of {@link PersonResponse}, so callers that only read the person fields keep working.
  * Empty branches are empty lists, never {@code null}.
- *
- * <p>{@code GraphNode} / {@code GraphEdge} are nested until E5.1 needs them for a second caller.
- * They carry no layout — placement is the client force-graph's job, not the database's.
  */
 public record PersonProfileResponse(
         String id,

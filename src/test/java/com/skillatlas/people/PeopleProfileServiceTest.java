@@ -19,9 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.skillatlas.graph.dto.GraphEdge;
+import com.skillatlas.graph.dto.GraphNode;
+import com.skillatlas.graph.enums.GraphNodeKind;
 import com.skillatlas.people.dto.PersonProfileResponse;
-import com.skillatlas.people.dto.PersonProfileResponse.GraphEdge;
-import com.skillatlas.people.dto.PersonProfileResponse.GraphNode;
 import com.skillatlas.people.dto.PersonProfileResponse.Mentoring;
 import com.skillatlas.people.dto.PersonProfileResponse.Neighbourhood;
 import com.skillatlas.people.enums.Role;
@@ -51,8 +52,8 @@ class PeopleProfileServiceTest {
     void composesTheNeighbourhoodOntoTheProfile_underACap() {
         when(repository.findProfile("p1")).thenReturn(Optional.of(emptyProfile()));
         Neighbourhood neighbourhood = new Neighbourhood(
-                List.of(new GraphNode("p1", "PERSON", "Ada Lovelace", "Engineer"),
-                        new GraphNode("s1", "SKILL", "Neo4j", "DATABASE")),
+                List.of(new GraphNode("p1", GraphNodeKind.PERSON, "Ada Lovelace", "Engineer"),
+                        new GraphNode("s1", GraphNodeKind.SKILL, "Neo4j", "DATABASE")),
                 List.of(new GraphEdge("p1", "s1", "KNOWS")),
                 true);
         when(repository.neighbourhood(eq("p1"), anyInt())).thenReturn(neighbourhood);
