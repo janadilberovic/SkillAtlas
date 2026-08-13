@@ -1,150 +1,399 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { LowerCasePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { GraphApi } from '../../core/api/api';
-import { GraphData, GraphNode, GraphNodeKind } from '../../core/models/models';
-import { person } from '../../core/mock/mock-data';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  SimulationLinkDatum,
+  SimulationNodeDatum,
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+} from 'd3-force';
+import { GraphApi, GraphQuery, TeamApi } from '../../core/api/api';
+import { GraphData, GraphEdgeType, GraphNode, GraphNodeKind } from '../../core/models/models';
+import { SelectComponent, SelectOption } from '../../shared/components/select/select.component';
+
+/** The user-space box the layout is solved in; the SVG scales it to whatever the pane is. */
+const WIDTH = 1000;
+const HEIGHT = 760;
+
+interface PlacedNode extends GraphNode, SimulationNodeDatum {
+  x: number;
+  y: number;
+  r: number;
+  degree: number;
+}
 
 interface Segment {
   x1: number;
   y1: number;
   x2: number;
   y2: number;
+  type: GraphEdgeType;
 }
+
+const KIND_LABEL: Record<GraphNodeKind, string> = {
+  PERSON: 'People',
+  SKILL: 'Skills',
+  PROJECT: 'Projects',
+  TEAM: 'Teams',
+};
+
+const KIND_COLOR: Record<GraphNodeKind, string> = {
+  PERSON: 'var(--node-person)',
+  SKILL: 'var(--node-skill)',
+  PROJECT: 'var(--node-project)',
+  TEAM: 'var(--node-faint)',
+};
+
+const ALL_KINDS: GraphNodeKind[] = ['PERSON', 'SKILL', 'PROJECT', 'TEAM'];
 
 @Component({
   selector: 'sa-graph-explorer',
   standalone: true,
-  imports: [FormsModule, RouterLink, LowerCasePipe],
+  imports: [RouterLink, LowerCasePipe, SelectComponent],
   templateUrl: './graph-explorer.component.html',
   styleUrl: './graph-explorer.component.css',
 })
 export class GraphExplorerComponent {
   private readonly graphApi = inject(GraphApi);
+  private readonly teamApi = inject(TeamApi);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  private readonly svg = viewChild<ElementRef<SVGSVGElement>>('canvas');
 
   readonly graph = signal<GraphData | null>(null);
+  readonly loading = signal(true);
+  readonly failed = signal(false);
+  readonly nodes = signal<PlacedNode[]>([]);
   readonly hovered = signal<string | null>(null);
-  readonly selected = signal<GraphNode | null>(null);
-  readonly depth = signal(2);
-  readonly limit = signal(300);
-  readonly visible = signal<Record<GraphNodeKind, boolean>>({ PERSON: true, SKILL: true, PROJECT: true, TEAM: true });
+  readonly selected = signal<PlacedNode | null>(null);
 
-  readonly nodeTypes: { kind: GraphNodeKind; label: string; color: string; count: number }[] = [
-    { kind: 'PERSON', label: 'People', color: 'var(--node-person)', count: 214 },
-    { kind: 'SKILL', label: 'Skills', color: 'var(--node-skill)', count: 86 },
-    { kind: 'PROJECT', label: 'Projects', color: 'var(--node-project)', count: 31 },
-    { kind: 'TEAM', label: 'Teams', color: 'transparent', count: 6 },
-  ];
+  readonly teams = signal<SelectOption[]>([]);
+  readonly team = signal('');
+  readonly limit = signal(150);
+  readonly hops = signal(2);
+  /** Set from `?rootId=` — the profile's "In graph" jump lands here. */
+  readonly rootId = signal<string | null>(null);
+  readonly visible = signal<Record<GraphNodeKind, boolean>>({
+    PERSON: true,
+    SKILL: true,
+    PROJECT: true,
+    TEAM: true,
+  });
 
-  private byId = new Map<string, GraphNode>();
+  readonly zoom = signal(1);
+  readonly panX = signal(0);
+  readonly panY = signal(0);
+  private drag: { pointer: number; x: number; y: number; panX: number; panY: number } | null = null;
+
+  readonly width = WIDTH;
+  readonly height = HEIGHT;
 
   constructor() {
-    this.graphApi.explore({ hops: this.depth(), limit: this.limit() }).subscribe((g) => {
-      this.graph.set(g);
-      this.byId = new Map(g.nodes.map((n) => [n.id, n]));
-      this.selected.set(g.nodes[0] ?? null);
+    this.teamApi
+      .list()
+      .subscribe((teams) => this.teams.set(teams.map((t) => ({ value: t.name, label: t.name }))));
+    this.route.queryParamMap.subscribe((params) => {
+      this.rootId.set(params.get('rootId'));
+      this.load();
+    });
+  }
+
+  // --- data ---------------------------------------------------------------
+
+  load(): void {
+    const kinds = this.activeKinds();
+    this.loading.set(true);
+    this.failed.set(false);
+    const query: GraphQuery = {
+      limit: this.limit(),
+      types: kinds,
+      team: this.team() || undefined,
+      rootId: this.rootId() ?? undefined,
+      hops: this.hops(),
+    };
+    this.graphApi.explore(query).subscribe({
+      next: (data) => {
+        this.graph.set(data);
+        this.nodes.set(this.layout(data));
+        this.selected.set(null);
+        this.fit();
+        this.loading.set(false);
+      },
+      error: () => {
+        this.graph.set(null);
+        this.nodes.set([]);
+        this.failed.set(true);
+        this.loading.set(false);
+      },
     });
   }
 
   toggle(kind: GraphNodeKind): void {
-    this.visible.update((v) => ({ ...v, [kind]: !v[kind] }));
+    const next = { ...this.visible(), [kind]: !this.visible()[kind] };
+    // Every box off would ask the server for nothing and get the whole map back (no `types`
+    // means "all"), so the last one stays on.
+    if (ALL_KINDS.every((k) => !next[k])) return;
+    this.visible.set(next);
+    this.load();
   }
 
-  readonly shownNodes = computed(() => (this.graph()?.nodes ?? []).filter((n) => this.visible()[n.kind]));
+  onTeamChange(value: string): void {
+    this.team.set(value);
+    this.load();
+  }
 
-  // The node the pulsing rings orbit — the root person, when its type is visible.
-  readonly rootNode = computed(() => {
-    const g = this.graph();
-    if (!g) return null;
-    const root = g.nodes.find((n) => n.kind === 'PERSON') ?? g.nodes[0] ?? null;
-    return root && this.visible()[root.kind] ? root : null;
+  onLimitChange(value: number): void {
+    this.limit.set(value);
+    this.load();
+  }
+
+  onHopsChange(value: number): void {
+    this.hops.set(value);
+    this.load();
+  }
+
+  focusOn(node: PlacedNode): void {
+    this.router.navigate([], { queryParams: { rootId: node.id } });
+  }
+
+  clearFocus(): void {
+    this.router.navigate([], { queryParams: {} });
+  }
+
+  private activeKinds(): GraphNodeKind[] {
+    return ALL_KINDS.filter((k) => this.visible()[k]);
+  }
+
+  // --- layout -------------------------------------------------------------
+
+  /**
+   * d3-force, solved synchronously rather than animated: ticking on requestAnimationFrame would
+   * re-run change detection every frame to arrive at the same picture.
+   */
+  private layout(data: GraphData): PlacedNode[] {
+    const degree = new Map<string, number>();
+    for (const e of data.edges) {
+      degree.set(e.source, (degree.get(e.source) ?? 0) + 1);
+      degree.set(e.target, (degree.get(e.target) ?? 0) + 1);
+    }
+    const nodes: PlacedNode[] = data.nodes.map((n) => ({
+      ...n,
+      degree: degree.get(n.id) ?? 0,
+      r: radius(n.kind, degree.get(n.id) ?? 0),
+      x: 0,
+      y: 0,
+    }));
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const links: SimulationLinkDatum<PlacedNode>[] = data.edges
+      .filter((e) => byId.has(e.source) && byId.has(e.target))
+      .map((e) => ({ source: e.source, target: e.target }));
+
+    const sim = forceSimulation(nodes)
+      .force(
+        'link',
+        forceLink<PlacedNode, SimulationLinkDatum<PlacedNode>>(links)
+          .id((n) => n.id)
+          .distance(90)
+          .strength(0.35),
+      )
+      .force('charge', forceManyBody().strength(-260))
+      .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
+      .force(
+        'collide',
+        forceCollide<PlacedNode>().radius((n) => n.r + 10),
+      )
+      .stop();
+
+    const ticks = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay()));
+    for (let i = 0; i < ticks; i++) sim.tick();
+    return nodes;
+  }
+
+  private byId(): Map<string, PlacedNode> {
+    return new Map(this.nodes().map((n) => [n.id, n]));
+  }
+
+  readonly segments = computed<Segment[]>(() => {
+    const index = this.byId();
+    return (this.graph()?.edges ?? [])
+      .map((e) => ({ a: index.get(e.source), b: index.get(e.target), type: e.type }))
+      .filter((p): p is { a: PlacedNode; b: PlacedNode; type: GraphEdgeType } => !!p.a && !!p.b)
+      .map((p) => ({ x1: p.a.x, y1: p.a.y, x2: p.b.x, y2: p.b.y, type: p.type }));
   });
 
-  readonly edgeSegments = computed<Segment[]>(() => {
-    const g = this.graph();
-    if (!g) return [];
-    return g.edges
-      .map((e) => ({ a: this.byId.get(e.source), b: this.byId.get(e.target) }))
-      .filter((p) => p.a && p.b && this.visible()[p.a!.kind] && this.visible()[p.b!.kind])
-      .map((p) => ({ x1: p.a!.x, y1: p.a!.y, x2: p.b!.x, y2: p.b!.y }));
+  readonly hoveredNode = computed(() => {
+    const id = this.hovered();
+    return id ? (this.byId().get(id) ?? null) : null;
   });
 
-  readonly hoveredNode = computed(() => (this.hovered() ? this.byId.get(this.hovered()!) ?? null : null));
-
-  // Port of the design's hover logic: light a node's edges plus the 2nd hop through its projects.
+  /** The hovered node and everything one edge away — what the highlight lights up. */
   readonly lit = computed(() => {
-    const n = this.hoveredNode();
+    const node = this.hoveredNode() ?? this.selected();
     const set = new Set<string>();
-    if (!n) return set;
-    set.add(n.id);
-    for (const k of n.edges) {
-      const m = this.byId.get(k);
-      if (!m) continue;
-      set.add(k);
-      if (m.kind === 'PROJECT') {
-        for (const k2 of m.edges) if (k2 !== n.id) set.add(k2);
-      }
+    if (!node) return set;
+    set.add(node.id);
+    for (const e of this.graph()?.edges ?? []) {
+      if (e.source === node.id) set.add(e.target);
+      if (e.target === node.id) set.add(e.source);
     }
     return set;
   });
 
   readonly litSegments = computed<Segment[]>(() => {
-    const n = this.hoveredNode();
-    if (!n) return [];
-    const segs: Segment[] = [];
-    for (const k of n.edges) {
-      const m = this.byId.get(k);
-      if (!m) continue;
-      segs.push({ x1: n.x, y1: n.y, x2: m.x, y2: m.y });
-      if (m.kind === 'PROJECT') {
-        for (const k2 of m.edges) {
-          if (k2 === n.id) continue;
-          const o = this.byId.get(k2);
-          if (o) segs.push({ x1: m.x, y1: m.y, x2: o.x, y2: o.y });
-        }
-      }
+    const node = this.hoveredNode() ?? this.selected();
+    if (!node) return [];
+    const index = this.byId();
+    return (this.graph()?.edges ?? [])
+      .filter((e) => e.source === node.id || e.target === node.id)
+      .map((e) => ({ a: index.get(e.source), b: index.get(e.target), type: e.type }))
+      .filter((p): p is { a: PlacedNode; b: PlacedNode; type: GraphEdgeType } => !!p.a && !!p.b)
+      .map((p) => ({ x1: p.a.x, y1: p.a.y, x2: p.b.x, y2: p.b.y, type: p.type }));
+  });
+
+  /** Labels everywhere is noise past a few dozen nodes, so past that they follow attention. */
+  readonly labelAll = computed(() => this.nodes().length <= 60);
+
+  showLabel(n: PlacedNode): boolean {
+    return (
+      this.labelAll() ||
+      n.id === this.rootId() ||
+      n.id === this.hovered() ||
+      n.id === this.selected()?.id ||
+      this.lit().has(n.id)
+    );
+  }
+
+  // --- selection panel ----------------------------------------------------
+
+  readonly connections = computed<{ type: GraphEdgeType; nodes: PlacedNode[] }[]>(() => {
+    const node = this.selected();
+    if (!node) return [];
+    const index = this.byId();
+    const grouped = new Map<GraphEdgeType, PlacedNode[]>();
+    for (const e of this.graph()?.edges ?? []) {
+      const otherId = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
+      if (!otherId) continue;
+      const other = index.get(otherId);
+      if (!other) continue;
+      const list = grouped.get(e.type) ?? [];
+      list.push(other);
+      grouped.set(e.type, list);
     }
-    return segs;
+    return [...grouped.entries()].map(([type, nodes]) => ({ type, nodes }));
   });
 
-  readonly tipLeft = computed(() => {
-    const n = this.hoveredNode();
-    return n ? Math.min(Math.max(((n.x + 34) / 820) * 100, 2), 62) : 0;
-  });
-  readonly tipTop = computed(() => {
-    const n = this.hoveredNode();
-    return n ? Math.min(Math.max(((n.y - 40) / 880) * 100, 2), 82) : 0;
-  });
+  readonly typeRows = computed(() =>
+    ALL_KINDS.map((kind) => ({
+      kind,
+      label: KIND_LABEL[kind],
+      color: KIND_COLOR[kind],
+      total: this.graph()?.totals?.[kind] ?? 0,
+    })),
+  );
 
-  fill(n: GraphNode): string {
-    switch (n.kind) {
-      case 'PERSON':
-        return 'var(--node-person)';
-      case 'SKILL':
-        return 'var(--node-skill)';
-      case 'PROJECT':
-        return 'var(--node-project)';
-      default:
-        return 'var(--node-faint)';
+  readonly shownCount = computed(() => this.graph()?.edges.length ?? 0);
+
+  fill(n: PlacedNode): string {
+    return KIND_COLOR[n.kind];
+  }
+
+  // --- zoom / pan ---------------------------------------------------------
+
+  readonly transform = computed(
+    () => `translate(${this.panX()},${this.panY()}) scale(${this.zoom()})`,
+  );
+
+  onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    const point = this.toUserSpace(event);
+    if (!point) return;
+    const from = this.zoom();
+    const to = clamp(from * (event.deltaY < 0 ? 1.15 : 1 / 1.15), 0.25, 4);
+    // Keep whatever is under the cursor under the cursor.
+    this.panX.set(point.x - (point.x - this.panX()) * (to / from));
+    this.panY.set(point.y - (point.y - this.panY()) * (to / from));
+    this.zoom.set(to);
+  }
+
+  onPointerDown(event: PointerEvent): void {
+    const point = this.toUserSpace(event);
+    if (!point) return;
+    this.drag = {
+      pointer: event.pointerId,
+      x: point.x,
+      y: point.y,
+      panX: this.panX(),
+      panY: this.panY(),
+    };
+    (event.target as Element).setPointerCapture?.(event.pointerId);
+  }
+
+  onPointerMove(event: PointerEvent): void {
+    if (!this.drag || this.drag.pointer !== event.pointerId) return;
+    const point = this.toUserSpace(event);
+    if (!point) return;
+    this.panX.set(this.drag.panX + (point.x - this.drag.x));
+    this.panY.set(this.drag.panY + (point.y - this.drag.y));
+  }
+
+  onPointerUp(event: PointerEvent): void {
+    if (this.drag?.pointer === event.pointerId) this.drag = null;
+  }
+
+  zoomBy(factor: number): void {
+    const from = this.zoom();
+    const to = clamp(from * factor, 0.25, 4);
+    const cx = WIDTH / 2;
+    const cy = HEIGHT / 2;
+    this.panX.set(cx - (cx - this.panX()) * (to / from));
+    this.panY.set(cy - (cy - this.panY()) * (to / from));
+    this.zoom.set(to);
+  }
+
+  /** Frame the whole subgraph — the reset the zoom buttons drift away from. */
+  fit(): void {
+    const nodes = this.nodes();
+    if (!nodes.length) {
+      this.zoom.set(1);
+      this.panX.set(0);
+      this.panY.set(0);
+      return;
     }
+    const minX = Math.min(...nodes.map((n) => n.x - n.r));
+    const maxX = Math.max(...nodes.map((n) => n.x + n.r));
+    const minY = Math.min(...nodes.map((n) => n.y - n.r));
+    const maxY = Math.max(...nodes.map((n) => n.y + n.r));
+    const pad = 40;
+    const scale = clamp(
+      Math.min(WIDTH / (maxX - minX + pad), HEIGHT / (maxY - minY + pad)),
+      0.25,
+      2,
+    );
+    this.zoom.set(scale);
+    this.panX.set(WIDTH / 2 - ((minX + maxX) / 2) * scale);
+    this.panY.set(HEIGHT / 2 - ((minY + maxY) / 2) * scale);
   }
 
-  // The graph's person node maps to the seeded person p-mila for richer panel data.
-  private linkedPerson() {
-    return this.selected()?.id === 'mila' ? person('p-mila') : undefined;
+  // getScreenCTM rather than the bounding rect: it already accounts for preserveAspectRatio's
+  // letterboxing, which a naive width ratio gets wrong on any non-matching aspect.
+  private toUserSpace(event: MouseEvent | PointerEvent): { x: number; y: number } | null {
+    const svg = this.svg()?.nativeElement;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse());
+    return { x: point.x, y: point.y };
   }
-  selectedPersonId(): string | null {
-    return this.linkedPerson()?.id ?? null;
-  }
-  selectedTitle(n: GraphNode): string {
-    const p = this.linkedPerson();
-    return p ? `${p.firstName} ${p.lastName}` : n.label;
-  }
-  selectedKnows() {
-    return this.linkedPerson()?.knows ?? [];
-  }
-  selectedProjects() {
-    return this.linkedPerson()?.projects ?? [];
-  }
+}
+
+function radius(kind: GraphNodeKind, degree: number): number {
+  const base = kind === 'PERSON' ? 15 : kind === 'PROJECT' ? 13 : kind === 'TEAM' ? 12 : 11;
+  return base + Math.min(9, Math.sqrt(degree) * 2.2);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

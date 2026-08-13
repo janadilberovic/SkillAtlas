@@ -3,63 +3,96 @@
   <div class="side left">
     <span class="col-head">Node types</span>
     <div class="types">
-      @for (t of nodeTypes; track t.kind) {
+      @for (t of typeRows(); track t.kind) {
         <label class="type" [class.off]="!visible()[t.kind]">
           <input type="checkbox" [checked]="visible()[t.kind]" (change)="toggle(t.kind)" />
           <span class="dot" [style.background]="t.color"></span>{{ t.label }}
-          <span class="count dim">{{ t.count }}</span>
+          <span class="count dim">{{ t.total }}</span>
         </label>
       }
     </div>
-
-    <div class="divider"></div>
-    <span class="col-head">Relations</span>
-    <div class="rels">
-      <span class="tag tag-outline">KNOWS</span>
-      <span class="tag tag-outline">WORKED_ON</span>
-      <span class="tag tag-mute">USES</span>
-      <span class="tag tag-mute">MENTORS</span>
-    </div>
+    <span class="dim tiny">Counts are company-wide, not what is on screen.</span>
 
     <div class="divider"></div>
     <div class="group">
-      <label class="label">Team</label>
-      <select class="field">
-        <option>All teams</option>
-        <option>Backend</option>
-      </select>
+      <label class="label" for="graph-team">Team</label>
+      <sa-select
+        id="graph-team"
+        [options]="teams()"
+        placeholder="All teams"
+        [value]="team()"
+        (valueChange)="onTeamChange($event)"
+      />
     </div>
+
+    @if (rootId()) {
+      <div class="group">
+        <label class="label">Depth · {{ hops() }} {{ hops() === 1 ? 'hop' : 'hops' }}</label>
+        <input
+          type="range"
+          min="1"
+          max="2"
+          [value]="hops()"
+          (change)="onHopsChange(+$any($event.target).value)"
+        />
+        <span class="dim tiny">1 is this person's own edges, 2 adds their colleagues.</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" (click)="clearFocus()">Clear focus</button>
+    }
+
     <div class="group">
-      <label class="label">Depth · {{ depth() }} hops</label>
-      <input type="range" min="1" max="4" [value]="depth()" (input)="depth.set(+$any($event.target).value)" />
-    </div>
-    <div class="group">
-      <label class="label">Node limit · {{ limit() }}</label>
-      <input type="range" min="50" max="500" step="50" [value]="limit()" (input)="limit.set(+$any($event.target).value)" />
-      <span class="dim tiny">Server caps the subgraph — the whole graph is never sent.</span>
+      <label class="label">Relation limit · {{ limit() }}</label>
+      <input
+        type="range"
+        min="50"
+        max="500"
+        step="50"
+        [value]="limit()"
+        (change)="onLimitChange(+$any($event.target).value)"
+      />
+      <span class="dim tiny">The server caps the subgraph — the whole graph is never sent.</span>
     </div>
   </div>
 
   <!-- Canvas -->
   <div class="canvas">
-    @if (graph()) {
-      <svg viewBox="0 0 820 880" (mouseleave)="hovered.set(null)">
-        <g stroke="#3f424d" stroke-width="1">
-          @for (e of edgeSegments(); track $index) {
+    <svg
+      #canvas
+      [attr.viewBox]="'0 0 ' + width + ' ' + height"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+      (mouseleave)="hovered.set(null)"
+    >
+      <g [attr.transform]="transform()">
+        <g stroke="var(--border-strong)" stroke-width="1">
+          @for (e of segments(); track $index) {
             <line [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
           }
         </g>
         @for (s of litSegments(); track $index) {
-          <line [attr.x1]="s.x1" [attr.y1]="s.y1" [attr.x2]="s.x2" [attr.y2]="s.y2" stroke="#9184d9" stroke-width="2.5" stroke-linecap="round" />
+          <line
+            [attr.x1]="s.x1"
+            [attr.y1]="s.y1"
+            [attr.x2]="s.x2"
+            [attr.y2]="s.y2"
+            stroke="var(--node-person)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
         }
-        @if (rootNode(); as r) {
-          <circle class="ping" [attr.cx]="r.x" [attr.cy]="r.y" [attr.r]="r.r" fill="none" stroke="#9184d9" stroke-width="2" />
-          <circle class="ping d1" [attr.cx]="r.x" [attr.cy]="r.y" [attr.r]="r.r" fill="none" stroke="#9184d9" stroke-width="2" />
-          <circle class="ping d2" [attr.cx]="r.x" [attr.cy]="r.y" [attr.r]="r.r" fill="none" stroke="#9184d9" stroke-width="2" />
-        }
-        @for (n of shownNodes(); track n.id) {
-          @if (lit().has(n.id)) {
-            <circle [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="n.r + 4" fill="none" stroke="#d2cefd" stroke-width="1.5" />
+        @for (n of nodes(); track n.id) {
+          @if (selected()?.id === n.id || hovered() === n.id) {
+            <circle
+              [attr.cx]="n.x"
+              [attr.cy]="n.y"
+              [attr.r]="n.r + 4"
+              fill="none"
+              stroke="var(--accent-text)"
+              stroke-width="1.5"
+            />
           }
           <circle
             [attr.cx]="n.x"
@@ -67,35 +100,52 @@
             [attr.r]="n.r"
             [attr.fill]="fill(n)"
             class="node"
-            [class.sel]="selected()?.id === n.id"
+            [class.dimmed]="lit().size && !lit().has(n.id)"
             (mouseenter)="hovered.set(n.id)"
             (click)="selected.set(n)"
           />
-          <text [attr.x]="n.x" [attr.y]="n.kind === 'PERSON' ? n.y + 5 : n.y - n.r - 8" text-anchor="middle" font-size="13" [attr.fill]="n.kind === 'PERSON' ? '#161826' : '#cfd3e5'" class="lbl">{{ n.label }}</text>
+          @if (showLabel(n)) {
+            <text
+              [attr.x]="n.x"
+              [attr.y]="n.y - n.r - 6"
+              text-anchor="middle"
+              font-size="12"
+              class="lbl"
+            >
+              {{ n.label }}
+            </text>
+          }
         }
-      </svg>
+      </g>
+    </svg>
 
-      @if (hoveredNode(); as h) {
-        <div class="tip" [style.left.%]="tipLeft()" [style.top.%]="tipTop()">
-          <span class="eyebrow">{{ h.kind }}</span>
-          <span class="tipname">{{ h.label }}</span>
-          <span class="muted small">{{ h.meta }}</span>
-          <span class="tippath dim small">{{ h.path }}</span>
-        </div>
-      }
-
-      <div class="hud tl">
-        <span class="dim small">Search in graph</span>
-        <span class="bar"></span>
-        <span class="small">{{ graph()!.rootLabel }}</span>
+    @if (hoveredNode(); as h) {
+      <div class="tip">
+        <span class="eyebrow">{{ h.kind | lowercase }}</span>
+        <span class="tipname">{{ h.label }}</span>
+        <span class="muted small">{{ h.meta }}</span>
+        <span class="dim small">{{ h.degree }} relations in view</span>
       </div>
-      <div class="hud br">
-        <button class="zoom">+</button>
-        <button class="zoom">−</button>
-        <button class="zoom wide">Fit</button>
-      </div>
-      <div class="status dim small">{{ graph()!.totalNodes }} nodes · {{ graph()!.totalRelations }} relations · {{ depth() }} hops from {{ graph()!.rootLabel }}</div>
     }
+
+    <div class="hud br">
+      <button class="zoom" (click)="zoomBy(1.25)" aria-label="Zoom in">+</button>
+      <button class="zoom" (click)="zoomBy(0.8)" aria-label="Zoom out">−</button>
+      <button class="zoom wide" (click)="fit()">Fit</button>
+    </div>
+
+    <div class="status dim small">
+      @if (loading()) {
+        Loading the subgraph…
+      } @else if (failed()) {
+        Could not load the graph.
+      } @else if (graph(); as g) {
+        {{ nodes().length }} nodes · showing {{ shownCount() }} of {{ g.totalRelations }} relations
+        @if (g.truncated) {
+          · capped by the server
+        }
+      }
+    </div>
   </div>
 
   <!-- Selected node panel -->
@@ -103,44 +153,32 @@
     @if (selected(); as s) {
       <span class="eyebrow">Selected node</span>
       <div class="selhead">
-        <span class="chip">{{ s.label }}</span>
+        <span class="chip" [style.background]="fill(s)"></span>
         <div class="selid">
-          <span class="selname">{{ selectedTitle(s) }}</span>
-          <span class="dim small">{{ s.kind | lowercase }} · {{ s.meta }}</span>
+          <span class="selname">{{ s.label }}</span>
+          <span class="dim small">{{ s.kind | lowercase }}@if (s.meta) { · {{ s.meta }} }</span>
         </div>
       </div>
 
-      @if (selectedKnows().length) {
+      @for (group of connections(); track group.type) {
         <div class="block">
-          <span class="col-head">Knows</span>
+          <span class="col-head">{{ group.type }}</span>
           <div class="tags">
-            @for (k of selectedKnows(); track k.skill.id) {
-              <span class="tag">{{ k.skill.name }} {{ k.level }}</span>
+            @for (n of group.nodes; track n.id) {
+              <span class="tag tag-outline">{{ n.label }}</span>
             }
           </div>
         </div>
+      } @empty {
+        <span class="dim small">No relations in the current view.</span>
       }
-
-      @if (selectedProjects().length) {
-        <div class="block">
-          <span class="col-head">Worked on</span>
-          @for (pr of selectedProjects(); track pr.projectId) {
-            <span class="muted small">{{ pr.name }} — {{ pr.role }}</span>
-          }
-        </div>
-      }
-
-      <div class="block">
-        <span class="col-head">Path</span>
-        <span class="muted small">{{ s.path }}</span>
-      </div>
 
       <div class="divider"></div>
       <div class="selactions">
-        @if (selectedPersonId(); as pid) {
-          <a class="btn btn-block center" [routerLink]="['/people', pid]">Open profile</a>
+        @if (s.kind === 'PERSON') {
+          <a class="btn btn-block center" [routerLink]="['/people', s.id]">Open profile</a>
+          <button class="btn btn-ghost btn-block" (click)="focusOn(s)">Focus the graph here</button>
         }
-        <button class="btn btn-ghost btn-block">Expand neighbours</button>
       </div>
     } @else {
       <span class="dim small">Hover to inspect, click a node to select it.</span>

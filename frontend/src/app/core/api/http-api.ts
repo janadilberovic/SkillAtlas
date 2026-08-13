@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   Expert,
   FinderResult,
+  GraphData,
   LoginResponse,
   Me,
   MySkills,
@@ -19,6 +20,8 @@ import {
 import {
   AuthApi,
   FinderApi,
+  GraphApi,
+  GraphQuery,
   MemberInput,
   PeopleApi,
   PeopleQuery,
@@ -185,6 +188,24 @@ export class HttpFinderApi extends FinderApi {
     // search happened to ask for.
     const params = new HttpParams().set('skills', terms.map((t) => t.name).join(','));
     return this.http.get<SkillCoverage[]>(`${BASE}/experts/coverage`, { params });
+  }
+}
+
+@Injectable()
+export class HttpGraphApi extends GraphApi {
+  private readonly http = inject(HttpClient);
+
+  explore(query: GraphQuery): Observable<GraphData> {
+    let params = new HttpParams();
+    if (query.limit) params = params.set('limit', String(query.limit));
+    if (query.team) params = params.set('team', query.team);
+    if (query.rootId) params = params.set('rootId', query.rootId);
+    if (query.rootId && query.hops) params = params.set('hops', String(query.hops));
+    // All four kinds is the server's default, so sending them just makes the URL longer.
+    if (query.types?.length && query.types.length < 4) {
+      params = params.set('types', query.types.join(','));
+    }
+    return this.http.get<GraphData>(`${BASE}/graph`, { params });
   }
 }
 

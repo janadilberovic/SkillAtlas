@@ -5,7 +5,6 @@
  */
 import {
   DashboardData,
-  GraphData,
   KnownSkill,
   MentorCandidate,
   Person,
@@ -339,34 +338,6 @@ export const PROJECTS: Project[] = PROJECT_SEEDS.map((s) => ({
 export const MOCK_CREDENTIALS: Record<string, string> = {
   'admin@skillatlas.dev': 'Password123!',
   'sara.ilic@firma.rs': 'Password123!',
-};
-
-// --- Graph subgraph (2b) --------------------------------------------------
-// Ported 1:1 from the design doc's GRAPH_NODES so the hover-highlight behaviour matches.
-export const GRAPH: GraphData = {
-  rootLabel: 'Mila R.',
-  hops: 2,
-  totalNodes: 287,
-  totalRelations: 612,
-  nodes: [
-    { id: 'mila', kind: 'PERSON', label: 'MR', meta: 'Backend · Senior Engineer', path: 'Vega (Tech lead) → Neo4j 5, Docker 4 · Atlas → React 3', x: 410, y: 430, r: 34, edges: ['vega', 'atlas', 'neo4j', 'docker', 'react'] },
-    { id: 'neo4j', kind: 'SKILL', label: 'Neo4j', meta: 'database · known by 5', path: 'Mila KNOWS 5 · used by Vega, Atlas', x: 250, y: 270, r: 23, edges: ['mila', 'vega', 'atlas'] },
-    { id: 'react', kind: 'SKILL', label: 'React', meta: 'framework · known by 64', path: 'Mila KNOWS 3 · used by Atlas', x: 590, y: 290, r: 23, edges: ['mila', 'atlas'] },
-    { id: 'docker', kind: 'SKILL', label: 'Docker', meta: 'tool · known by 48', path: 'Mila KNOWS 4 since 2023 · used by Vega', x: 410, y: 200, r: 21, edges: ['mila', 'vega'] },
-    { id: 'atlas', kind: 'PROJECT', label: 'Atlas', meta: 'active · 9 people', path: 'Mila as Backend dev, 2025 — now · uses Neo4j, React', x: 600, y: 590, r: 22, edges: ['mila', 'neo4j', 'react'] },
-    { id: 'vega', kind: 'PROJECT', label: 'Vega', meta: 'archived · 6 people', path: 'Mila as Tech lead, 2023 — 2024 · uses Neo4j, Docker', x: 230, y: 600, r: 22, edges: ['mila', 'neo4j', 'docker'] },
-  ],
-  edges: [
-    { source: 'mila', target: 'neo4j', type: 'KNOWS' },
-    { source: 'mila', target: 'docker', type: 'KNOWS' },
-    { source: 'mila', target: 'react', type: 'KNOWS' },
-    { source: 'mila', target: 'atlas', type: 'WORKED_ON' },
-    { source: 'mila', target: 'vega', type: 'WORKED_ON' },
-    { source: 'atlas', target: 'neo4j', type: 'USES' },
-    { source: 'atlas', target: 'react', type: 'USES' },
-    { source: 'vega', target: 'neo4j', type: 'USES' },
-    { source: 'vega', target: 'docker', type: 'USES' },
-  ],
 };
 
 // --- Dashboard (2d) -------------------------------------------------------

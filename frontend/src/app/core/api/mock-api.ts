@@ -5,7 +5,6 @@ import {
   DashboardData,
   FinderMatch,
   FinderResult,
-  GraphData,
   LoginResponse,
   MatchedSkill,
   Me,
@@ -23,8 +22,6 @@ import {
   AuthApi,
   DashboardApi,
   FinderApi,
-  GraphApi,
-  GraphQuery,
   MemberInput,
   MentoringApi,
   PeopleApi,
@@ -36,7 +33,6 @@ import {
 } from './api';
 import {
   DASHBOARD,
-  GRAPH,
   MOCK_CREDENTIALS,
   PEOPLE,
   PROJECTS,
@@ -251,13 +247,6 @@ export class MockFinderApi extends FinderApi {
         };
       }),
     );
-  }
-}
-
-@Injectable()
-export class MockGraphApi extends GraphApi {
-  explore(_query: GraphQuery): Observable<GraphData> {
-    return respond(GRAPH);
   }
 }
 

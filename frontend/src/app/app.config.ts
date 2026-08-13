@@ -6,6 +6,7 @@ import { authInterceptor } from './core/auth/auth.interceptor';
 import {
   AuthApi,
   FinderApi,
+  GraphApi,
   PeopleApi,
   PeopleSkillsApi,
   ProjectApi,
@@ -15,6 +16,7 @@ import {
 import {
   HttpAuthApi,
   HttpFinderApi,
+  HttpGraphApi,
   HttpPeopleApi,
   HttpPeopleSkillsApi,
   HttpProjectApi,
@@ -34,6 +36,7 @@ export const appConfig: ApplicationConfig = {
     // "waiting for the API" screen, so no API binding is needed for them.
     { provide: AuthApi, useClass: HttpAuthApi },
     { provide: FinderApi, useClass: HttpFinderApi },
+    { provide: GraphApi, useClass: HttpGraphApi },
     { provide: PeopleApi, useClass: HttpPeopleApi },
     { provide: PeopleSkillsApi, useClass: HttpPeopleSkillsApi },
     { provide: SkillApi, useClass: HttpSkillApi },

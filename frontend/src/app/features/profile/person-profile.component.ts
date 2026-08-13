@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PeopleApi, PeopleSkillsApi, SkillApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
 import { PersonProfile, Skill } from '../../core/models/models';
@@ -12,7 +12,7 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 @Component({
   selector: 'sa-person-profile',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, LevelBarComponent, SelectComponent, SkeletonComponent],
+  imports: [FormsModule, RouterLink, AvatarComponent, LevelBarComponent, SelectComponent, SkeletonComponent],
   templateUrl: './person-profile.component.html',
   styleUrl: './person-profile.component.css',
 })
