@@ -36,12 +36,8 @@ import com.skillatlas.teams.domain.Team;
 import com.skillatlas.teams.dto.TeamCreateRequest;
 
 /**
- * Integration tests for E4.2: the aggregate behind {@code GET /api/v1/people/{id}} against a real
- * Neo4j — every branch, both directions of MENTORS, the soft-delete filter on the far side of a
- * relationship, the capped neighbourhood, and the mandatory Cypher-injection case.
- *
- * <p>Fixture names carry a per-run UUID suffix so a shared database can't make results ambiguous,
- * and everything created here is deleted again in {@link #cleanup()}.
+ * Fixture names carry a per-run UUID suffix so a shared database can't make results ambiguous, and
+ * everything created here is deleted again in {@link #cleanup()}.
  */
 class PersonProfileIT extends AbstractNeo4jIT {
 
@@ -163,7 +159,6 @@ class PersonProfileIT extends AbstractNeo4jIT {
                 .andExpect(jsonPath("$.isDeleted").doesNotExist())
                 .andExpect(jsonPath("$.deletedAt").doesNotExist())
                 .andExpect(jsonPath("$.teams[0]").value(teamName))
-                // Strongest skill first; level and since come off the KNOWS relationship.
                 .andExpect(jsonPath("$.skills.length()").value(2))
                 .andExpect(jsonPath("$.skills[0].name").value(neo4jSkill))
                 .andExpect(jsonPath("$.skills[0].level").value(5))
@@ -219,7 +214,6 @@ class PersonProfileIT extends AbstractNeo4jIT {
                 .andExpect(jsonPath("$.neighbourhood.edges[?(@.type == 'KNOWS')]").exists())
                 .andExpect(jsonPath("$.neighbourhood.edges[?(@.type == 'MEMBER_OF')]").exists())
                 .andExpect(jsonPath("$.neighbourhood.edges[?(@.type == 'WORKED_ON')]").exists())
-                // Second hop: the project USES Docker, so the skill hangs off the project.
                 .andExpect(jsonPath("$.neighbourhood.edges[?(@.source == '" + projectId
                         + "' && @.target == '" + dockerSkillId + "' && @.type == 'USES')]").exists())
                 .andExpect(jsonPath("$.neighbourhood.truncated").value(false));

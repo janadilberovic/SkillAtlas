@@ -45,12 +45,10 @@ import com.skillatlas.teams.dto.TeamCreateRequest;
  * company big enough to exercise the expert finder: six teams, ~30 skills, ~40 people with KNOWS
  * levels spread over 1–5, and two soft-deleted people who must never show up in a result.
  *
- * <p>Idempotent, and self-healing where it can be: every node is created only when it is missing,
- * and on each start the declared relationships (team membership, skills, project members,
- * mentorships) are re-asserted through MERGE. So a level you lowered in the UI survives a restart,
- * but a skill or membership you deleted comes back — this list is the declaration of what the demo
- * company knows, and a half-emptied demo person is a broken fixture, not a preference. Disable with
- * {@code skillatlas.seed.enabled=false} (the integration tests do, so they get a quiet database).
+ * <p>Idempotent: nodes are created only when missing, and the declared relationships are re-asserted
+ * through MERGE on every start. A level you lowered in the UI survives a restart, but a skill or
+ * membership you deleted comes back — this list is the declaration of what the demo company knows.
+ * Disable with {@code skillatlas.seed.enabled=false} (the integration tests do).
  */
 @Component
 @ConditionalOnProperty(name = "skillatlas.seed.enabled", havingValue = "true", matchIfMissing = true)
@@ -161,9 +159,8 @@ public class DevSeeder implements CommandLineRunner {
     }
 
     /**
-     * Re-asserts the fixture's relationships, for people created just now and for people who were
-     * already here. Both writes are MERGE-shaped: a membership or a skill that is missing comes
-     * back, an existing KNOWS level is left exactly as it is.
+     * Runs for people created just now and for people already here: a missing membership or skill
+     * comes back, an existing KNOWS level is left exactly as it is.
      */
     private void wireGraph(String personId, DemoPerson demo, Map<String, String> teamIds,
             Map<String, String> skillIds) {
@@ -177,12 +174,8 @@ public class DevSeeder implements CommandLineRunner {
     }
 
     /**
-     * WANTS_TO_LEARN. Nothing seeded these before, so every demo profile claimed to want nothing.
-     * {@code upsertWish} MERGEs and skips soft-deleted people, so re-running changes nothing.
-     *
-     * <p>No wish here may name a skill its person already knows at level 5 — that combination is
-     * rejected by {@code PeopleSkillsService} (spec §4.1), and a fixture should not describe a
-     * state the application forbids.
+     * No wish may name a skill its person knows at level 5 — {@code PeopleSkillsService} rejects
+     * that pair (spec §4.1), and a fixture should not describe a state the application forbids.
      */
     private void ensureWishes(Map<String, String> skillIds) {
         for (DemoWish demo : WISHES) {
@@ -195,10 +188,6 @@ public class DevSeeder implements CommandLineRunner {
         }
     }
 
-    /**
-     * Projects and their members (WORKED_ON). Re-running is safe: the project is created only when
-     * a project of that name is missing, and {@code assignMember} MERGEs the relationship.
-     */
     private void ensureProjects(Map<String, String> skillIds) {
         for (DemoProject demo : PROJECTS) {
             String projectId = projects.findByName(demo.name())
@@ -228,10 +217,6 @@ public class DevSeeder implements CommandLineRunner {
         return project.getId();
     }
 
-    /**
-     * MENTORS edges, so the profile has mentoring to show in both directions before E6.1 builds the
-     * admin flow that creates them for real.
-     */
     private void ensureMentorships(Map<String, String> skillIds) {
         for (DemoMentorship demo : MENTORSHIPS) {
             String skillId = skillIds.get(demo.skill().toLowerCase(Locale.ROOT));
@@ -395,9 +380,6 @@ public class DevSeeder implements CommandLineRunner {
             new DemoPerson("vanja.arhivic@skillatlas.dev", "Vanja", "Arhivić", "Frontend Engineer",
                     "Frontend", "React:5,TypeScript:5", true));
 
-    // Wishes are what makes a profile read like a person rather than an inventory: some want the
-    // next level of what they already do, some want out of their current stack entirely. Nobody
-    // wishes for a skill they hold at 5 — the application rejects that pair.
     private static final List<DemoWish> WISHES = List.of(
             new DemoWish("ada", "Kubernetes,Kafka"),
             new DemoWish("milan.kostic", "Kubernetes,Go"),
@@ -443,9 +425,8 @@ public class DevSeeder implements CommandLineRunner {
             new DemoWish("uros.jankovic", "Kotlin"),
             new DemoWish("lara.simovic", "Next.js"));
 
-    // One finished project among the active ones, and people who span teams, so a profile shows a
-    // mix rather than one uniform block. Between them these cover every active demo person: an
-    // empty Projects section should mean something, not just that the fixture stopped early.
+    // Two finished projects among the active ones, and between them every active demo person: an
+    // empty Projects section should mean something, not that the fixture stopped early.
     private static final List<DemoProject> PROJECTS = List.of(
             new DemoProject("SkillAtlas", "Knowledge graph of the company.",
                     LocalDate.of(2025, 1, 13), null, true,

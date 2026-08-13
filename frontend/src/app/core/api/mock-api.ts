@@ -114,8 +114,7 @@ export class MockPeopleApi extends PeopleApi {
   profile(id: string): Observable<PersonProfile> {
     const p = person(id);
     if (!p) return throwError(() => new Error('Person not found')).pipe(delay(LATENCY));
-    // The fixtures predate E4.2 and this class is bound to no token (see CLAUDE.md) — enough to
-    // satisfy the seam, not a second source of truth for the profile screen.
+    // Bound to no token (see CLAUDE.md): enough to satisfy the seam, not a second source of truth.
     return respond({
       ...p,
       teams: p.team ? [p.team] : [],

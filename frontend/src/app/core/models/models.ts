@@ -68,7 +68,7 @@ export interface Person {
   active: boolean;
   /** MEMBER_OF names, flattened for a list row. */
   teams?: string[];
-  /** The strongest few KNOWS, level first — a summary for a row, not the whole profile. */
+  /** The strongest few KNOWS, level first. */
   topSkills?: TopSkill[];
   team?: string; // PLANNED — single-team shorthand, mock fixtures only
   knows?: KnownSkill[]; // PLANNED
@@ -121,7 +121,7 @@ export interface Mentoring {
   mentors: ProfileMentorship[];
 }
 
-/** The capped subgraph around the person. No coordinates — layout is the client's job (E5.1). */
+/** No coordinates: layout is the client force-graph's job (E5.1). */
 export interface NeighbourNode {
   id: string;
   kind: GraphNodeKind;

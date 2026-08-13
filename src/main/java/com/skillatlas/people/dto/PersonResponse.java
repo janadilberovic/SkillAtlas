@@ -7,11 +7,9 @@ import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.enums.Role;
 
 /**
- * Read shape for lists. Never exposes passwordHash, the soft-delete fields, or the relationship
- * graph itself — {@code teams} and {@code topSkills} are flattened summaries of it, enough for a
- * row without turning the list into the profile ({@link PersonProfileResponse}).
- *
- * <p>Both are read off the entity the repository already loaded, so a row costs no extra query.
+ * Read shape for lists. Never exposes passwordHash or the soft-delete fields; {@code teams} and
+ * {@code topSkills} are flattened off the entity the repository already loaded, so a row costs no
+ * extra query and the list stays a summary rather than the profile.
  */
 public record PersonResponse(
         String id,
@@ -27,7 +25,6 @@ public record PersonResponse(
     public record TopSkill(String skillId, String name, int level) {
     }
 
-    /** How many skills a row shows before it stops being a summary. */
     private static final int TOP_SKILLS = 3;
 
     public static PersonResponse from(Person p) {

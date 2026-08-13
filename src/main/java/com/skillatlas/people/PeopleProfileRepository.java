@@ -26,25 +26,19 @@ import com.skillatlas.people.dto.PersonProfileResponse.WishedSkill;
 import com.skillatlas.people.enums.Role;
 
 /**
- * The only place the rich-profile Cypher lives (E4.2).
+ * The profile is one query with {@code COLLECT {}} subqueries, one per branch. A chain of
+ * {@code OPTIONAL MATCH} would multiply rows instead — 5 skills × 3 projects × 2 mentees is 30 rows
+ * for one person. Needs Neo4j ≥ 5.6; the pinned image is 5.26.
  *
- * <p>Uses {@link Neo4jClient} rather than a derived {@code Neo4jRepository}: the result is an
- * aggregate projection across five relationship types, not a {@code Person} entity, so the
- * row-to-DTO mapping is written out explicitly.
- *
- * <p>The profile is one query with {@code COLLECT {}} subqueries — one per branch. A chain of
- * {@code OPTIONAL MATCH} would multiply rows instead (5 skills × 3 projects × 2 mentees = 30 rows
- * for one person), and every aggregate downstream would then have to undo that. {@code COLLECT {}}
- * needs Neo4j ≥ 5.6; the pinned image is 5.26.
- *
- * <p>The id arrives as a path variable and is bound as {@code $id} — never concatenated — so
- * {@code React'}) DETACH DELETE (n) //} is just an id that matches no person.
+ * <p>{@link Neo4jClient} rather than a derived repository, because the result is a projection
+ * across five relationship types and not a {@code Person} entity.
  */
 @Repository
 public class PeopleProfileRepository {
 
     // Soft delete is filtered on the person and again on the far side of both MENTORS directions:
     // a deleted colleague must not surface through someone else's profile.
+    // $id is bound, never concatenated: React'}) DETACH DELETE (n) // is an id that matches nobody.
     private static final String PROFILE = """
             MATCH (p:Person {id: $id})
             WHERE p.isDeleted = false
@@ -81,10 +75,8 @@ public class PeopleProfileRepository {
                    } AS mentors
             """;
 
-    // One hop out of the person, plus the single second hop worth drawing (what their projects
-    // USE). `rels[0..$limit]` applies the cap in the database — the browser never gets an
-    // unbounded subgraph — and `size(rels)` still reports the true degree so the client can say
-    // the picture is partial.
+    // One hop out, plus the single second hop worth drawing (what their projects USE).
+    // rels[0..$limit] caps in the database; size(rels) still reports the true degree.
     private static final String NEIGHBOURHOOD = """
             MATCH (p:Person {id: $id})
             WHERE p.isDeleted = false
@@ -128,7 +120,7 @@ public class PeopleProfileRepository {
         this.client = client;
     }
 
-    /** Empty when the person does not exist or is soft-deleted. Neighbourhood is filled separately. */
+    /** Empty when the person does not exist or is soft-deleted. */
     public Optional<PersonProfileResponse> findProfile(String id) {
         return client.query(PROFILE)
                 .bind(id).to("id")
@@ -158,31 +150,24 @@ public class PeopleProfileRepository {
                         new Mentoring(
                                 mentorships(record.get("mentees")),
                                 mentorships(record.get("mentors"))),
-                        // Placeholder: the caller composes the neighbourhood in a second query.
+                        // Filled by the caller's second query.
                         new Neighbourhood(List.of(), List.of(), false)))
                 .one();
     }
 
-    /**
-     * The subgraph around a person, capped at {@code limit} relationships.
-     *
-     * <p>Empty when the person is missing or soft-deleted — the same filter as
-     * {@link #findProfile(String)}, so a profile is never served with someone else's surroundings.
-     */
+    /** Capped at {@code limit} relationships; empty for a missing or soft-deleted person. */
     public Neighbourhood neighbourhood(String id, int limit) {
         return client.query(NEIGHBOURHOOD)
                 .bindAll(Map.of("id", id, "limit", limit))
                 .fetchAs(Neighbourhood.class)
                 .mappedBy((typeSystem, record) -> {
                     List<Value> window = record.get("window").asList(v -> v);
-                    // Nodes are whatever the surviving edges touch; the person is always present,
-                    // even when they have no relationships at all.
                     Map<String, GraphNode> nodes = new LinkedHashMap<>();
+                    // Seeded with the person, who is otherwise absent when they have no edges.
                     GraphNode root = node(record.get("root"));
                     nodes.put(root.id(), root);
                     Set<GraphEdge> edges = new LinkedHashSet<>();
-                    // The slice above is applied in pattern-match order, so sort here to keep the
-                    // response stable for a given graph.
+                    // The slice is applied in pattern-match order; sort for a stable response.
                     window.stream()
                             .sorted(Comparator
                                     .comparing((Value v) -> v.get("type").asString())

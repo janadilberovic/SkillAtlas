@@ -36,9 +36,8 @@ export class PersonProfileComponent {
   readonly skillOptions = computed(() => this.catalog().map((s) => ({ value: s.id, label: s.name })));
   readonly isOwn = computed(() => this.person()?.id === this.auth.user()?.id);
 
-  // Skills and wishes come with the profile. An owner's edit reloads it rather than patching the
-  // two lists from the write's response: a new skill also changes the neighbourhood beside them,
-  // and one source of truth is cheaper to trust than two.
+  // An owner's edit reloads the profile rather than patching these from the write's response: a
+  // new skill also changes the neighbourhood beside them.
   readonly known = computed(() => this.person()?.skills ?? []);
   readonly wishes = computed(() => this.person()?.wishes ?? []);
 

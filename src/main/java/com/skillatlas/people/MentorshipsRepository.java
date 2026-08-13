@@ -8,15 +8,10 @@ import org.springframework.data.repository.query.Param;
 
 import com.skillatlas.people.domain.Person;
 
-/**
- * Writes of the MENTORS relationship. The read side lives in the profile query
- * ({@link PeopleProfileRepository}); the admin-facing mentor matching that will call this from a
- * controller is E6.1 — today only the dev seed does.
- */
+/** Only the dev seed writes MENTORS today; the admin flow that will is E6.1. */
 public interface MentorshipsRepository extends Neo4jRepository<Person, String> {
 
-    // One relationship per (mentor, mentee, skill): MERGE, so re-running the seed adds nothing.
-    // Neither side may be soft-deleted.
+    // One relationship per (mentor, mentee, skill), and neither side may be soft-deleted.
     @Query("""
             MATCH (mentor:Person {id: $mentorId}) WHERE mentor.isDeleted = false
             MATCH (mentee:Person {id: $menteeId}) WHERE mentee.isDeleted = false

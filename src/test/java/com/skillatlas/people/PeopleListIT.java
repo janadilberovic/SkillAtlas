@@ -28,10 +28,7 @@ import com.skillatlas.teams.TeamsService;
 import com.skillatlas.teams.domain.Team;
 import com.skillatlas.teams.dto.TeamCreateRequest;
 
-/**
- * The row summary on {@code GET /api/v1/people}: team membership and the strongest few skills,
- * flattened off the entity the query already loads.
- */
+/** Fixtures are UUID-suffixed and torn down again — the database may be someone's dev instance. */
 class PeopleListIT extends AbstractNeo4jIT {
 
     @Autowired
