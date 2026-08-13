@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { PeopleApi, PeopleSkillsApi, SkillApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
-import { MySkills, Person, Skill } from '../../core/models/models';
+import { PersonProfile, Skill } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { LevelBarComponent } from '../../shared/components/level-bar/level-bar.component';
 import { SelectComponent } from '../../shared/components/select/select.component';
@@ -23,10 +23,9 @@ export class PersonProfileComponent {
   private readonly skillApi = inject(SkillApi);
   readonly auth = inject(AuthService);
 
-  readonly person = signal<Person | null>(null);
+  readonly person = signal<PersonProfile | null>(null);
   readonly loading = signal(true);
   readonly catalog = signal<Skill[]>([]);
-  readonly mySkills = signal<MySkills>({ skills: [], wishes: [] });
   readonly addOpen = signal(false);
   readonly addError = signal('');
 
@@ -36,35 +35,49 @@ export class PersonProfileComponent {
 
   readonly skillOptions = computed(() => this.catalog().map((s) => ({ value: s.id, label: s.name })));
   readonly isOwn = computed(() => this.person()?.id === this.auth.user()?.id);
-  readonly known = computed(() => this.mySkills().skills);
-  readonly wishes = computed(() => this.mySkills().wishes);
+
+  // An owner's edit reloads the profile rather than patching these from the write's response: a
+  // new skill also changes the neighbourhood beside them.
+  readonly known = computed(() => this.person()?.skills ?? []);
+  readonly wishes = computed(() => this.person()?.wishes ?? []);
+
+  readonly projects = computed(() => this.person()?.projects ?? []);
+  readonly mentees = computed(() => this.person()?.mentoring?.mentees ?? []);
+  readonly mentors = computed(() => this.person()?.mentoring?.mentors ?? []);
+  readonly teams = computed(() => this.person()?.teams ?? []);
+  readonly neighbours = computed(() => this.person()?.neighbourhood?.nodes.slice(1) ?? []);
+  readonly neighbourCount = computed(() => this.person()?.neighbourhood?.edges.length ?? 0);
+  readonly truncated = computed(() => this.person()?.neighbourhood?.truncated ?? false);
 
   constructor() {
     this.skillApi.list().subscribe((s) => this.catalog.set(s));
     this.route.paramMap.subscribe((pm) => {
       const id = pm.get('id') ?? this.auth.user()?.id ?? '';
       this.loading.set(true);
-      this.mySkills.set({ skills: [], wishes: [] });
-      this.peopleApi.get(id).subscribe({
-        next: (p) => {
-          this.person.set(p);
-          this.loading.set(false);
-          this.loadSkills(p.id);
-        },
-        error: () => {
-          this.person.set(null);
-          this.loading.set(false);
-        },
-      });
+      this.load(id);
     });
   }
 
-  initials(p: Person): string {
+  private load(id: string): void {
+    this.peopleApi.profile(id).subscribe({
+      next: (p) => {
+        this.person.set(p);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.person.set(null);
+        this.loading.set(false);
+      },
+    });
+  }
+
+  initials(p: PersonProfile): string {
     return (p.firstName[0] + p.lastName[0]).toUpperCase();
   }
 
-  private loadSkills(id: string): void {
-    this.peopleSkillsApi.mine(id).subscribe((ms) => this.mySkills.set(ms));
+  period(from: string | null | undefined, to: string | null | undefined): string {
+    if (!from && !to) return '';
+    return `${from ?? '…'} → ${to ?? 'now'}`;
   }
 
   stepLevel(delta: number): void {
@@ -84,11 +97,11 @@ export class PersonProfileComponent {
     }
     const id = this.person()!.id;
     this.peopleSkillsApi.setSkill(id, this.newSkillId, level).subscribe({
-      next: (ms) => {
-        this.mySkills.set(ms);
+      next: () => {
         this.newSkillId = '';
         this.newLevel = 3;
         this.addOpen.set(false);
+        this.load(id);
       },
       error: () => this.addError.set('Could not save the skill.'),
     });
@@ -96,7 +109,7 @@ export class PersonProfileComponent {
 
   removeSkill(skillId: string): void {
     const id = this.person()!.id;
-    this.peopleSkillsApi.removeSkill(id, skillId).subscribe((ms) => this.mySkills.set(ms));
+    this.peopleSkillsApi.removeSkill(id, skillId).subscribe(() => this.load(id));
   }
 
   addWish(): void {
@@ -104,9 +117,9 @@ export class PersonProfileComponent {
     if (!this.newWishId) return;
     const id = this.person()!.id;
     this.peopleSkillsApi.addWish(id, this.newWishId).subscribe({
-      next: (ms) => {
-        this.mySkills.set(ms);
+      next: () => {
         this.newWishId = '';
+        this.load(id);
       },
       error: () => this.addError.set("Can't add that as a wish (already known at level 5?)."),
     });
@@ -114,6 +127,6 @@ export class PersonProfileComponent {
 
   removeWish(skillId: string): void {
     const id = this.person()!.id;
-    this.peopleSkillsApi.removeWish(id, skillId).subscribe((ms) => this.mySkills.set(ms));
+    this.peopleSkillsApi.removeWish(id, skillId).subscribe(() => this.load(id));
   }
 }

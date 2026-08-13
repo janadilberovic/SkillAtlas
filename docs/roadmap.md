@@ -15,8 +15,8 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [1] | *(spojen u [0])* | — | ✅ |
 | [2] | E2.3 · Moji skillovi — stvara `KNOWS` / `WANTS_TO_LEARN` | [E2.3](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ PR #8 |
 | [3] | E4.1 · Expert finder | [E4.1](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #10, dorada u #12 |
-| **[4]** | **E4.2 · Bogat profil osobe** | [E4.2](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ⬅️ **sljedeći** |
-| [5] | E5.1 · Graf endpoint + explorer | [E5.1](spec.md#e5--graf-vizualizacija-core) | ⬜ |
+| [4] | E4.2 · Bogat profil osobe | [E4.2](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #17 |
+| **[5]** | **E5.1 · Graf endpoint + explorer** | [E5.1](spec.md#e5--graf-vizualizacija-core) | ⬅️ **sljedeći** |
 | [6] | E6.1/2/3 · Mentoring, learning path, dashboard | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ⬜ |
 | [7] | E3 · Import iz VacaYAY-a | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬜ |
 | [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
@@ -50,26 +50,29 @@ Nocturne form kontrole + `sa-select` (#11).
 soft-delete filter, obavezan Cypher-injection test. Dorada u PR #12: minimum level po skillu
 (`skills=neo4j>=4,docker`), typeahead tag input, `GET /experts/coverage` (bus factor).
 
-## [4] E4.2 · Bogat profil osobe — sljedeći
+## [4] E4.2 · Bogat profil osobe — gotovo
 
-`GET /api/v1/people/{id}` se proširuje s plitkog `PersonResponse` na agregirani profil:
-skillovi + leveli, želje, projekti + uloge + period, timovi, mentorstva **u oba smjera**,
-mini-graf okoline (1–2 hopa, s `LIMIT`).
+`GET /api/v1/people/{id}` vraća `PersonProfileResponse` — **nadskup** `PersonResponse`-a (spisak
+ljudi i finder linkovi rade nepromijenjeni): skillovi + leveli, želje, projekti + uloge + period,
+timovi, mentorstva **u oba smjera**, kepovano susjedstvo.
 
-Predložene odluke (**nisu još potvrđene**):
-1. Proširiti postojeći `GET /people/{id}` umjesto novog `/profile` — spec doslovno kaže da je to profil.
-2. `COLLECT {}` subqueryji umjesto niza `OPTIONAL MATCH` — inače se redovi množe (5 skillova × 3 projekta × 2 menteeja = 30 redova). Traži Neo4j ≥ 5.6; provjeriti `CALL dbms.components()`.
-3. Susjedstvo vraća backend (kepovano), a pravi force-graph vizual dolazi u [5].
+Odluke (potvrđene i implementirane):
+1. Prošireno postojeće `GET /people/{id}`, bez novog `/profile` — spec doslovno kaže da je to profil.
+2. `COLLECT {}` subqueryji umjesto niza `OPTIONAL MATCH` (inače se redovi množe). Traži Neo4j ≥ 5.6; image je pinovan na 5.26.
+3. Susjedstvo: jedan hop + jedini drugi hop koji se isplati crtati (`(p)-[:WORKED_ON]->(pr)-[:USES]->(s)`). Cap ide u bazi (`rels[0..$limit]`), `size(rels)` i dalje javlja pravi stepen → `truncated`.
+4. `GraphNode`/`GraphEdge` su **ugniježđeni u `PersonProfileResponse`**, bez layout polja (x/y/r) — raspored je posao force-grapha na klijentu. [5] ih preuzima i može ih promovisati u `graph` paket kad dobiju drugog pozivaoca.
+5. `MentorshipsRepository` — `MENTORS` write postoji samo za dev seed; admin flow koji ga zove je [6].
 
-Zamke: `Mentors.skillId` je skalar (treba `OPTIONAL MATCH (s:Skill {id: m.skillId})`);
-soft-delete filter i na drugoj strani mentorstva; prazne grane vraćaju prazne liste, ne `null`.
+Uz to: DevSeeder sada seeda projekte (`USES`, `WORKED_ON`) i mentorstva — bez toga je pola profila
+prazno na svježoj bazi.
 
-Van opsega: dugmad „U grafu" (traži [5]) i „Predloži mentora" (traži [6]).
+Van opsega (ostaje): dugmad „U grafu" (traži [5]) i „Predloži mentora" (traži [6]).
 
-## [5] E5.1 · Graf endpoint
+## [5] E5.1 · Graf endpoint — sljedeći
 
 `GET /api/v1/graph?types=&team=&limit=` — podskup čvorova i veza za force-graph. **Mora imati
-`LIMIT`.** Preuzima oblik `GraphNode`/`GraphEdge` uveden u [4].
+`LIMIT`.** Preuzima oblik `GraphNode`/`GraphEdge` uveden u [4] (danas ugniježđen u
+`PersonProfileResponse`; ovdje se promoviše u zaseban paket).
 
 ## [6] E6 · Mentoring, learning path, dashboard
 

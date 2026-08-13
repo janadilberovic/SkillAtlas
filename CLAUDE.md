@@ -17,6 +17,13 @@ Layers within a feature:
 - `*Repository` — **the only place Cypher is allowed.** Spring Data Neo4j interface (+ `@Query` when needed).
 - `dto/` — input/output shapes + Bean Validation (`@Valid`, `@NotNull`, `@Min`...).
 
+## Comments (write far fewer than feels natural)
+Default to **no comment**. Write one only when it explains a *why* the code cannot: a non-obvious
+decision, a gotcha, a business rule from the spec, a trap that would otherwise be re-introduced.
+Never restate what the line already says, never add section-divider banners, and never write a
+Javadoc that re-spells the method name. If a comment explains *what* the code does, rename instead.
+One tight sentence beats a paragraph; match the sparse density of the file you are editing.
+
 ## Graph modeling (careful!)
 - `level` (1–5) is a **property on the `KNOWS` relationship**, not on the `Person` or `Skill` node.
 - Nodes: `Person`, `Skill`, `Project`, `Team`. Relationships: `KNOWS`, `WANTS_TO_LEARN`, `WORKED_ON`, `USES`, `MEMBER_OF`, `MENTORS`.

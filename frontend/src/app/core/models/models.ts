@@ -43,6 +43,13 @@ export interface Skill {
   wantedBy?: number; // PLANNED — count of WANTS_TO_LEARN
 }
 
+/** `PersonResponse.topSkills` — a KNOWS edge flattened to what a list row prints. */
+export interface TopSkill {
+  skillId: string;
+  name: string;
+  level: number;
+}
+
 /** A KNOWS edge projected for the UI (level is a relationship property, 1–5). */
 export interface KnownSkill {
   skill: Skill;
@@ -59,13 +66,80 @@ export interface Person {
   position: string | null;
   role: Role;
   active: boolean;
-  team?: string; // PLANNED
-  topSkills?: KnownSkill[]; // PLANNED
+  /** MEMBER_OF names, flattened for a list row. */
+  teams?: string[];
+  /** The strongest few KNOWS, level first. */
+  topSkills?: TopSkill[];
+  team?: string; // PLANNED — single-team shorthand, mock fixtures only
   knows?: KnownSkill[]; // PLANNED
   wantsToLearn?: Skill[]; // PLANNED
   projects?: PersonProject[]; // PLANNED
   mentorships?: Mentorship[]; // PLANNED
   mentorsCount?: number; // PLANNED
+}
+
+/**
+ * GET /people/{id} — `PersonProfileResponse`: the person fields above plus the E4.2 aggregate.
+ * Every list is present, empty rather than absent, so the template needs no null guards.
+ */
+export interface PersonProfile extends Person {
+  teams: string[];
+  skills: ProfileSkill[];
+  wishes: ProfileWish[];
+  projects: PersonProject[];
+  mentoring: Mentoring;
+  neighbourhood: Neighbourhood;
+}
+
+/** A KNOWS edge on the profile: `level` and `since` belong to the relationship. */
+export interface ProfileSkill {
+  skillId: string;
+  name: string;
+  category: SkillCategory;
+  color: string;
+  level: number;
+  since: string | null;
+}
+
+export interface ProfileWish {
+  skillId: string;
+  name: string;
+  category: SkillCategory;
+  color: string;
+}
+
+/** One MENTORS edge; `skill` is null if the Skill node behind it is gone. */
+export interface ProfileMentorship {
+  personId: string;
+  name: string;
+  skill: string | null;
+  since: string | null;
+}
+
+export interface Mentoring {
+  mentees: ProfileMentorship[];
+  mentors: ProfileMentorship[];
+}
+
+/** No coordinates: layout is the client force-graph's job (E5.1). */
+export interface NeighbourNode {
+  id: string;
+  kind: GraphNodeKind;
+  label: string;
+  meta: string | null;
+}
+
+export interface NeighbourEdge {
+  source: string;
+  target: string;
+  type: string;
+}
+
+export interface Neighbourhood {
+  nodes: NeighbourNode[];
+  edges: NeighbourEdge[];
+  /** True when the server hit its relationship cap: the picture is a sample, not the whole story. */
+  truncated: boolean;
 }
 
 /** WORKED_ON projected onto a person. */

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.skillatlas.common.PageResponse;
 import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
+import com.skillatlas.people.dto.PersonProfileResponse;
 import com.skillatlas.people.dto.PersonResponse;
 import com.skillatlas.people.dto.PersonUpdateRequest;
 
@@ -31,9 +32,11 @@ public class PeopleController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final PeopleService service;
+    private final PeopleProfileService profileService;
 
-    public PeopleController(PeopleService service) {
+    public PeopleController(PeopleService service, PeopleProfileService profileService) {
         this.service = service;
+        this.profileService = profileService;
     }
 
     @GetMapping
@@ -47,9 +50,11 @@ public class PeopleController {
         return PageResponse.from(result.map(PersonResponse::from));
     }
 
+    // E4.2: the profile, not the shallow person. A superset of PersonResponse, so callers that
+    // only read the person fields (people list, finder links) keep working unchanged.
     @GetMapping("/{id}")
-    public PersonResponse get(@PathVariable String id) {
-        return PersonResponse.from(service.getById(id));
+    public PersonProfileResponse get(@PathVariable String id) {
+        return profileService.getProfile(id);
     }
 
     @PostMapping

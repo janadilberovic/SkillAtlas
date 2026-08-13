@@ -281,8 +281,11 @@ export const PEOPLE: Person[] = PEOPLE_SEEDS.map((s) => {
     role: s.role,
     active: s.active ?? true,
     team: s.team,
+    teams: [s.team],
     knows: sortedKnows,
-    topSkills: sortedKnows.slice(0, 2),
+    topSkills: sortedKnows
+      .slice(0, 3)
+      .map((k) => ({ skillId: k.skill.id, name: k.skill.name, level: k.level })),
     wantsToLearn: (s.wants ?? []).map((id) => skill(id)),
     projects: personProjects(s.id),
     mentorsCount: s.mentorsCount ?? 0,

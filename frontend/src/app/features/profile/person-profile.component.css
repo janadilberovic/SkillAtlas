@@ -172,11 +172,28 @@ h1 {
 }
 .projcard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   padding: 11px 13px;
   border-radius: var(--radius);
   background: var(--surface);
+}
+.projmain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.teamrow,
+.uses,
+.neigh {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.teamrow {
+  margin-top: 3px;
 }
 .pname {
   font-size: 14px;
