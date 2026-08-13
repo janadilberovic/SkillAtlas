@@ -21,10 +21,17 @@
   --accent-2: #b5afe8;
   --accent-deep: #5c5783;
 
-  --node-person: #9184d9;
-  --node-skill: #b5afe8;
-  --node-project: #75798c;
-  --node-faint: #595d6c;
+  /* Graph node kinds. One hue per kind, validated as a categorical palette against
+     --bg-screen for protanopia/deuteranopia at all-pairs (any two nodes can touch on
+     the canvas, so adjacent-pair checking would not be enough). The person/skill pair
+     used to be two near-identical violets and project/team two greys, which is why the
+     graph read as monochrome. Worst pair is in the 6-8 CVD band, which holds only
+     because kind is also carried by node radius, the named legend, the hover tooltip
+     and the side panel — never by colour alone. */
+  --node-person: #9085e9;
+  --node-skill: #c98500;
+  --node-project: #d55181;
+  --node-team: #008300;
 
   --radius: 8px;
   --radius-lg: 14px;

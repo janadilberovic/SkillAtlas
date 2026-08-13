@@ -49,7 +49,7 @@ const KIND_COLOR: Record<GraphNodeKind, string> = {
   PERSON: 'var(--node-person)',
   SKILL: 'var(--node-skill)',
   PROJECT: 'var(--node-project)',
-  TEAM: 'var(--node-faint)',
+  TEAM: 'var(--node-team)',
 };
 
 const ALL_KINDS: GraphNodeKind[] = ['PERSON', 'SKILL', 'PROJECT', 'TEAM'];
