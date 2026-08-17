@@ -1,6 +1,7 @@
 package com.skillatlas.graph.enums;
 
-import java.util.LinkedHashSet;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -19,22 +20,28 @@ public enum GraphNodeKind {
     PROJECT,
     TEAM;
 
+    /** Shared between every caller that asks for the default view, so it must not be mutable. */
+    private static final Set<GraphNodeKind> ALL =
+            Collections.unmodifiableSet(EnumSet.allOf(GraphNodeKind.class));
+
     /** Empty or absent means "everything" — the explorer's default view is the whole map. */
     public static Set<GraphNodeKind> parse(List<String> raw) {
         if (raw == null) {
-            return Set.of(values());
+            return ALL;
         }
-        Set<GraphNodeKind> kinds = new LinkedHashSet<>();
+        Set<GraphNodeKind> kinds = EnumSet.noneOf(GraphNodeKind.class);
         for (String value : raw) {
             if (value == null || value.isBlank()) {
                 continue;
             }
             try {
+                // Locale.ROOT, not the default locale: on a Turkish one "skill" upper-cases to
+                // "SKİLL" and no constant matches, turning a valid request into a 400.
                 kinds.add(valueOf(value.trim().toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException ex) {
                 throw new InvalidNodeTypeException(value.trim());
             }
         }
-        return kinds.isEmpty() ? Set.of(values()) : kinds;
+        return kinds.isEmpty() ? ALL : kinds;
     }
 }
