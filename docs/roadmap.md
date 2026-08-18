@@ -112,7 +112,11 @@ Odluke (potvrđene i implementirane):
 6. `DELETE /mentorships` nije u spec katalogu (§04) — dodat namjerno, inače je `MENTORS` nepovratan.
    Identifikuje se trojkom (mentor, mentee, skill); relacija nema svoj stabilan id.
 7. Skill gap se broji **unutar tima** — ekspert van tima ne zatvara rupu tog tima.
-8. Bus factor kartica na dashboardu više ne otvara modal za mentore (ranije `menteeId=""`, što je
+8. **Skill gap se paginira** (`GET /dashboard/skill-gap?page=&size=`) — na seedovanoj bazi je već 37
+   redova, a to je jedini widget koji raste s brojem ljudi. Overview nosi prvu stranicu (prvi paint
+   ostaje jedan poziv), a okretanje stranice ne pokreće ponovo ostala tri widgeta. Najveće rupe
+   (`knownBy = 0`) idu prve, pa je prva stranica ona koju vrijedi čitati.
+9. Bus factor kartica na dashboardu više ne otvara modal za mentore (ranije `menteeId=""`, što je
    prolazilo samo dok je API bio mock): matching kreće od mentija, a skill nije menti. Red vodi na
    profil osobe od koje skill zavisi, a mentor flow kreće s profila.
 
