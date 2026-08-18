@@ -68,7 +68,7 @@
   overflow-y: auto;
   min-height: 0;
   /* Room for the scrollbar, so it does not sit on top of the mentorship counts. */
-  padding-right: 4px;
+  padding-right: 6px;
 }
 .cand {
   display: grid;

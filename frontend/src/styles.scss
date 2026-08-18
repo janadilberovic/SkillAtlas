@@ -48,6 +48,40 @@ html, body {
   height: 100%;
 }
 
+/* Nocturne is a dark theme, and the browser has to be told: without this the native scrollbars,
+   date pickers and autofill boxes render in the light palette and cut straight through it. */
+html {
+  color-scheme: dark;
+}
+
+/* Scrollbars, everywhere one appears — a modal's candidate list, a long page, an overflowing
+   table. Firefox takes the two-value shorthand; the rest need the WebKit pseudo-elements. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--border-strong);
+  /* Without padding-box the border area takes the background too and the thumb fills the gutter. */
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 body {
   background: var(--bg-page);
   color: var(--text);
