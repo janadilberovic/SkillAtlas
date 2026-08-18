@@ -155,9 +155,14 @@ class DashboardIT extends AbstractNeo4jIT {
 
     @Test
     void skillGap_listsWhatTheTeamsProjectsUseButTheTeamBarelyKnows() throws Exception {
-        String row = "$.skillGap[?(@.team == '" + teamName + "' && @.skill == '";
+        String row = "$.content[?(@.team == '" + teamName + "' && @.skill == '";
 
-        mvc.perform(get("/api/v1/dashboard").header("Authorization", "Bearer " + adminToken))
+        // Asked for a wide page rather than read off the overview: this suite may run against a
+        // database that already holds other teams' gaps, and the fixture's rows need not land on
+        // page one.
+        mvc.perform(get("/api/v1/dashboard/skill-gap")
+                .param("size", "100")
+                .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 // Neo4j: only Ada on this team knows it.
                 .andExpect(jsonPath(row + neo4jSkill + "')].knownBy").value(contains(1)))
@@ -166,6 +171,47 @@ class DashboardIT extends AbstractNeo4jIT {
                 .andExpect(jsonPath(row + kafkaSkill + "')].knownBy").value(contains(0)))
                 // Docker: two people know it, so it is not a gap.
                 .andExpect(jsonPath(row + dockerSkill + "')]").doesNotExist());
+    }
+
+    @Test
+    void skillGap_pagesAndAgreesWithItsOwnCount() throws Exception {
+        JsonNode all = page(0, 100);
+        long total = all.path("totalElements").asLong();
+        // The fixture alone contributes the team's Neo4j and Kafka rows.
+        assertThat(total).isGreaterThanOrEqualTo(2);
+
+        JsonNode first = page(0, 1);
+        JsonNode second = page(1, 1);
+        assertThat(first.path("content")).hasSize(1);
+        assertThat(first.path("totalElements").asLong()).isEqualTo(total);
+        assertThat(first.path("totalPages").asLong()).isEqualTo(total);
+        // Paging walks the list rather than repeating its head.
+        assertThat(second.path("content").get(0)).isNotEqualTo(first.path("content").get(0));
+    }
+
+    @Test
+    void skillGap_pageSizeIsCapped() throws Exception {
+        assertThat(page(0, 5000).path("size").asInt()).isEqualTo(100);
+    }
+
+    @Test
+    void overview_embedsTheFirstPageOfTheGapAndSaysHowManyThereAre() throws Exception {
+        JsonNode gap = overview().path("skillGap");
+
+        assertThat(gap.path("page").asInt()).isZero();
+        assertThat(gap.path("content").size()).isLessThanOrEqualTo(gap.path("size").asInt());
+        assertThat(gap.path("totalElements").asLong())
+                .isGreaterThanOrEqualTo(gap.path("content").size());
+    }
+
+    @Test
+    void skillGap_isAdminOnly() throws Exception {
+        mvc.perform(get("/api/v1/dashboard/skill-gap")
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/api/v1/dashboard/skill-gap"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -199,6 +245,16 @@ class DashboardIT extends AbstractNeo4jIT {
         peopleService.softDelete(carlId);
 
         assertThat(overview().path("metrics").path("people").asLong()).isEqualTo(before - 1);
+    }
+
+    private JsonNode page(int page, int size) throws Exception {
+        String json = mvc.perform(get("/api/v1/dashboard/skill-gap")
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size))
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(json);
     }
 
     private JsonNode overview() throws Exception {

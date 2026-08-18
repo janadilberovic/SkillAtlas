@@ -16,6 +16,7 @@ import {
   Skill,
   SkillCategory,
   SkillCoverage,
+  SkillGapRow,
   Team,
 } from '../models/models';
 import { SkillTerm } from './finder-query';
@@ -114,4 +115,6 @@ export abstract class MentoringApi {
 
 export abstract class DashboardApi {
   abstract overview(): Observable<DashboardData>;
+  /** The gap table pages on its own, so walking it does not re-run the other three widgets. */
+  abstract skillGap(page: number, size: number): Observable<Page<SkillGapRow>>;
 }

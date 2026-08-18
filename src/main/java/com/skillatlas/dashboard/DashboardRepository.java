@@ -30,7 +30,7 @@ public class DashboardRepository {
     // The gap the spec asks for: a technology the team's projects actually use, that the team
     // itself barely knows. The COUNT subquery counts members of *that* team who know *that* skill,
     // so a company-wide expert outside the team does not close a team's gap - which is the point.
-    private static final String SKILL_GAP = """
+    private static final String SKILL_GAP_MATCH = """
             MATCH (t:Team)<-[:MEMBER_OF]-(p:Person)-[:WORKED_ON]->(pr:Project)-[:USES]->(s:Skill)
             WHERE p.isDeleted = false
             WITH t, s, collect(DISTINCT pr.name) AS projects
@@ -38,10 +38,16 @@ public class DashboardRepository {
                  count { MATCH (t)<-[:MEMBER_OF]-(m:Person)-[:KNOWS]->(s)
                          WHERE m.isDeleted = false } AS knownBy
             WHERE knownBy <= $threshold
+            """;
+
+    // Widest gaps first, so page one is the page worth reading.
+    private static final String SKILL_GAP = SKILL_GAP_MATCH + """
             RETURN t.name AS team, s.name AS skill, projects, knownBy
             ORDER BY knownBy ASC, team ASC, skill ASC
-            LIMIT $limit
+            SKIP $skip LIMIT $limit
             """;
+
+    private static final String COUNT_SKILL_GAP = SKILL_GAP_MATCH + "RETURN count(*) AS total";
 
     private static final String BUS_FACTOR = """
             MATCH (p:Person)-[:KNOWS]->(s:Skill)
@@ -79,9 +85,9 @@ public class DashboardRepository {
     }
 
     /** @param threshold the highest "known by" count that still counts as a gap */
-    public List<DashboardResponse.SkillGapRow> skillGap(int threshold, int limit) {
+    public List<DashboardResponse.SkillGapRow> skillGap(int threshold, long skip, int limit) {
         return List.copyOf(client.query(SKILL_GAP)
-                .bindAll(Map.of("threshold", threshold, "limit", limit))
+                .bindAll(Map.of("threshold", threshold, "skip", skip, "limit", limit))
                 .fetchAs(DashboardResponse.SkillGapRow.class)
                 .mappedBy((typeSystem, record) -> new DashboardResponse.SkillGapRow(
                         record.get("team").asString(),
@@ -89,6 +95,15 @@ public class DashboardRepository {
                         sorted(record.get("projects").asList(Value::asString)),
                         record.get("knownBy").asLong()))
                 .all());
+    }
+
+    public long countSkillGap(int threshold) {
+        return client.query(COUNT_SKILL_GAP)
+                .bind(threshold).to("threshold")
+                .fetchAs(Long.class)
+                .mappedBy((typeSystem, record) -> record.get("total").asLong())
+                .one()
+                .orElse(0L);
     }
 
     public List<DashboardResponse.BusFactorRow> busFactor(int limit) {

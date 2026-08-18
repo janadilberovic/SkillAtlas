@@ -31,7 +31,7 @@
           <span class="col-head">Knows</span>
           <span class="col-head">Action</span>
         </div>
-        @for (g of d.skillGap; track g.team + g.skill) {
+        @for (g of gap()?.content ?? []; track g.team + g.skill) {
           <div class="grow data">
             <span>{{ g.team }}</span>
             <span class="muted">{{ g.skill }} · {{ g.projects.join(', ') }}</span>
@@ -40,6 +40,21 @@
           </div>
         } @empty {
           <p class="muted small">No team is short on a skill its projects use.</p>
+        }
+
+        @if (gap(); as g) {
+          @if (g.totalPages > 1) {
+            <div class="pager">
+              <button class="btn btn-ghost btn-sm" [disabled]="!hasPrev() || gapLoading()"
+                      (click)="turnGapPage(-1)">Previous</button>
+              <span class="dim small">
+                {{ g.page * g.size + 1 }}–{{ g.page * g.size + g.content.length }} of
+                {{ g.totalElements }}
+              </span>
+              <button class="btn btn-ghost btn-sm" [disabled]="!hasNext() || gapLoading()"
+                      (click)="turnGapPage(1)">Next</button>
+            </div>
+          }
         }
       </div>
 

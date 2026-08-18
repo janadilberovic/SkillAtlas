@@ -18,6 +18,7 @@ import {
   Project,
   Skill,
   SkillCoverage,
+  SkillGapRow,
   Team,
 } from '../models/models';
 import {
@@ -241,6 +242,10 @@ export class HttpDashboardApi extends DashboardApi {
   private readonly http = inject(HttpClient);
   overview(): Observable<DashboardData> {
     return this.http.get<DashboardData>(`${BASE}/dashboard`);
+  }
+  skillGap(page: number, size: number): Observable<Page<SkillGapRow>> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http.get<Page<SkillGapRow>>(`${BASE}/dashboard/skill-gap`, { params });
   }
 }
 

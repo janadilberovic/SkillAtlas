@@ -2,18 +2,21 @@ package com.skillatlas.dashboard.dto;
 
 import java.util.List;
 
+import com.skillatlas.common.PageResponse;
+
 /**
  * E6.3, the four widgets in one payload. They come from four queries, not four requests: an admin
  * opening the dashboard wants one answer, and the widgets read each other's context.
  *
  * @param skillGap     technologies a team's projects use that nobody (or only one person) on that
- *                     team knows
+ *                     team knows — the only widget that grows without bound, so it is a page and
+ *                     carries its own total rather than a silently truncated list
  * @param busFactor    skills exactly one active person knows — losing them loses the skill
  * @param mappingQueue active people with no KNOWS at all, so the graph cannot see them yet
  */
 public record DashboardResponse(
         Metrics metrics,
-        List<SkillGapRow> skillGap,
+        PageResponse<SkillGapRow> skillGap,
         List<BusFactorRow> busFactor,
         MappingQueue mappingQueue) {
 

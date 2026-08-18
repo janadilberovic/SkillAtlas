@@ -359,7 +359,8 @@ export interface MappingQueue {
 
 export interface DashboardData {
   metrics: DashboardMetrics;
-  skillGap: SkillGapRow[];
+  /** Paged: the only widget that grows with headcount. The overview carries its first page. */
+  skillGap: Page<SkillGapRow>;
   busFactor: BusFactorEntry[];
   mappingQueue: MappingQueue;
 }
