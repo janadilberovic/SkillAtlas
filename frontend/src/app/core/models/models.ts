@@ -318,7 +318,7 @@ export interface LearningPath {
   /** False when the two ends exist but nothing connects them — a message, not an error. */
   found: boolean;
   steps: number;
-  /** Set when the learner already knows the skill. */
+  /** Set when the learner already knows the skill — then the walk leads to a mentor, not the skill. */
   ownLevel: number | null;
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -329,6 +329,8 @@ export interface NearestMentor {
   id: string;
   name: string;
   level: number;
+  /** False when the walk passed nobody and this is the strongest mentor in the company instead. */
+  onPath: boolean;
 }
 
 /** GET /dashboard — DashboardResponse (E6.3). */

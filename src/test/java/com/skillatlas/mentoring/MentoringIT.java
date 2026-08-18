@@ -126,8 +126,11 @@ class MentoringIT extends AbstractNeo4jIT {
         peopleSkillsService.setSkillLevel(eveId, neo4jSkillId, 3);
         peopleSkillsService.setSkillLevel(danaId, neo4jSkillId, 5);
         peopleSkillsService.setSkillLevel(danaId, rustSkillId, 5);
-        // Bob knows Docker a little: his learning path to it is the KNOWS edge itself.
+        // Bob knows Docker a little, Ada knows it well: his path for Docker is the walk to her.
         peopleSkillsService.setSkillLevel(bobId, dockerSkillId, 1);
+        peopleSkillsService.setSkillLevel(adaId, dockerSkillId, 4);
+        // Cobol he knows at 3 and nobody beats that, so there is nowhere for that walk to go.
+        peopleSkillsService.setSkillLevel(bobId, cobolSkillId, 3);
 
         // Ada carries two mentorships, both on Docker — load is counted across all skills, but the
         // "already mentors them" exclusion is per skill, so she stays a candidate for Neo4j.
@@ -399,13 +402,33 @@ class MentoringIT extends AbstractNeo4jIT {
     }
 
     @Test
-    void learningPath_reportsWhatTheLearnerAlreadyKnows() throws Exception {
+    void learningPath_forASkillYouAlreadyKnow_leadsToSomeoneWhoKnowsItBetter() throws Exception {
+        // Bob is at 1 on Docker. The walk to the skill would be his own KNOWS edge and say nothing,
+        // so it is redrawn towards Ada (4), who shares his team.
         mvc.perform(get("/api/v1/people/" + bobId + "/learning-path")
                 .param("skill", dockerSkill)
                 .header("Authorization", "Bearer " + bobToken))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.found").value(true))
+                .andExpect(jsonPath("$.ownLevel").value(1))
+                .andExpect(jsonPath("$.steps").value(2))
+                .andExpect(jsonPath("$.nodes[0].id").value(bobId))
+                .andExpect(jsonPath("$.nodes[2].id").value(adaId))
+                .andExpect(jsonPath("$.nearestMentor.id").value(adaId))
+                .andExpect(jsonPath("$.nearestMentor.level").value(4))
+                .andExpect(jsonPath("$.nearestMentor.onPath").value(true));
+    }
+
+    @Test
+    void learningPath_forASkillNobodyBeatsYouAt_staysTheOneHopWalk() throws Exception {
+        // Bob is at 3 on Cobol; a mentor would have to be at 4, and nobody is.
+        mvc.perform(get("/api/v1/people/" + bobId + "/learning-path")
+                .param("skill", cobolSkill)
+                .header("Authorization", "Bearer " + bobToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ownLevel").value(3))
                 .andExpect(jsonPath("$.steps").value(1))
-                .andExpect(jsonPath("$.ownLevel").value(1));
+                .andExpect(jsonPath("$.nearestMentor").doesNotExist());
     }
 
     @Test
@@ -416,18 +439,10 @@ class MentoringIT extends AbstractNeo4jIT {
                 .param("skill", rustSkill)
                 .header("Authorization", "Bearer " + bobToken))
                 .andExpect(status().isOk())
+                // No route is an answer, not an error: both ends exist, nothing joins them.
                 .andExpect(jsonPath("$.found").value(false))
-                .andExpect(jsonPath("$.nodes").isEmpty());
-    }
-
-    @Test
-    void learningPath_withNoRouteIsAnAnswerNotAnError() throws Exception {
-        mvc.perform(get("/api/v1/people/" + bobId + "/learning-path")
-                .param("skill", cobolSkill)
-                .header("Authorization", "Bearer " + bobToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.found").value(false))
-                .andExpect(jsonPath("$.skill.name").value(cobolSkill));
+                .andExpect(jsonPath("$.nodes").isEmpty())
+                .andExpect(jsonPath("$.skill.name").value(rustSkill));
     }
 
     @Test

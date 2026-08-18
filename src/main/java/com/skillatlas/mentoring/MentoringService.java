@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,15 +67,31 @@ public class MentoringService {
      * 4.4. Both ends have to exist — a missing person or skill is a 404 — but two existing nodes
      * with nothing between them are an ordinary "no path yet", which the screen states rather than
      * treating as an error.
+     *
+     * <p>Two different questions hide behind one endpoint. Someone who does not know the skill asks
+     * <em>how do I reach it</em>, and the walk ends at the skill. Someone who already knows it at 2
+     * asks <em>who can take me further</em> — for them the walk to the skill is their own KNOWS
+     * edge, one hop and no information, so it is redrawn as the walk to the nearest person who
+     * knows it better.
      */
     @Transactional(readOnly = true)
     public LearningPathResponse learningPath(String personId, String skillName) {
         Person person = requirePerson(personId);
         SkillRef skill = requireSkillByName(skillName);
 
-        return repository.learningPath(person.getId(), skill, MAX_PATH_HOPS)
-                .map(path -> withNearestMentor(path, skill))
-                .orElseGet(() -> LearningPathResponse.notFound(person.getId(), skill));
+        Optional<LearningPathResponse> toSkill = repository.learningPath(person.getId(), skill, MAX_PATH_HOPS);
+        if (toSkill.isEmpty()) {
+            return LearningPathResponse.notFound(person.getId(), skill);
+        }
+        LearningPathResponse path = toSkill.get();
+        if (path.ownLevel() != null) {
+            Optional<LearningPathResponse> toMentor = repository.pathToMentor(
+                    person.getId(), skill, mentorBar(path.ownLevel()), MAX_PATH_HOPS);
+            if (toMentor.isPresent()) {
+                return toMentor.get().withOwnLevel(path.ownLevel());
+            }
+        }
+        return withNearestMentor(path, skill);
     }
 
     @Transactional
@@ -109,26 +126,41 @@ public class MentoringService {
         mentorships.deleteMentorship(mentorId, menteeId, skillId);
     }
 
-    // "Nearest" is the first mentor met walking away from the learner, so the walk order decides
-    // it — which is why the mentor lookup returns a map and the ordering stays here.
+    /**
+     * "Nearest" is the first mentor met walking away from the learner, so the walk order decides it
+     * — which is why the mentor lookup returns a map and the ordering stays here.
+     *
+     * <p>When the walk passes nobody who qualifies, the answer falls back to the strongest mentor
+     * in the company. Without it the most ordinary case in the app — "I know this at 2 and want to
+     * get better" — is a one-hop walk with nobody on it, and the screen names no one at all.
+     */
     private LearningPathResponse withNearestMentor(LearningPathResponse path, SkillRef skill) {
+        int bar = mentorBar(path.ownLevel());
         List<String> peers = path.nodes().stream()
                 .filter(n -> n.kind() == GraphNodeKind.PERSON)
                 .map(GraphNode::id)
                 .filter(id -> !id.equals(path.personId()))
                 .toList();
-        if (peers.isEmpty()) {
-            return path;
+
+        LearningPathResponse.NearestMentor nearest = null;
+        if (!peers.isEmpty()) {
+            Map<String, LearningPathResponse.NearestMentor> onPath =
+                    repository.mentorsAmong(peers, skill.id(), bar);
+            nearest = peers.stream().map(onPath::get).filter(Objects::nonNull).findFirst().orElse(null);
         }
-        Map<String, LearningPathResponse.NearestMentor> mentors =
-                repository.mentorsAmong(peers, skill.id(), MIN_MENTOR_LEVEL);
-        LearningPathResponse.NearestMentor nearest = peers.stream()
-                .map(mentors::get)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+        if (nearest == null) {
+            nearest = repository.bestMentor(skill.id(), path.personId(), bar).orElse(null);
+        }
         return new LearningPathResponse(path.personId(), path.skill(), true, path.steps(),
                 path.ownLevel(), path.nodes(), path.edges(), nearest);
+    }
+
+    /**
+     * A mentor has to clear 4.3's level 3 <em>and</em> know the skill better than the learner:
+     * someone at your own level has nothing to teach you, and at level 5 nobody qualifies at all.
+     */
+    private static int mentorBar(Integer ownLevel) {
+        return ownLevel == null ? MIN_MENTOR_LEVEL : Math.max(MIN_MENTOR_LEVEL, ownLevel + 1);
     }
 
     private Person requirePerson(String id) {

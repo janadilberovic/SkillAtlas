@@ -13,7 +13,9 @@ import com.skillatlas.graph.dto.GraphNode;
  * exist, they are simply not connected yet, and that is an answer the screen has to state.
  *
  * @param ownLevel      the learner's own KNOWS level when they already know the skill, else null
- * @param nearestMentor the first person along the walk who could teach it, if any
+ * @param nearestMentor someone who could teach it: the first such person along the walk, or - when
+ *                      the walk holds nobody, which is what a one-hop "you already know it" path
+ *                      looks like - the strongest one in the company
  */
 public record LearningPathResponse(
         String personId,
@@ -25,7 +27,13 @@ public record LearningPathResponse(
         List<GraphEdge> edges,
         NearestMentor nearestMentor) {
 
-    public record NearestMentor(String id, String name, int level) {
+    /** @param onPath false when the walk offered nobody and this is a company-wide fallback */
+    public record NearestMentor(String id, String name, int level, boolean onPath) {
+    }
+
+    /** The walk to a mentor is found without reading the learner's own level; this fills it in. */
+    public LearningPathResponse withOwnLevel(Integer level) {
+        return new LearningPathResponse(personId, skill, found, steps, level, nodes, edges, nearestMentor);
     }
 
     public static LearningPathResponse notFound(String personId, SkillRef skill) {

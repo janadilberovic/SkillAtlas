@@ -180,12 +180,12 @@ class MentoringServiceTest {
         person(MENTEE, "Bob", "Byte");
         when(repository.findSkillByName(anyString())).thenReturn(Optional.of(new SkillRef(SKILL, "Neo4j")));
         when(repository.learningPath(eq(MENTEE), any(), anyInt()))
-                .thenReturn(Optional.of(walkThrough("carl", "ada")));
+                .thenReturn(Optional.of(walkThrough(null, "carl", "ada")));
         // Ada is the stronger mentor, but Carl stands between Bob and her.
         when(repository.mentorsAmong(List.of("carl", "ada"), SKILL, MentoringService.MIN_MENTOR_LEVEL))
                 .thenReturn(Map.of(
-                        "carl", new LearningPathResponse.NearestMentor("carl", "Carl Cache", 3),
-                        "ada", new LearningPathResponse.NearestMentor("ada", "Ada Lovelace", 5)));
+                        "carl", new LearningPathResponse.NearestMentor("carl", "Carl Cache", 3, true),
+                        "ada", new LearningPathResponse.NearestMentor("ada", "Ada Lovelace", 5, true)));
 
         LearningPathResponse path = service.learningPath(MENTEE, "neo4j");
 
@@ -193,19 +193,93 @@ class MentoringServiceTest {
     }
 
     @Test
-    void aWalkWithNobodyOnIt_doesNotAskForMentors() {
+    void aWalkWithNobodyOnIt_fallsBackToTheCompany() {
         person(MENTEE, "Bob", "Byte");
         when(repository.findSkillByName(anyString())).thenReturn(Optional.of(new SkillRef(SKILL, "Neo4j")));
+        when(repository.learningPath(eq(MENTEE), any(), anyInt())).thenReturn(Optional.of(walkThrough(null)));
+        when(repository.bestMentor(SKILL, MENTEE, MentoringService.MIN_MENTOR_LEVEL))
+                .thenReturn(Optional.of(new LearningPathResponse.NearestMentor("ada", "Ada Lovelace", 5, false)));
+
+        LearningPathResponse path = service.learningPath(MENTEE, "neo4j");
+
+        assertThat(path.nearestMentor().name()).isEqualTo("Ada Lovelace");
+        assertThat(path.nearestMentor().onPath()).isFalse();
+        // Nobody stands on the walk, so there is nothing to ask about it.
+        verify(repository, never()).mentorsAmong(any(), any(), anyInt());
+    }
+
+    @Test
+    void alreadyKnowingTheSkill_redrawsTheWalkTowardsAMentor() {
+        // The bug this covers: "I know it at 2 and want to get better" is a one-hop walk to the
+        // skill with nobody on it, and the screen named no one at all.
+        person(MENTEE, "Bob", "Byte");
+        when(repository.findSkillByName(anyString())).thenReturn(Optional.of(new SkillRef(SKILL, "Neo4j")));
+        when(repository.learningPath(eq(MENTEE), any(), anyInt())).thenReturn(Optional.of(walkThrough(2)));
+        when(repository.pathToMentor(eq(MENTEE), any(), eq(3), anyInt()))
+                .thenReturn(Optional.of(walkToMentor("ada", "Ada Lovelace", 5)));
+
+        LearningPathResponse path = service.learningPath(MENTEE, "neo4j");
+
+        // The learner's own level survives the redraw, and the walk now ends at the mentor.
+        assertThat(path.ownLevel()).isEqualTo(2);
+        assertThat(path.nearestMentor().id()).isEqualTo("ada");
+        assertThat(path.nearestMentor().onPath()).isTrue();
+        assertThat(path.nodes().get(path.nodes().size() - 1).id()).isEqualTo("ada");
+        verify(repository, never()).bestMentor(any(), any(), anyInt());
+    }
+
+    @Test
+    void aKnownSkillWithNoRouteToAnyMentor_stillNamesOne() {
+        person(MENTEE, "Bob", "Byte");
+        when(repository.findSkillByName(anyString())).thenReturn(Optional.of(new SkillRef(SKILL, "Neo4j")));
+        when(repository.learningPath(eq(MENTEE), any(), anyInt())).thenReturn(Optional.of(walkThrough(2)));
+        when(repository.pathToMentor(eq(MENTEE), any(), eq(3), anyInt())).thenReturn(Optional.empty());
+        when(repository.bestMentor(SKILL, MENTEE, 3))
+                .thenReturn(Optional.of(new LearningPathResponse.NearestMentor("ada", "Ada Lovelace", 5, false)));
+
+        LearningPathResponse path = service.learningPath(MENTEE, "neo4j");
+
+        assertThat(path.nearestMentor().id()).isEqualTo("ada");
+        assertThat(path.nearestMentor().onPath()).isFalse();
+    }
+
+    @Test
+    void aMentorHasToKnowItBetterThanTheLearner() {
+        person(MENTEE, "Bob", "Byte");
+        when(repository.findSkillByName(anyString())).thenReturn(Optional.of(new SkillRef(SKILL, "Neo4j")));
+        // Bob is already at 4, so level 3 and level 4 have nothing to teach him: the bar is 5.
         when(repository.learningPath(eq(MENTEE), any(), anyInt()))
-                .thenReturn(Optional.of(walkThrough()));
+                .thenReturn(Optional.of(walkThrough(4, "carl")));
+        when(repository.pathToMentor(eq(MENTEE), any(), eq(5), anyInt())).thenReturn(Optional.empty());
+        when(repository.bestMentor(SKILL, MENTEE, 5)).thenReturn(Optional.empty());
 
         LearningPathResponse path = service.learningPath(MENTEE, "neo4j");
 
         assertThat(path.nearestMentor()).isNull();
-        verify(repository, never()).mentorsAmong(any(), any(), anyInt());
     }
 
-    private LearningPathResponse walkThrough(String... peerIds) {
+    @Test
+    void masteringASkill_leavesNobodyToLearnFrom() {
+        person(MENTEE, "Bob", "Byte");
+        when(repository.findSkillByName(anyString())).thenReturn(Optional.of(new SkillRef(SKILL, "Neo4j")));
+        when(repository.learningPath(eq(MENTEE), any(), anyInt())).thenReturn(Optional.of(walkThrough(5)));
+        // Level 6 does not exist, so neither query can come back with anybody.
+        when(repository.pathToMentor(eq(MENTEE), any(), eq(6), anyInt())).thenReturn(Optional.empty());
+        when(repository.bestMentor(SKILL, MENTEE, 6)).thenReturn(Optional.empty());
+
+        assertThat(service.learningPath(MENTEE, "neo4j").nearestMentor()).isNull();
+    }
+
+    private LearningPathResponse walkToMentor(String mentorId, String mentorName, int level) {
+        List<GraphNode> nodes = List.of(
+                new GraphNode(MENTEE, GraphNodeKind.PERSON, "Bob Byte", null),
+                new GraphNode(mentorId, GraphNodeKind.PERSON, mentorName, null));
+        return new LearningPathResponse(MENTEE, new SkillRef(SKILL, "Neo4j"), true, 1, null,
+                nodes, List.<GraphEdge>of(), new LearningPathResponse.NearestMentor(
+                        mentorId, mentorName, level, true));
+    }
+
+    private LearningPathResponse walkThrough(Integer ownLevel, String... peerIds) {
         List<GraphNode> nodes = new ArrayList<>();
         nodes.add(new GraphNode(MENTEE, GraphNodeKind.PERSON, "Bob Byte", null));
         for (String peer : peerIds) {
@@ -213,7 +287,7 @@ class MentoringServiceTest {
         }
         nodes.add(new GraphNode(SKILL, GraphNodeKind.SKILL, "Neo4j", "DATABASE"));
         return new LearningPathResponse(MENTEE, new SkillRef(SKILL, "Neo4j"), true,
-                nodes.size() - 1, null, List.copyOf(nodes), List.<GraphEdge>of(), null);
+                nodes.size() - 1, ownLevel, List.copyOf(nodes), List.<GraphEdge>of(), null);
     }
 
     private void person(String id, String first, String last) {

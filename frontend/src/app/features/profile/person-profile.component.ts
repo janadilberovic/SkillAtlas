@@ -186,11 +186,17 @@ export class PersonProfileComponent {
     });
   }
 
-  /** An edge is drawn in whichever direction it was stored, so the arrow has to say which. */
-  stepLabel(index: number): string {
+  edgeType(index: number): string {
+    return this.path()?.edges[index]?.type ?? '';
+  }
+
+  /**
+   * True when the walk runs against the edge as it is stored — Ada KNOWS Neo4j, but the path may
+   * arrive at Ada *through* Neo4j. The arrowhead follows the relationship, not the reading order.
+   */
+  isBack(index: number): boolean {
     const p = this.path();
-    if (!p || !p.edges[index] || !p.nodes[index]) return '';
-    const edge = p.edges[index];
-    return edge.source === p.nodes[index].id ? `${edge.type} →` : `← ${edge.type}`;
+    const edge = p?.edges[index];
+    return !!p && !!edge && edge.source !== p.nodes[index]?.id;
   }
 }

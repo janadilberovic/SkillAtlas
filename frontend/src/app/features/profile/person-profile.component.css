@@ -203,33 +203,35 @@ h1 {
   align-items: baseline;
   justify-content: space-between;
 }
-/* The walk runs downwards, one stop per line. Horizontally it collided: the relation labels sat
-   between chips as flex items and were shrunk below their text width, so they painted over the
-   chip beside them. */
+/* The walk runs left to right: node, labelled arrow, node. Every piece is `flex: none` and
+   nowrap — the first version let the relation labels shrink below their text width, and they
+   painted straight over the chip beside them. */
 .walk {
   list-style: none;
-  margin: 4px 0 0;
+  margin: 6px 0 2px;
   padding: 0;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
 }
 .stop {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-}
-.stopname {
-  font-size: 14px;
-}
-.stopkind {
-  text-transform: lowercase;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 7px;
+  padding: 6px 11px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 13px;
+  white-space: nowrap;
 }
 .dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   flex: none;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--node-person);
 }
 .dot[data-kind='SKILL'] {
   background: var(--node-skill);
@@ -240,27 +242,42 @@ h1 {
 .dot[data-kind='TEAM'] {
   background: var(--node-team);
 }
-/* The connector: a rule down the left, aligned with the middle of the dot above it.
-   Named `hop`, not `step` — `.step` is already the level stepper's button, 26px wide, and the
-   relation label was inheriting that width and painting over whatever sat beside it. */
+/* Named `hop`, not `step`: `.step` is the level stepper's 26px button, and the label inherited it. */
 .hop {
-  margin-left: 4px;
-  padding: 3px 0 3px 14px;
-  border-left: 1px solid var(--border-strong);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+  gap: 3px;
+  padding: 0 6px;
 }
-.toast {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
-  padding: 11px 15px;
-  border-radius: var(--radius);
-  background: var(--surface-accent);
-  color: var(--accent-text);
-  font-size: 13px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+.hoplabel {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.hopline {
+  position: relative;
+  width: 100%;
+  min-width: 46px;
+  height: 1px;
+  background: var(--border-strong);
+}
+/* The arrowhead is a CSS triangle on the end the relationship points at. */
+.hopline::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -1px;
+  border: 4px solid transparent;
+  border-left-color: var(--border-strong);
+}
+.hop.back .hopline::after {
+  right: auto;
+  left: -1px;
+  border-left-color: transparent;
+  border-right-color: var(--border-strong);
 }
 .projects {
   margin-top: 24px;

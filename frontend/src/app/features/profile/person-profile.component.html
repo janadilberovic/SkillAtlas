@@ -111,26 +111,40 @@
               </span>
             } @else {
               @if (lp.ownLevel !== null) {
-                <span class="muted small">Already known at level {{ lp.ownLevel }}.</span>
+                <span class="muted small">
+                  Already known at level {{ lp.ownLevel }}
+                  @if (lp.nearestMentor) {
+                    — the path below leads to someone who knows it better.
+                  } @else {
+                    — nobody in the company knows it better.
+                  }
+                </span>
               }
               <ol class="walk">
                 @for (n of lp.nodes; track n.id; let i = $index) {
-                  <li class="stop">
+                  <li class="stop" [title]="n.meta || n.kind">
                     <span class="dot" [attr.data-kind]="n.kind"></span>
                     <span class="stopname">{{ n.label }}</span>
-                    <span class="dim small stopkind">{{ n.meta || n.kind.toLowerCase() }}</span>
                   </li>
                   @if (i < lp.edges.length) {
-                    <li class="hop">{{ stepLabel(i) }}</li>
+                    <li class="hop" [class.back]="isBack(i)">
+                      <span class="hoplabel">{{ edgeType(i) }}</span>
+                      <span class="hopline"></span>
+                    </li>
                   }
                 }
               </ol>
               <span class="dim small">
                 {{ lp.steps }} {{ lp.steps === 1 ? 'step' : 'steps' }}
                 @if (lp.nearestMentor; as m) {
-                  · nearest mentor on the path: <strong>{{ m.name }}</strong> (level {{ m.level }})
+                  @if (m.onPath) {
+                    · nearest mentor on the path: <strong>{{ m.name }}</strong> (level {{ m.level }})
+                  } @else {
+                    · no mentor on this path — the strongest in the company is
+                    <strong>{{ m.name }}</strong> (level {{ m.level }})
+                  }
                 } @else {
-                  · nobody on this path can mentor it
+                  · nobody can mentor it yet
                 }
               </span>
             }
