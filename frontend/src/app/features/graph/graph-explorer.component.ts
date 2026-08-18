@@ -81,13 +81,13 @@ export class GraphExplorerComponent {
   readonly failed = signal(false);
   readonly nodes = signal<PlacedNode[]>([]);
   readonly hovered = signal<string | null>(null);
-  readonly tip = signal<{ x: number; y: number } | null>(null);
   readonly selected = signal<PlacedNode | null>(null);
 
   readonly teams = signal<SelectOption[]>([]);
   readonly team = signal('');
   readonly limit = signal(150);
-  readonly hops = signal(2);
+  /** One hop on arrival: the root's own edges are the answer to "show me this person". */
+  readonly hops = signal(1);
   /** Set from `?rootId=` — the profile's "In graph" jump lands here. */
   readonly rootId = signal<string | null>(null);
   readonly visible = signal<Record<GraphNodeKind, boolean>>({
@@ -148,8 +148,12 @@ export class GraphExplorerComponent {
         this.graph.set(data);
         if (data.totals) this.totals.set(data.totals);
         this.nodes.set(this.layout(data));
-        this.selected.set(null);
-        this.fit();
+        // The root survives the reload as the inspected node — focusing a person must not be the
+        // gesture that empties the panel about them.
+        const root = this.nodes().find((n) => n.id === this.rootId()) ?? null;
+        this.selected.set(root);
+        if (root) this.centerOn(root);
+        else this.fit();
         this.loading.set(false);
       },
       error: () => {
@@ -227,6 +231,15 @@ export class GraphExplorerComponent {
       .filter((e) => byId.has(e.source) && byId.has(e.target))
       .map((e) => ({ source: e.source, target: e.target }));
 
+    // Fixed, not merely pulled: a rooted view is only readable if the root sits in the same place
+    // every time. forceCenter would then fight it every tick, so the positional forces hold the
+    // rest instead.
+    const root = byId.get(this.rootId() ?? '') ?? null;
+    if (root) {
+      root.fx = WIDTH / 2;
+      root.fy = fieldHeight / 2;
+    }
+
     const sim = forceSimulation(linked)
       .force(
         'link',
@@ -238,9 +251,8 @@ export class GraphExplorerComponent {
       // distanceMax bounds the repulsion; without it the disconnected components sail apart,
       // since forceCenter only recentres the mean.
       .force('charge', forceManyBody().strength(-320).distanceMax(600))
-      .force('center', forceCenter(WIDTH / 2, fieldHeight / 2))
-      .force('x', forceX<PlacedNode>(WIDTH / 2).strength(0.04))
-      .force('y', forceY<PlacedNode>(fieldHeight / 2).strength(0.04))
+      .force('x', forceX<PlacedNode>(WIDTH / 2).strength(root ? 0.08 : 0.04))
+      .force('y', forceY<PlacedNode>(fieldHeight / 2).strength(root ? 0.08 : 0.04))
       // Extra iterations because one pass per tick leaves the dense middle overlapping.
       .force(
         'collide',
@@ -250,6 +262,7 @@ export class GraphExplorerComponent {
           .iterations(3),
       )
       .stop();
+    if (!root) sim.force('center', forceCenter(WIDTH / 2, fieldHeight / 2));
 
     const ticks = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay()));
     for (let i = 0; i < ticks; i++) sim.tick();
@@ -292,23 +305,18 @@ export class GraphExplorerComponent {
   /** The panel follows the cursor when nothing is pinned, so reading the map needs no clicking. */
   readonly inspected = computed(() => this.selected() ?? this.hoveredNode());
 
-  onNodeEnter(node: PlacedNode, event: MouseEvent): void {
+  onNodeEnter(node: PlacedNode): void {
     this.hovered.set(node.id);
-    const rect = (event.currentTarget as SVGElement).ownerSVGElement?.getBoundingClientRect();
-    if (rect) {
-      this.tip.set({ x: event.clientX - rect.left, y: event.clientY - rect.top });
-    }
   }
 
   clearHover(): void {
     this.hovered.set(null);
-    this.tip.set(null);
   }
 
-  /** Clicking the pinned node again unpins it — a pin must always be reversible. */
+  /** A pin holds until another node is clicked; hover never takes it away. */
   select(node: PlacedNode, event: MouseEvent): void {
     event.stopPropagation();
-    this.selected.set(this.selected()?.id === node.id ? null : node);
+    this.selected.set(node);
   }
 
   /** A click on empty canvas clears the pin, unless it was the end of a pan. */
@@ -321,13 +329,13 @@ export class GraphExplorerComponent {
   }
 
   /**
-   * The hovered node and everything one edge away — what the rest of the map dims behind.
+   * The inspected node and everything one edge away — what the rest of the map dims behind.
    *
-   * <p>Hover only, deliberately: dimming for a pinned selection too would leave the map faded with
-   * no way back, since a pin outlives the cursor.
+   * <p>A pin wins over the cursor, so the focus survives moving the mouse across the canvas; a
+   * click on the background is the way back to the undimmed map.
    */
   readonly lit = computed(() => {
-    const node = this.hoveredNode();
+    const node = this.inspected();
     const set = new Set<string>();
     if (!node) return set;
     set.add(node.id);
@@ -338,8 +346,11 @@ export class GraphExplorerComponent {
     return set;
   });
 
+  /** In a rooted view the second ring is context, not clutter, so it only recedes a little. */
+  readonly softDim = computed(() => !!this.rootId() && this.selected()?.id === this.rootId());
+
   readonly litSegments = computed<Segment[]>(() => {
-    const node = this.hoveredNode() ?? this.selected();
+    const node = this.inspected();
     if (!node) return [];
     const index = this.byId();
     return (this.graph()?.edges ?? [])
@@ -465,6 +476,14 @@ export class GraphExplorerComponent {
     this.panX.set(cx - (cx - this.panX()) * (to / from));
     this.panY.set(cy - (cy - this.panY()) * (to / from));
     this.zoom.set(to);
+  }
+
+  /** The subgraph's scale, but the given node holds the middle of the canvas. */
+  private centerOn(node: PlacedNode): void {
+    this.fit();
+    const scale = this.zoom();
+    this.panX.set(WIDTH / 2 - node.x * scale);
+    this.panY.set(HEIGHT / 2 - node.y * scale);
   }
 
   /** Frame the whole subgraph — the reset the zoom buttons drift away from. */

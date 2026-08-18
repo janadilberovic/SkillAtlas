@@ -77,9 +77,13 @@
             stroke="var(--border)"
             stroke-dasharray="4 6"
           />
-          <text [attr.x]="6" [attr.y]="ty - 8" font-size="11" class="lbl tray-cap">
-            {{ looseCount() }} with no relation in this view
-          </text>
+          <!-- Text glued to the tags: a newline here becomes a rendered space in SVG. -->
+          <text
+            [attr.x]="6"
+            [attr.y]="ty - 8"
+            font-size="11"
+            class="lbl tray-cap"
+          >{{ looseCount() }} with no relation in this view</text>
         }
         <g stroke="var(--border-strong)" stroke-width="1">
           @for (e of segments(); track $index) {
@@ -98,6 +102,13 @@
           />
         }
         @for (n of nodes(); track n.id) {
+          @if (rootId() === n.id) {
+            <g class="halo">
+              <circle [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="n.r + 9" />
+              <circle [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="n.r + 9" />
+              <circle [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="n.r + 9" />
+            </g>
+          }
           @if (selected()?.id === n.id || hovered() === n.id) {
             <circle
               [attr.cx]="n.x"
@@ -115,7 +126,8 @@
             [attr.fill]="fill(n)"
             class="node"
             [class.dimmed]="lit().size && !lit().has(n.id)"
-            (mouseenter)="onNodeEnter(n, $event)"
+            [class.soft]="softDim()"
+            (mouseenter)="onNodeEnter(n)"
             (click)="select(n, $event)"
           />
           @if (showLabel(n)) {
@@ -125,22 +137,11 @@
               text-anchor="middle"
               font-size="12"
               class="lbl"
-            >
-              {{ n.label }}
-            </text>
+            >{{ n.label }}</text>
           }
         }
       </g>
     </svg>
-
-    @if (hoveredNode(); as h) {
-      <div class="tip" [style.left.px]="tip()?.x ?? 16" [style.top.px]="tip()?.y ?? 16">
-        <span class="eyebrow">{{ h.kind | lowercase }}</span>
-        <span class="tipname">{{ h.label }}</span>
-        <span class="muted small">{{ h.meta }}</span>
-        <span class="dim small">{{ h.degree }} relations in view</span>
-      </div>
-    }
 
     <div class="hud br">
       <button class="zoom" (click)="zoomBy(1.25)" aria-label="Zoom in">+</button>
@@ -197,7 +198,7 @@
         }
       </div>
     } @else {
-      <span class="dim small">Hover a node to inspect it, click to pin it. Click it again, or the background, to unpin.</span>
+      <span class="dim small">Hover a node to inspect it, click to keep it in focus. Click the background to release it.</span>
     }
   </div>
 </div>
