@@ -280,42 +280,85 @@ export interface MySkills {
   wishes: MyWish[];
 }
 
-/** PLANNED — a ranked mentor candidate for a mentee + skill (2g). */
-export interface MentorCandidate {
-  person: Person;
-  skill: string;
-  level: number;
-  activeMentorships: number;
-  score: number;
+/** The skill a mentoring request named, resolved by the server. */
+export interface SkillRef {
+  id: string;
+  name: string;
 }
 
-/** PLANNED — admin skill-gap dashboard (2d). */
-export interface StatTile {
-  label: string;
-  value: string;
-  hint: string;
-  hintAccent?: boolean;
+/** GET /people/{id}/mentor-candidates — MentorCandidatesResponse (E6.1). */
+export interface MentorCandidates {
+  menteeId: string;
+  menteeName: string;
+  skill: SkillRef;
+  /** The KNOWS level a candidate had to clear; shown so the modal states the server's bar. */
+  minLevel: number;
+  candidates: MentorCandidate[];
+}
+
+/**
+ * One ranked candidate. There is no score: the ranking is level first, then how many mentorships
+ * they already carry, and the row shows both so an admin can see why someone is first.
+ */
+export interface MentorCandidate {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  teams: string[];
+  level: number;
+  activeMentorships: number;
+}
+
+/** GET /people/{id}/learning-path — LearningPathResponse (E6.2). */
+export interface LearningPath {
+  personId: string;
+  skill: SkillRef;
+  /** False when the two ends exist but nothing connects them — a message, not an error. */
+  found: boolean;
+  steps: number;
+  /** Set when the learner already knows the skill. */
+  ownLevel: number | null;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  nearestMentor: NearestMentor | null;
+}
+
+export interface NearestMentor {
+  id: string;
+  name: string;
+  level: number;
+}
+
+/** GET /dashboard — DashboardResponse (E6.3). */
+export interface DashboardMetrics {
+  people: number;
+  skills: number;
+  projects: number;
+  mentorships: number;
 }
 
 export interface SkillGapRow {
   team: string;
   skill: string;
   projects: string[];
-  knows: number;
+  knownBy: number;
 }
 
 export interface BusFactorEntry {
   skill: string;
-  person: string;
+  personId: string;
+  personName: string;
 }
 
 export interface MappingQueue {
   total: number;
-  names: string[];
+  people: { id: string; name: string }[];
 }
 
 export interface DashboardData {
-  stats: StatTile[];
+  metrics: DashboardMetrics;
   skillGap: SkillGapRow[];
   busFactor: BusFactorEntry[];
   mappingQueue: MappingQueue;

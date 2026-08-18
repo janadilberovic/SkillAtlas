@@ -64,6 +64,12 @@
         @for (w of wishes(); track w.skillId) {
           <span class="tag tag-outline">
             {{ w.name }}
+            @if (canSeePath()) {
+              <button class="tag-act" (click)="showPath(w.name)" title="Show the shortest path to this skill">path</button>
+            }
+            @if (auth.isAdmin()) {
+              <button class="tag-act" (click)="openMentorMatching(w.name)" title="Suggest a mentor">mentor</button>
+            }
             @if (isOwn()) {
               <button class="tag-x" (click)="removeWish(w.skillId)" title="Remove">✕</button>
             }
@@ -79,6 +85,47 @@
         }
         <span class="dim small">A skill you already know at level 5 can't be added as a wish.</span>
       </div>
+
+      @if (pathSkill(); as target) {
+        <div class="card-flat pathbox">
+          <div class="cardhead">
+            <span class="col-head">Learning path · {{ target }}</span>
+            <button class="btn btn-ghost btn-sm" (click)="showPath(target)">Close</button>
+          </div>
+          @if (pathLoading()) {
+            <span class="dim small">Working out the shortest route…</span>
+          } @else if (pathError()) {
+            <span class="dim small">{{ pathError() }}</span>
+          } @else if (path(); as lp) {
+            @if (!lp.found) {
+              <span class="dim small">
+                Nothing connects {{ p.firstName }} to {{ target }} yet — no shared team, project or
+                colleague. A mentor would have to come from outside their neighbourhood.
+              </span>
+            } @else {
+              @if (lp.ownLevel !== null) {
+                <span class="muted small">Already known at level {{ lp.ownLevel }}.</span>
+              }
+              <div class="walk">
+                @for (n of lp.nodes; track n.id; let i = $index) {
+                  <span class="tag" [title]="n.meta || n.kind">{{ n.label }}</span>
+                  @if (i < lp.edges.length) {
+                    <span class="dim small step">{{ stepLabel(i) }}</span>
+                  }
+                }
+              </div>
+              <span class="dim small">
+                {{ lp.steps }} {{ lp.steps === 1 ? 'step' : 'steps' }}
+                @if (lp.nearestMentor; as m) {
+                  · nearest mentor on the path: <strong>{{ m.name }}</strong> (level {{ m.level }})
+                } @else {
+                  · nobody on this path can mentor it
+                }
+              </span>
+            }
+          }
+        </div>
+      }
 
       <div class="projects">
         <span class="col-head">Projects</span>
@@ -159,3 +206,14 @@
     <p class="dim pad">Person not found.</p>
   }
 </div>
+
+@if (mentorSkill(); as skill) {
+  <sa-mentor-matching
+    [menteeId]="person()!.id"
+    [menteeName]="person()!.firstName + ' ' + person()!.lastName"
+    [skill]="skill"
+    (closed)="onMentorClosed($event)" />
+}
+@if (mentorConfirmed(); as skill) {
+  <div class="toast">Mentor confirmed for {{ skill }} — the MENTORS relation now exists.</div>
+}

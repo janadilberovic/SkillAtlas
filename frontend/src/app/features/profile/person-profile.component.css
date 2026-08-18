@@ -164,6 +164,52 @@ h1 {
   background: rgba(145, 132, 217, 0.18);
   color: var(--accent-text);
 }
+.tag-act {
+  margin-left: 7px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.tag-act:hover {
+  color: var(--accent-text);
+}
+.pathbox {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.cardhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.walk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.step {
+  letter-spacing: 0.04em;
+}
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  padding: 11px 15px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
 .projects {
   margin-top: 24px;
   display: flex;

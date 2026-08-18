@@ -30,9 +30,8 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         canActivate: [adminGuard],
-        // Backend not built yet (E6.3).
         loadComponent: () =>
-          import('./shared/components/waiting-for-api/waiting-for-api.component').then((m) => m.WaitingForApiComponent),
+          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'skills',

@@ -4,9 +4,10 @@ import {
   FinderResult,
   GraphData,
   GraphNodeKind,
+  LearningPath,
   LoginResponse,
   Me,
-  MentorCandidate,
+  MentorCandidates,
   MySkills,
   Page,
   Person,
@@ -104,9 +105,11 @@ export abstract class GraphApi {
   abstract explore(query: GraphQuery): Observable<GraphData>;
 }
 
+/** E6.1 + E6.2. Both reads take a skill *name*; the write takes the id the read resolved. */
 export abstract class MentoringApi {
-  abstract candidates(personId: string, skill: string): Observable<MentorCandidate[]>;
-  abstract confirm(mentorId: string, menteeId: string, skill: string): Observable<void>;
+  abstract candidates(personId: string, skill: string): Observable<MentorCandidates>;
+  abstract confirm(mentorId: string, menteeId: string, skillId: string): Observable<void>;
+  abstract learningPath(personId: string, skill: string): Observable<LearningPath>;
 }
 
 export abstract class DashboardApi {

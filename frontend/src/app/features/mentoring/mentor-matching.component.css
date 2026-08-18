@@ -94,13 +94,6 @@
 }
 .lvl,
 .load,
-.score {
-  font-size: 13px;
-}
-.cand.sel .lvl,
-.cand.sel .score {
-  color: var(--accent-text);
-}
 .foot {
   display: flex;
   justify-content: flex-end;

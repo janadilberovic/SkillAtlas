@@ -3,10 +3,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  DashboardData,
   Expert,
   FinderResult,
   GraphData,
+  LearningPath,
   LoginResponse,
+  MentorCandidates,
   Me,
   MySkills,
   Page,
@@ -19,10 +22,12 @@ import {
 } from '../models/models';
 import {
   AuthApi,
+  DashboardApi,
   FinderApi,
   GraphApi,
   GraphQuery,
   MemberInput,
+  MentoringApi,
   PeopleApi,
   PeopleQuery,
   PeopleSkillsApi,
@@ -206,6 +211,36 @@ export class HttpGraphApi extends GraphApi {
       params = params.set('types', query.types.join(','));
     }
     return this.http.get<GraphData>(`${BASE}/graph`, { params });
+  }
+}
+
+@Injectable()
+export class HttpMentoringApi extends MentoringApi {
+  private readonly http = inject(HttpClient);
+
+  candidates(personId: string, skill: string): Observable<MentorCandidates> {
+    const params = new HttpParams().set('skill', skill);
+    return this.http.get<MentorCandidates>(`${BASE}/people/${personId}/mentor-candidates`, { params });
+  }
+
+  confirm(mentorId: string, menteeId: string, skillId: string): Observable<void> {
+    // The response carries the created mentorship; the screen only needs to know it landed.
+    return this.http
+      .post(`${BASE}/mentorships`, { mentorId, menteeId, skillId })
+      .pipe(map(() => undefined));
+  }
+
+  learningPath(personId: string, skill: string): Observable<LearningPath> {
+    const params = new HttpParams().set('skill', skill);
+    return this.http.get<LearningPath>(`${BASE}/people/${personId}/learning-path`, { params });
+  }
+}
+
+@Injectable()
+export class HttpDashboardApi extends DashboardApi {
+  private readonly http = inject(HttpClient);
+  overview(): Observable<DashboardData> {
+    return this.http.get<DashboardData>(`${BASE}/dashboard`);
   }
 }
 

@@ -3,7 +3,7 @@
     <div class="mhead">
       <div class="titles">
         <span class="mtitle">Mentor candidates</span>
-        <span class="muted small">For {{ menteeName() }} · skill {{ skill() }} · level ≥ 3 required</span>
+        <span class="muted small">For {{ menteeName() }} · skill {{ skill() }} · level ≥ {{ minLevel() }} required</span>
       </div>
       <button class="x" (click)="closed.emit(false)">✕</button>
     </div>
@@ -16,25 +16,26 @@
 
     @if (loading()) {
       <p class="muted small">Ranking candidates…</p>
+    } @else if (error()) {
+      <p class="muted small">{{ error() }}</p>
     } @else if (candidates().length) {
       <div class="list">
-        @for (c of candidates(); track c.person.id; let i = $index) {
-          <label class="cand" [class.sel]="selected() === c.person.id">
-            <input type="radio" name="cand" [checked]="selected() === c.person.id" (change)="selected.set(c.person.id)" />
+        @for (c of candidates(); track c.id; let i = $index) {
+          <label class="cand" [class.sel]="selected() === c.id">
+            <input type="radio" name="cand" [checked]="selected() === c.id" (change)="selected.set(c.id)" />
             <span class="rank">{{ i + 1 }}</span>
             <div class="who">
-              <span class="cname">{{ c.person.firstName }} {{ c.person.lastName }}</span>
-              <span class="muted small">{{ c.person.team }} · {{ c.person.position }}</span>
+              <span class="cname">{{ c.firstName }} {{ c.lastName }}</span>
+              <span class="muted small">{{ c.teams.join(' / ') || 'No team' }} · {{ c.position }}</span>
             </div>
-            <span class="lvl">{{ c.skill }} {{ c.level }}</span>
+            <span class="lvl">{{ skill() }} {{ c.level }}</span>
             <span class="load muted">{{ c.activeMentorships }} {{ c.activeMentorships === 1 ? 'mentorship' : 'mentorships' }}</span>
-            <span class="score">score {{ c.score.toFixed(1) }}</span>
           </label>
         }
       </div>
       <p class="dim small m0">The MENTORS relation is created only once an admin confirms it.</p>
     } @else {
-      <p class="muted small">No one knows {{ skill() }} at level ≥ 3 yet — nobody to suggest.</p>
+      <p class="muted small">No one knows {{ skill() }} at level ≥ {{ minLevel() }} yet — nobody to suggest.</p>
     }
 
     <div class="foot">
