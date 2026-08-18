@@ -67,13 +67,18 @@ h1 {
   font-size: 14px;
 }
 .reqrow {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 0.8fr auto;
-  gap: 12px;
+  display: flex;
   align-items: center;
-  padding: 9px 0;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
   border-top: 1px solid var(--border);
   font-size: 14px;
+}
+.reqmain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .reqwho {
   color: var(--text);

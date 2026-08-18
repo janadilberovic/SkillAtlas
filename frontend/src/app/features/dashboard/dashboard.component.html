@@ -19,42 +19,6 @@
       }
     </div>
 
-    <div class="card gap">
-      <div class="cardhead">
-        <span class="ctitle">Waiting for a mentor</span>
-        <span class="dim small">Wants to learn · nobody mentors it yet</span>
-      </div>
-      @for (r of requests()?.content ?? []; track r.personId + r.skillId) {
-        <div class="reqrow">
-          <a [routerLink]="['/people', r.personId]" class="reqwho">{{ r.personName }}</a>
-          <span class="tag tag-outline">{{ r.skillName }}</span>
-          <span class="small" [class.muted]="r.candidates" [class.dim]="!r.candidates">
-            {{ r.candidates }} {{ r.candidates === 1 ? 'candidate' : 'candidates' }}
-          </span>
-          <button class="btn btn-sm" [disabled]="!r.candidates || requestsLoading()" (click)="pick(r)">
-            {{ r.candidates ? 'Choose mentor' : 'Nobody qualifies' }}
-          </button>
-        </div>
-      } @empty {
-        <p class="muted small">Every learning wish already has a mentor.</p>
-      }
-
-      @if (requests(); as q) {
-        @if (q.totalPages > 1) {
-          <div class="pager">
-            <button class="btn btn-ghost btn-sm" [disabled]="q.page === 0 || requestsLoading()"
-                    (click)="turnRequestsPage(-1)">Previous</button>
-            <span class="dim small">
-              {{ q.page * q.size + 1 }}–{{ q.page * q.size + q.content.length }} of {{ q.totalElements }}
-            </span>
-            <button class="btn btn-ghost btn-sm"
-                    [disabled]="q.page + 1 >= q.totalPages || requestsLoading()"
-                    (click)="turnRequestsPage(1)">Next</button>
-          </div>
-        }
-      }
-    </div>
-
     <div class="cols">
       <div class="card gap">
         <div class="cardhead">
@@ -107,6 +71,42 @@
             </div>
           } @empty {
             <p class="muted small">Every skill is known by more than one person.</p>
+          }
+        </div>
+
+        <div class="card">
+          <div class="cardhead">
+            <span class="ctitle">Waiting for a mentor</span>
+            <span class="tag">{{ requests()?.totalElements ?? 0 }}</span>
+          </div>
+          <span class="dim small">Wants to learn · nobody mentors it yet</span>
+          @for (r of requests()?.content ?? []; track r.personId + r.skillId) {
+            <div class="reqrow">
+              <div class="reqmain">
+                <a [routerLink]="['/people', r.personId]" class="reqwho">{{ r.personName }}</a>
+                <span class="muted small">
+                  {{ r.skillName }} · {{ r.candidates }} {{ r.candidates === 1 ? 'candidate' : 'candidates' }}
+                </span>
+              </div>
+              <button class="btn btn-sm" [disabled]="!r.candidates || requestsLoading()" (click)="pick(r)">
+                {{ r.candidates ? 'Choose' : 'None' }}
+              </button>
+            </div>
+          } @empty {
+            <p class="muted small">Every learning wish already has a mentor.</p>
+          }
+
+          @if (requests(); as q) {
+            @if (q.totalPages > 1) {
+              <div class="pager">
+                <button class="btn btn-ghost btn-sm" [disabled]="q.page === 0 || requestsLoading()"
+                        (click)="turnRequestsPage(-1)">Previous</button>
+                <span class="dim small">{{ q.page + 1 }} / {{ q.totalPages }}</span>
+                <button class="btn btn-ghost btn-sm"
+                        [disabled]="q.page + 1 >= q.totalPages || requestsLoading()"
+                        (click)="turnRequestsPage(1)">Next</button>
+              </div>
+            }
           }
         </div>
 

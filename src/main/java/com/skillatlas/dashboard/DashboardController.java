@@ -50,7 +50,7 @@ public class DashboardController {
     @PreAuthorize("hasRole('ADMIN')")
     public PageResponse<DashboardResponse.MentorRequestRow> mentorRequests(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "5") int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
         return service.mentorRequests(PageRequest.of(safePage, safeSize));

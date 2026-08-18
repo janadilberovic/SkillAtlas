@@ -19,7 +19,8 @@ public class DashboardService {
     static final int GAP_THRESHOLD = 1;
     /** What the overview embeds: enough to see the shape, few enough to read. */
     static final int GAP_PAGE_SIZE = 10;
-    static final int REQUEST_PAGE_SIZE = 10;
+    /** The queue sits in the side rail, so it shows fewer rows than the gap table. */
+    static final int REQUEST_PAGE_SIZE = 5;
     static final int ROW_LIMIT = 50;
     static final int QUEUE_PREVIEW = 12;
 
