@@ -10,6 +10,8 @@
 .modal {
   width: 640px;
   max-width: 100%;
+  /* Matches the backdrop's 40px padding, so a long candidate list never runs off the screen. */
+  max-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -56,10 +58,17 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+/* The list is the only part that scrolls: the heading says who and what, and the footer holds
+   the confirm button — both have to stay put while the admin walks the candidates.
+   min-height: 0 because a flex child will not shrink below its content without it. */
 .list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  /* Room for the scrollbar, so it does not sit on top of the mentorship counts. */
+  padding-right: 4px;
 }
 .cand {
   display: grid;
