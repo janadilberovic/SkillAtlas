@@ -4,9 +4,11 @@ import {
   FinderResult,
   GraphData,
   GraphNodeKind,
+  LearningPath,
   LoginResponse,
   Me,
-  MentorCandidate,
+  MentorCandidates,
+  MentorRequestRow,
   MySkills,
   Page,
   Person,
@@ -15,6 +17,7 @@ import {
   Skill,
   SkillCategory,
   SkillCoverage,
+  SkillGapRow,
   Team,
 } from '../models/models';
 import { SkillTerm } from './finder-query';
@@ -104,11 +107,16 @@ export abstract class GraphApi {
   abstract explore(query: GraphQuery): Observable<GraphData>;
 }
 
+/** E6.1 + E6.2. Both reads take a skill *name*; the write takes the id the read resolved. */
 export abstract class MentoringApi {
-  abstract candidates(personId: string, skill: string): Observable<MentorCandidate[]>;
-  abstract confirm(mentorId: string, menteeId: string, skill: string): Observable<void>;
+  abstract candidates(personId: string, skill: string): Observable<MentorCandidates>;
+  abstract confirm(mentorId: string, menteeId: string, skillId: string): Observable<void>;
+  abstract learningPath(personId: string, skill: string): Observable<LearningPath>;
 }
 
 export abstract class DashboardApi {
   abstract overview(): Observable<DashboardData>;
+  /** The two long tables page on their own, so walking one does not re-run the other widgets. */
+  abstract skillGap(page: number, size: number): Observable<Page<SkillGapRow>>;
+  abstract mentorRequests(page: number, size: number): Observable<Page<MentorRequestRow>>;
 }

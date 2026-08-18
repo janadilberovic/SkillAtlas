@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.skillatlas.mentoring.MentorshipsRepository;
 import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
 import com.skillatlas.people.enums.Role;

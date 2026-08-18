@@ -17,8 +17,8 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [3] | E4.1 · Expert finder | [E4.1](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #10, dorada u #12 |
 | [4] | E4.2 · Bogat profil osobe | [E4.2](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #17 |
 | [5] | E5.1 · Graf endpoint + explorer | [E5.1](spec.md#e5--graf-vizualizacija-core) | ✅ PR #18 |
-| **[6]** | **E6.1/2/3 · Mentoring, learning path, dashboard** | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ⬅️ **sljedeći** |
-| [7] | E3 · Import iz VacaYAY-a | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬜ |
+| [6] | E6.1/2/3 · Mentoring, learning path, dashboard | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ✅ PR #19 |
+| **[7]** | **E3 · Import iz VacaYAY-a** | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬅️ **sljedeći** |
 | [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
 | [9] | Dopuna testova | §04.5 | ⬜ |
 | [10] | Jedan Advanced (E7–E13) | [Advanced](spec.md#advanced-bira-se-jedan) | ⬜ |
@@ -89,12 +89,45 @@ Odluke (potvrđene i implementirane):
 
 Uz to: `/graph` više nije `WaitingForApiComponent`, a profil je dobio „Open in the graph".
 
-## [6] E6 · Mentoring, learning path, dashboard
+## [6] E6 · Mentoring, learning path, dashboard — gotovo
 
-Mentor matching po pravilima iz `spec.md` §4.3 (kandidat `KNOWS` level ≥ 3, ne sam sebi,
-rangiranje po levelu pa po opterećenosti), `POST /mentorships` tek na adminovu potvrdu —
-prvi write `MENTORS` relacije. Learning path preko `shortestPath`. Dashboard: metrike +
-skill gap po timu + bus factor + „čeka mapiranje skillova".
+Novi paketi `com.skillatlas.mentoring` i `com.skillatlas.dashboard`. `MENTORS` prestaje da bude
+write koji radi samo seed: `GET /people/{id}/mentor-candidates`, `POST /mentorships`,
+`DELETE /mentorships`, `GET /people/{id}/learning-path`, `GET /dashboard`.
+
+Odluke (potvrđene i implementirane):
+1. **Bez sintetičkog `score`-a.** Rangiranje je `level DESC, activeMentorships ASC, lastName ASC`, a
+   red nosi `level` i `activeMentorships` — §4.3 traži da se u UI-ju vidi *zašto* je neko prvi.
+2. Iz kandidata ispadaju: sam mentee, level < 3, soft-deleted, i onaj ko ga već mentoriše **za taj
+   skill** (per-skill, pa mentor za Docker i dalje stoji kao kandidat za Neo4j). Opterećenost je
+   `COUNT {}` subquery — bez drugog upita.
+3. Pravilo „level ≥ 3" se **provjerava ponovo na POST-u**, ne samo pri listanju: lista je prijedlog
+   koji klijent može zadržati, a write je mjesto gdje pravilo obavezuje. `MERGE` → dupli klik daje
+   jednu relaciju.
+4. `shortestPath` je **neusmjeren** i ograničen na 6 hopova: `KNOWS` ide osoba→skill a `USES`
+   projekat→skill, pa usmjereni patern nikad ne bi stigao do skilla kroz projekat. Put reuse-uje
+   `graph.dto.GraphNode/GraphEdge`. „Najbliži mentor" je drugi upit nad ljudima s puta — *koji* je
+   najbliži odlučuje Java, gdje redoslijed puta i postoji.
+5. Nema puta → `200 {found:false}`, ne 404. Oba kraja postoje, samo nisu povezani.
+6. `DELETE /mentorships` nije u spec katalogu (§04) — dodat namjerno, inače je `MENTORS` nepovratan.
+   Identifikuje se trojkom (mentor, mentee, skill); relacija nema svoj stabilan id.
+7. Skill gap se broji **unutar tima** — ekspert van tima ne zatvara rupu tog tima.
+8. **Skill gap se paginira** (`GET /dashboard/skill-gap?page=&size=`) — na seedovanoj bazi je već 37
+   redova, a to je jedini widget koji raste s brojem ljudi. Overview nosi prvu stranicu (prvi paint
+   ostaje jedan poziv), a okretanje stranice ne pokreće ponovo ostala tri widgeta. Najveće rupe
+   (`knownBy = 0`) idu prve, pa je prva stranica ona koju vrijedi čitati.
+9. **Kartica „čeka mentora"** (`GET /dashboard/mentor-requests`) — želje (`WANTS_TO_LEARN`) za koje
+   ne postoji živa `MENTORS` veza, sa brojem kandidata po redu i dugmetom koje otvara isti modal.
+   Admin više ne mora da obilazi profile da bi vidio ko čeka. Mentor koji je u međuvremenu obrisan
+   ne računa se kao odgovor — želja se vraća u red. Red je FIFO (najstarija želja prva) i paginira
+   se kao i skill gap.
+10. Bus factor kartica na dashboardu više ne otvara modal za mentore (ranije `menteeId=""`, što je
+   prolazilo samo dok je API bio mock): matching kreće od mentija, a skill nije menti. Red vodi na
+   profil osobe od koje skill zavisi, a mentor flow kreće s profila.
+
+Uz to: `MentorshipsRepository` preseljen iz `people` u `mentoring`, `/dashboard` više nije
+`WaitingForApiComponent`, profil je dobio „mentor" (admin) i „path" akcije, a mentoring/dashboard
+mockovi su **obrisani**, ne preoblikovani.
 
 ## [7] E3 · VacaYAY import
 

@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { PeopleApi, PeopleSkillsApi, SkillApi } from '../../core/api/api';
+import { MentoringApi, PeopleApi, PeopleSkillsApi, SkillApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
-import { PersonProfile, Skill } from '../../core/models/models';
+import { LearningPath, PersonProfile, Skill } from '../../core/models/models';
+import { MentorMatchingComponent } from '../mentoring/mentor-matching.component';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { LevelBarComponent } from '../../shared/components/level-bar/level-bar.component';
 import { SelectComponent } from '../../shared/components/select/select.component';
@@ -12,7 +13,15 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 @Component({
   selector: 'sa-person-profile',
   standalone: true,
-  imports: [FormsModule, RouterLink, AvatarComponent, LevelBarComponent, SelectComponent, SkeletonComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    AvatarComponent,
+    LevelBarComponent,
+    MentorMatchingComponent,
+    SelectComponent,
+    SkeletonComponent,
+  ],
   templateUrl: './person-profile.component.html',
   styleUrl: './person-profile.component.css',
 })
@@ -21,6 +30,7 @@ export class PersonProfileComponent {
   private readonly peopleApi = inject(PeopleApi);
   private readonly peopleSkillsApi = inject(PeopleSkillsApi);
   private readonly skillApi = inject(SkillApi);
+  private readonly mentoringApi = inject(MentoringApi);
   readonly auth = inject(AuthService);
 
   readonly person = signal<PersonProfile | null>(null);
@@ -29,12 +39,23 @@ export class PersonProfileComponent {
   readonly addOpen = signal(false);
   readonly addError = signal('');
 
+  /** The wish an admin is picking a mentor for (E6.1), and the wish being routed (E6.2). */
+  readonly mentorSkill = signal<string | null>(null);
+  readonly mentorConfirmed = signal<string | null>(null);
+  readonly pathSkill = signal<string | null>(null);
+  readonly path = signal<LearningPath | null>(null);
+  readonly pathLoading = signal(false);
+  readonly pathError = signal('');
+
   newSkillId = '';
   newLevel = 3;
   newWishId = '';
 
   readonly skillOptions = computed(() => this.catalog().map((s) => ({ value: s.id, label: s.name })));
   readonly isOwn = computed(() => this.person()?.id === this.auth.user()?.id);
+  // The server allows owner-or-admin on the path and admin-only on matching; the buttons follow
+  // the same rule so nobody is offered a 403.
+  readonly canSeePath = computed(() => this.isOwn() || this.auth.isAdmin());
 
   // An owner's edit reloads the profile rather than patching these from the write's response: a
   // new skill also changes the neighbourhood beside them.
@@ -128,5 +149,54 @@ export class PersonProfileComponent {
   removeWish(skillId: string): void {
     const id = this.person()!.id;
     this.peopleSkillsApi.removeWish(id, skillId).subscribe(() => this.load(id));
+  }
+
+  openMentorMatching(skillName: string): void {
+    this.mentorConfirmed.set(null);
+    this.mentorSkill.set(skillName);
+  }
+
+  onMentorClosed(confirmed: boolean): void {
+    const skill = this.mentorSkill();
+    this.mentorSkill.set(null);
+    if (!confirmed || !skill) return;
+    this.mentorConfirmed.set(skill);
+    // A confirmed mentorship shows up on this very profile, so reload rather than patch.
+    this.load(this.person()!.id);
+  }
+
+  showPath(skillName: string): void {
+    if (this.pathSkill() === skillName) {
+      this.pathSkill.set(null);
+      return;
+    }
+    this.pathSkill.set(skillName);
+    this.path.set(null);
+    this.pathError.set('');
+    this.pathLoading.set(true);
+    this.mentoringApi.learningPath(this.person()!.id, skillName).subscribe({
+      next: (p) => {
+        this.path.set(p);
+        this.pathLoading.set(false);
+      },
+      error: () => {
+        this.pathError.set('Could not work out a path to that skill.');
+        this.pathLoading.set(false);
+      },
+    });
+  }
+
+  edgeType(index: number): string {
+    return this.path()?.edges[index]?.type ?? '';
+  }
+
+  /**
+   * True when the walk runs against the edge as it is stored — Ada KNOWS Neo4j, but the path may
+   * arrive at Ada *through* Neo4j. The arrowhead follows the relationship, not the reading order.
+   */
+  isBack(index: number): boolean {
+    const p = this.path();
+    const edge = p?.edges[index];
+    return !!p && !!edge && edge.source !== p.nodes[index]?.id;
   }
 }

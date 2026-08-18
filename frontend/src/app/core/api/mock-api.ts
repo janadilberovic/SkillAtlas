@@ -2,13 +2,11 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import {
-  DashboardData,
   FinderMatch,
   FinderResult,
   LoginResponse,
   MatchedSkill,
   Me,
-  MentorCandidate,
   Page,
   Person,
   PersonProfile,
@@ -20,10 +18,8 @@ import {
 import { SkillTerm, formatSkillTerm } from './finder-query';
 import {
   AuthApi,
-  DashboardApi,
   FinderApi,
   MemberInput,
-  MentoringApi,
   PeopleApi,
   PeopleQuery,
   ProjectApi,
@@ -32,7 +28,6 @@ import {
   TeamApi,
 } from './api';
 import {
-  DASHBOARD,
   MOCK_CREDENTIALS,
   PEOPLE,
   PROJECTS,
@@ -40,7 +35,6 @@ import {
   TEAMS,
   addSkillMock,
   assignMemberMock,
-  mentorCandidatesFor,
   person,
   removeMemberMock,
   removeSkillMock,
@@ -249,22 +243,3 @@ export class MockFinderApi extends FinderApi {
     );
   }
 }
-
-@Injectable()
-export class MockMentoringApi extends MentoringApi {
-  candidates(personId: string, skill: string): Observable<MentorCandidate[]> {
-    return respond(mentorCandidatesFor(personId, skill));
-  }
-  confirm(_mentorId: string, _menteeId: string, _skill: string): Observable<void> {
-    // Mock: the real endpoint (POST /mentorships) creates the MENTORS relation on admin confirm.
-    return respond(undefined);
-  }
-}
-
-@Injectable()
-export class MockDashboardApi extends DashboardApi {
-  overview(): Observable<DashboardData> {
-    return respond(DASHBOARD);
-  }
-}
-

@@ -1,18 +1,20 @@
 <div class="page">
   <div>
-    <h1>Skill gap</h1>
-    <p class="muted sub">Where the company's knowledge is thin — by team, by skill, by person.</p>
+    <h1>Dashboard</h1>
+    <p class="muted sub">Where the company's knowledge is thin — and who is waiting to learn.</p>
   </div>
 
   @if (loading()) {
     <sa-skeleton [rows]="4" />
+  } @else if (failed()) {
+    <p class="muted">Could not load the dashboard.</p>
   } @else if (data(); as d) {
     <div class="stats">
-      @for (s of d.stats; track s.label) {
+      @for (t of tiles(); track t.label) {
         <div class="card tile">
-          <span class="col-head">{{ s.label }}</span>
-          <span class="val">{{ s.value }}</span>
-          <span class="small" [class.accent]="s.hintAccent" [class.muted]="!s.hintAccent">{{ s.hint }}</span>
+          <span class="col-head">{{ t.label }}</span>
+          <span class="val">{{ t.value }}</span>
+          <span class="small" [class.accent]="t.accent" [class.muted]="!t.accent">{{ t.hint }}</span>
         </div>
       }
     </div>
@@ -29,13 +31,30 @@
           <span class="col-head">Knows</span>
           <span class="col-head">Action</span>
         </div>
-        @for (g of d.skillGap; track g.team + g.skill) {
+        @for (g of gap()?.content ?? []; track g.team + g.skill) {
           <div class="grow data">
             <span>{{ g.team }}</span>
             <span class="muted">{{ g.skill }} · {{ g.projects.join(', ') }}</span>
-            <span class="accent">{{ g.knows }}</span>
+            <span class="accent">{{ g.knownBy }}</span>
             <a [routerLink]="['/finder']" [queryParams]="{ q: g.skill }" class="small">Find experts</a>
           </div>
+        } @empty {
+          <p class="muted small">No team is short on a skill its projects use.</p>
+        }
+
+        @if (gap(); as g) {
+          @if (g.totalPages > 1) {
+            <div class="pager">
+              <button class="btn btn-ghost btn-sm" [disabled]="!hasPrev() || gapLoading()"
+                      (click)="turnGapPage(-1)">Previous</button>
+              <span class="dim small">
+                {{ g.page * g.size + 1 }}–{{ g.page * g.size + g.content.length }} of
+                {{ g.totalElements }}
+              </span>
+              <button class="btn btn-ghost btn-sm" [disabled]="!hasNext() || gapLoading()"
+                      (click)="turnGapPage(1)">Next</button>
+            </div>
+          }
         }
       </div>
 
@@ -46,10 +65,49 @@
           @for (b of d.busFactor; track b.skill) {
             <div class="busrow">
               <span>{{ b.skill }}</span>
-              <span class="muted">{{ b.person }}</span>
+              <!-- The mentor flow starts from a mentee, so the row links to the person it depends
+                   on rather than opening the matching modal with nobody to mentor. -->
+              <a [routerLink]="['/people', b.personId]" class="muted small">{{ b.personName }}</a>
             </div>
+          } @empty {
+            <p class="muted small">Every skill is known by more than one person.</p>
           }
-          <button class="btn btn-block" (click)="openMentor(d.busFactor[0].skill)">Suggest mentors for all {{ d.busFactor.length }}</button>
+        </div>
+
+        <div class="card">
+          <div class="cardhead">
+            <span class="ctitle">Waiting for a mentor</span>
+            <span class="tag">{{ requests()?.totalElements ?? 0 }}</span>
+          </div>
+          <span class="dim small">Wants to learn · nobody mentors it yet</span>
+          @for (r of requests()?.content ?? []; track r.personId + r.skillId) {
+            <div class="reqrow">
+              <div class="reqmain">
+                <a [routerLink]="['/people', r.personId]" class="reqwho">{{ r.personName }}</a>
+                <span class="muted small">
+                  {{ r.skillName }} · {{ r.candidates }} {{ r.candidates === 1 ? 'candidate' : 'candidates' }}
+                </span>
+              </div>
+              <button class="btn btn-sm" [disabled]="!r.candidates || requestsLoading()" (click)="pick(r)">
+                {{ r.candidates ? 'Choose' : 'None' }}
+              </button>
+            </div>
+          } @empty {
+            <p class="muted small">Every learning wish already has a mentor.</p>
+          }
+
+          @if (requests(); as q) {
+            @if (q.totalPages > 1) {
+              <div class="pager">
+                <button class="btn btn-ghost btn-sm" [disabled]="q.page === 0 || requestsLoading()"
+                        (click)="turnRequestsPage(-1)">Previous</button>
+                <span class="dim small">{{ q.page + 1 }} / {{ q.totalPages }}</span>
+                <button class="btn btn-ghost btn-sm"
+                        [disabled]="q.page + 1 >= q.totalPages || requestsLoading()"
+                        (click)="turnRequestsPage(1)">Next</button>
+              </div>
+            }
+          }
         </div>
 
         <div class="card-flat">
@@ -57,27 +115,29 @@
             <span class="ctitle">Waiting for skill mapping</span>
             <span class="tag">{{ d.mappingQueue.total }}</span>
           </div>
-          <span class="dim small">Imported from VacaYAY, no skills yet</span>
+          <span class="dim small">Active people with no skills on their profile yet</span>
           <div class="chips">
-            @for (n of d.mappingQueue.names; track n) {
-              <span class="tag tag-mute">{{ n }}</span>
+            @for (p of d.mappingQueue.people; track p.id) {
+              <a [routerLink]="['/people', p.id]" class="tag tag-mute">{{ p.name }}</a>
             }
-            <span class="tag tag-mute">+{{ d.mappingQueue.total - d.mappingQueue.names.length }}</span>
+            @if (d.mappingQueue.total > d.mappingQueue.people.length) {
+              <span class="tag tag-mute">+{{ d.mappingQueue.total - d.mappingQueue.people.length }}</span>
+            }
           </div>
-          <a routerLink="/people" class="btn btn-ghost btn-block center">Open mapping queue</a>
+          <a routerLink="/people" class="btn btn-ghost btn-block center">Open the people list</a>
         </div>
       </div>
     </div>
   }
 </div>
 
-@if (mentorSkill()) {
+@if (picking(); as r) {
   <sa-mentor-matching
-    menteeId=""
-    [menteeName]="'skill gap · ' + mentorSkill()"
-    [skill]="mentorSkill()!"
-    (closed)="onMentorClosed($event)" />
+    [menteeId]="r.personId"
+    [menteeName]="r.personName"
+    [skill]="r.skillName"
+    (closed)="onPickClosed($event)" />
 }
-@if (mentorConfirmed()) {
-  <div class="toast">Mentor confirmed for {{ mentorConfirmed() }} — the MENTORS relation was created. (mock)</div>
+@if (confirmed(); as what) {
+  <div class="toast">Mentor confirmed — {{ what }}</div>
 }

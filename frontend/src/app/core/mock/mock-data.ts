@@ -4,9 +4,7 @@
  * and the Mock* services are replaced by Http* services — nothing else references it.
  */
 import {
-  DashboardData,
   KnownSkill,
-  MentorCandidate,
   Person,
   Project,
   ProjectMember,
@@ -339,45 +337,6 @@ export const MOCK_CREDENTIALS: Record<string, string> = {
   'admin@skillatlas.dev': 'Password123!',
   'sara.ilic@firma.rs': 'Password123!',
 };
-
-// --- Dashboard (2d) -------------------------------------------------------
-export const DASHBOARD: DashboardData = {
-  stats: [
-    { label: 'Active people', value: '214', hint: '+18 imported this week' },
-    { label: 'Skills in catalog', value: '86', hint: '1 340 KNOWS relations' },
-    { label: 'Projects', value: '31', hint: '24 active · 7 archived' },
-    { label: 'Mentorships', value: '27', hint: '4 waiting for confirmation', hintAccent: true },
-  ],
-  skillGap: [
-    { team: 'Backend', skill: 'Cypher tuning', projects: ['Atlas', 'Vega'], knows: 1 },
-    { team: 'Frontend', skill: 'Accessibility', projects: ['Portal'], knows: 0 },
-    { team: 'DevOps', skill: 'Kubernetes', projects: ['Atlas', 'Orion'], knows: 1 },
-    { team: 'Platform', skill: 'Terraform', projects: ['Orion'], knows: 1 },
-    { team: 'Data', skill: 'dbt', projects: ['Insight'], knows: 0 },
-  ],
-  busFactor: [
-    { skill: 'Cypher tuning', person: 'Milan Kostić' },
-    { skill: 'Terraform', person: 'Jelena Vuković' },
-    { skill: 'Elasticsearch', person: 'Nikola Perić' },
-  ],
-  mappingQueue: { total: 18, names: ['Ivan T.', 'Maja S.', 'Dino B.', 'Lea K.'] },
-};
-
-// --- Mentor candidates (2g) ----------------------------------------------
-// Ranks people who KNOW the skill at level ≥ 3, excluding the mentee and self.
-// Score rewards higher level, penalises current mentoring load (fewer active ranks up).
-export function mentorCandidatesFor(menteeId: string, skillName: string): MentorCandidate[] {
-  return PEOPLE.filter((p) => p.active && p.id !== menteeId)
-    .map((p) => {
-      const k = (p.knows ?? []).find((x) => x.skill.name.toLowerCase() === skillName.toLowerCase());
-      if (!k || k.level < 3) return null;
-      const load = p.mentorsCount ?? 0;
-      const score = Math.round((k.level * 2 - load * 0.8) * 10) / 10;
-      return { person: p, skill: skillName, level: k.level, activeMentorships: load, score };
-    })
-    .filter((c): c is MentorCandidate => c !== null)
-    .sort((a, b) => b.score - a.score);
-}
 
 // --- Mock mutations (skills + project staffing) --------------------------
 let skillSeq = 100;

@@ -10,6 +10,8 @@
 .modal {
   width: 640px;
   max-width: 100%;
+  /* Matches the backdrop's 40px padding, so a long candidate list never runs off the screen. */
+  max-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -56,14 +58,21 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+/* The list is the only part that scrolls: the heading says who and what, and the footer holds
+   the confirm button — both have to stay put while the admin walks the candidates.
+   min-height: 0 because a flex child will not shrink below its content without it. */
 .list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  /* Room for the scrollbar, so it does not sit on top of the mentorship counts. */
+  padding-right: 6px;
 }
 .cand {
   display: grid;
-  grid-template-columns: 20px 24px 1.4fr 0.9fr 0.9fr 0.7fr;
+  grid-template-columns: 20px 24px 1.4fr 1fr 0.9fr;
   gap: 12px;
   align-items: center;
   padding: 11px 13px;
@@ -92,18 +101,36 @@
   font-size: 14px;
   font-weight: 500;
 }
-.lvl,
 .load,
-.score {
-  font-size: 13px;
-}
-.cand.sel .lvl,
-.cand.sel .score {
-  color: var(--accent-text);
-}
 .foot {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 2px;
+}
+.lvl {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 13px;
+}
+/* The level is the ranking's first criterion, so it reads as its own value rather than as a
+   number stuck to the skill name. */
+.lvlbadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* The selected row is already --surface-accent, so the badge has to step off it or it vanishes. */
+.cand.sel .lvlbadge {
+  background: var(--accent-deep);
 }

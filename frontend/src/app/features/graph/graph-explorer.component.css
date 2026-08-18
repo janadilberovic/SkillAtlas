@@ -90,6 +90,10 @@
 .canvas svg {
   cursor: grab;
   touch-action: none;
+  /* A pan is a drag across selectable SVG text; without this it paints a selection band over
+     every label the drag crosses. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 .canvas svg:active {
   cursor: grabbing;
@@ -97,9 +101,51 @@
 .node {
   cursor: pointer;
 }
-/* Everything outside the hovered node's neighbourhood recedes rather than disappears. */
+/* Everything outside the inspected node's neighbourhood recedes rather than disappears. */
 .node.dimmed {
   opacity: 0.25;
+}
+/* In a rooted view the second ring is context, not clutter, so it only steps back. */
+.node.dimmed.soft {
+  opacity: 0.6;
+}
+/* Rings travelling outward from the root — the only thing on the canvas that moves, so the eye
+   finds it again after a pan without hunting. */
+.halo {
+  pointer-events: none;
+}
+.halo circle {
+  fill: none;
+  stroke: var(--accent-text);
+  stroke-width: 1.5;
+  /* Scaling the circle's own box keeps the ripple centred without per-node transform maths; the
+     stroke has to opt out of that scale or the outermost ring thickens into a smear. */
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: halo-ripple 3s ease-out infinite;
+}
+.halo circle:nth-child(2) {
+  animation-delay: 1s;
+}
+.halo circle:nth-child(3) {
+  animation-delay: 2s;
+}
+@keyframes halo-ripple {
+  from {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .halo circle {
+    animation: none;
+    opacity: 0.3;
+  }
 }
 .lbl {
   pointer-events: none;
@@ -113,25 +159,6 @@
 }
 .tray-cap {
   fill: var(--text-muted);
-}
-.tip {
-  position: absolute;
-  /* Offset from the cursor so the pointer never covers the name it is explaining. */
-  transform: translate(18px, -50%);
-  width: 240px;
-  max-width: calc(100% - 40px);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--text-muted), 0 10px 28px rgba(0, 0, 0, 0.55);
-  pointer-events: none;
-}
-.tipname {
-  font-size: 16px;
-  font-weight: 500;
 }
 .small {
   font-size: 12px;

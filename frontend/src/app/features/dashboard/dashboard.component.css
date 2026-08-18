@@ -66,6 +66,35 @@ h1 {
   border-top: 1px solid var(--border);
   font-size: 14px;
 }
+.reqrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+.reqmain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.reqwho {
+  color: var(--text);
+  text-decoration: none;
+}
+.reqwho:hover {
+  color: var(--accent-text);
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
 .side {
   display: flex;
   flex-direction: column;

@@ -3,10 +3,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  DashboardData,
   Expert,
   FinderResult,
   GraphData,
+  LearningPath,
   LoginResponse,
+  MentorCandidates,
+  MentorRequestRow,
   Me,
   MySkills,
   Page,
@@ -15,14 +19,17 @@ import {
   Project,
   Skill,
   SkillCoverage,
+  SkillGapRow,
   Team,
 } from '../models/models';
 import {
   AuthApi,
+  DashboardApi,
   FinderApi,
   GraphApi,
   GraphQuery,
   MemberInput,
+  MentoringApi,
   PeopleApi,
   PeopleQuery,
   PeopleSkillsApi,
@@ -207,6 +214,48 @@ export class HttpGraphApi extends GraphApi {
     }
     return this.http.get<GraphData>(`${BASE}/graph`, { params });
   }
+}
+
+@Injectable()
+export class HttpMentoringApi extends MentoringApi {
+  private readonly http = inject(HttpClient);
+
+  candidates(personId: string, skill: string): Observable<MentorCandidates> {
+    const params = new HttpParams().set('skill', skill);
+    return this.http.get<MentorCandidates>(`${BASE}/people/${personId}/mentor-candidates`, { params });
+  }
+
+  confirm(mentorId: string, menteeId: string, skillId: string): Observable<void> {
+    // The response carries the created mentorship; the screen only needs to know it landed.
+    return this.http
+      .post(`${BASE}/mentorships`, { mentorId, menteeId, skillId })
+      .pipe(map(() => undefined));
+  }
+
+  learningPath(personId: string, skill: string): Observable<LearningPath> {
+    const params = new HttpParams().set('skill', skill);
+    return this.http.get<LearningPath>(`${BASE}/people/${personId}/learning-path`, { params });
+  }
+}
+
+@Injectable()
+export class HttpDashboardApi extends DashboardApi {
+  private readonly http = inject(HttpClient);
+  overview(): Observable<DashboardData> {
+    return this.http.get<DashboardData>(`${BASE}/dashboard`);
+  }
+  skillGap(page: number, size: number): Observable<Page<SkillGapRow>> {
+    return this.http.get<Page<SkillGapRow>>(`${BASE}/dashboard/skill-gap`, { params: paging(page, size) });
+  }
+  mentorRequests(page: number, size: number): Observable<Page<MentorRequestRow>> {
+    return this.http.get<Page<MentorRequestRow>>(`${BASE}/dashboard/mentor-requests`, {
+      params: paging(page, size),
+    });
+  }
+}
+
+function paging(page: number, size: number): HttpParams {
+  return new HttpParams().set('page', String(page)).set('size', String(size));
 }
 
 function emptyResult(parsed: string): FinderResult {
