@@ -35,8 +35,7 @@ public class DashboardRepository {
             WHERE p.isDeleted = false
             WITH t, s, collect(DISTINCT pr.name) AS projects
             WITH t, s, projects,
-                 count { MATCH (m:Person)-[:MEMBER_OF]->(t)
-                         MATCH (m)-[:KNOWS]->(s)
+                 count { MATCH (t)<-[:MEMBER_OF]-(m:Person)-[:KNOWS]->(s)
                          WHERE m.isDeleted = false } AS knownBy
             WHERE knownBy <= $threshold
             RETURN t.name AS team, s.name AS skill, projects, knownBy
