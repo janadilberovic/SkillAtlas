@@ -60,29 +60,36 @@
       </div>
 
       <div class="wants">
-        <span class="col-head">Wants to learn</span>
-        @for (w of wishes(); track w.skillId) {
-          <span class="tag tag-outline">
-            {{ w.name }}
-            @if (canSeePath()) {
-              <button class="tag-act" (click)="showPath(w.name)" title="Show the shortest path to this skill">path</button>
-            }
-            @if (auth.isAdmin()) {
-              <button class="tag-act" (click)="openMentorMatching(w.name)" title="Suggest a mentor">mentor</button>
-            }
-            @if (isOwn()) {
-              <button class="tag-x" (click)="removeWish(w.skillId)" title="Remove">✕</button>
-            }
-          </span>
-        } @empty {
-          <span class="dim small">No learning wishes.</span>
-        }
-        @if (isOwn()) {
-          <div class="addrow">
-            <sa-select placeholder="Want to learn…" [options]="skillOptions()" [(value)]="newWishId" />
-            <button class="btn btn-sm" (click)="addWish()">Add wish</button>
-          </div>
-        }
+        <div class="skillhead">
+          <span class="col-head">Wants to learn</span>
+          @if (isOwn()) {
+            <div class="addrow addwish">
+              <sa-select placeholder="Want to learn…" [options]="skillOptions()" [(value)]="newWishId" />
+              <button class="btn btn-sm" (click)="addWish()">Add wish</button>
+            </div>
+          }
+        </div>
+
+        <div class="skillgrid">
+          @for (w of wishes(); track w.skillId) {
+            <div class="skillcard wishcard" [class.open]="pathSkill() === w.name">
+              <span class="sname">{{ w.name }}</span>
+              @if (canSeePath()) {
+                <button class="btn btn-ghost btn-sm" (click)="showPath(w.name)">
+                  {{ pathSkill() === w.name ? 'Hide path' : 'Learning path' }}
+                </button>
+              }
+              @if (auth.isAdmin()) {
+                <button class="btn btn-sm" (click)="openMentorMatching(w.name)">Suggest mentor</button>
+              }
+              @if (isOwn()) {
+                <button class="btn btn-ghost btn-sm" (click)="removeWish(w.skillId)" title="Remove">✕</button>
+              }
+            </div>
+          } @empty {
+            <span class="dim small">No learning wishes.</span>
+          }
+        </div>
         <span class="dim small">A skill you already know at level 5 can't be added as a wish.</span>
       </div>
 
@@ -106,14 +113,18 @@
               @if (lp.ownLevel !== null) {
                 <span class="muted small">Already known at level {{ lp.ownLevel }}.</span>
               }
-              <div class="walk">
+              <ol class="walk">
                 @for (n of lp.nodes; track n.id; let i = $index) {
-                  <span class="tag" [title]="n.meta || n.kind">{{ n.label }}</span>
+                  <li class="stop">
+                    <span class="dot" [attr.data-kind]="n.kind"></span>
+                    <span class="stopname">{{ n.label }}</span>
+                    <span class="dim small stopkind">{{ n.meta || n.kind.toLowerCase() }}</span>
+                  </li>
                   @if (i < lp.edges.length) {
-                    <span class="dim small step">{{ stepLabel(i) }}</span>
+                    <li class="hop">{{ stepLabel(i) }}</li>
                   }
                 }
-              </div>
+              </ol>
               <span class="dim small">
                 {{ lp.steps }} {{ lp.steps === 1 ? 'step' : 'steps' }}
                 @if (lp.nearestMentor; as m) {

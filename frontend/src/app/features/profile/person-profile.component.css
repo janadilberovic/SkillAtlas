@@ -138,9 +138,22 @@ h1 {
 .wants {
   margin-top: 22px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
-  flex-wrap: wrap;
+}
+.addwish {
+  margin: 0;
+}
+/* A wish reads as a sibling of a skill, not as a loose tag: same card, same grid. The dashed
+   border is what separates "want" from "have" without a second colour. */
+.wishcard {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+.wishcard.open {
+  border-style: solid;
+  border-color: var(--accent-deep);
+  background: var(--surface);
 }
 /* This button had no rule at all, so it fell back to the browser default: a white
    box inside a dark chip. */
@@ -190,14 +203,53 @@ h1 {
   align-items: baseline;
   justify-content: space-between;
 }
+/* The walk runs downwards, one stop per line. Horizontally it collided: the relation labels sat
+   between chips as flex items and were shrunk below their text width, so they painted over the
+   chip beside them. */
 .walk {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px;
+  flex-direction: column;
 }
-.step {
-  letter-spacing: 0.04em;
+.stop {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.stopname {
+  font-size: 14px;
+}
+.stopkind {
+  text-transform: lowercase;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.dot[data-kind='SKILL'] {
+  background: var(--node-skill);
+}
+.dot[data-kind='PROJECT'] {
+  background: var(--node-project);
+}
+.dot[data-kind='TEAM'] {
+  background: var(--node-team);
+}
+/* The connector: a rule down the left, aligned with the middle of the dot above it.
+   Named `hop`, not `step` — `.step` is already the level stepper's button, 26px wide, and the
+   relation label was inheriting that width and painting over whatever sat beside it. */
+.hop {
+  margin-left: 4px;
+  padding: 3px 0 3px 14px;
+  border-left: 1px solid var(--border-strong);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
 }
 .toast {
   position: fixed;
