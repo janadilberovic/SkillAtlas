@@ -15,7 +15,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import com.skillatlas.people.MentorshipsRepository;
+import com.skillatlas.mentoring.MentorshipsRepository;
 import com.skillatlas.people.PeopleRepository;
 import com.skillatlas.people.PeopleService;
 import com.skillatlas.people.PeopleSkillsRepository;

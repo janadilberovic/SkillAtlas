@@ -14,6 +14,8 @@ import com.skillatlas.auth.exception.InvalidCredentialsException;
 import com.skillatlas.finder.exception.InvalidSkillLevelException;
 import com.skillatlas.finder.exception.NoSkillsSelectedException;
 import com.skillatlas.graph.exception.InvalidNodeTypeException;
+import com.skillatlas.mentoring.exception.InvalidMentorshipException;
+import com.skillatlas.mentoring.exception.MentorshipNotFoundException;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.people.exception.SkillAlreadyMasteredException;
@@ -89,6 +91,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidNodeTypeException.class)
     public ResponseEntity<Map<String, Object>> onInvalidNodeType(InvalidNodeTypeException ex) {
         return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidMentorshipException.class)
+    public ResponseEntity<Map<String, Object>> onInvalidMentorship(InvalidMentorshipException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(MentorshipNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> onMentorshipNotFound(MentorshipNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
