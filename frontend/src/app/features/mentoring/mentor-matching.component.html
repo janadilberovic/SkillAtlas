@@ -28,7 +28,10 @@
               <span class="cname">{{ c.firstName }} {{ c.lastName }}</span>
               <span class="muted small">{{ c.teams.join(' / ') || 'No team' }} · {{ c.position }}</span>
             </div>
-            <span class="lvl">{{ skill() }} {{ c.level }}</span>
+            <span class="lvl">
+              <span class="muted">{{ skill() }}</span>
+              <span class="lvlbadge">{{ c.level }}</span>
+            </span>
             <span class="load muted">{{ c.activeMentorships }} {{ c.activeMentorships === 1 ? 'mentorship' : 'mentorships' }}</span>
           </label>
         }

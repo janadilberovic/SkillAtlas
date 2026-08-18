@@ -63,7 +63,7 @@
 }
 .cand {
   display: grid;
-  grid-template-columns: 20px 24px 1.4fr 0.9fr 0.9fr 0.7fr;
+  grid-template-columns: 20px 24px 1.4fr 1fr 0.9fr;
   gap: 12px;
   align-items: center;
   padding: 11px 13px;
@@ -92,11 +92,36 @@
   font-size: 14px;
   font-weight: 500;
 }
-.lvl,
 .load,
 .foot {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 2px;
+}
+.lvl {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 13px;
+}
+/* The level is the ranking's first criterion, so it reads as its own value rather than as a
+   number stuck to the skill name. */
+.lvlbadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* The selected row is already --surface-accent, so the badge has to step off it or it vanishes. */
+.cand.sel .lvlbadge {
+  background: var(--accent-deep);
 }
