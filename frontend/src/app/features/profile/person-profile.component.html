@@ -150,7 +150,9 @@
         @if (truncated()) {
           <span class="dim small">Capped by the server — this is a sample, not the whole neighbourhood.</span>
         }
-        <span class="dim small">The interactive graph lands with the explorer (E5.1).</span>
+        <a class="btn btn-ghost btn-sm center" [routerLink]="['/graph']" [queryParams]="{ rootId: p.id }">
+          Open in the graph
+        </a>
       </div>
     </aside>
   } @else {

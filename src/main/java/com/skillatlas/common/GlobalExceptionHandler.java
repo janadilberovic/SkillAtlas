@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.skillatlas.auth.exception.InvalidCredentialsException;
 import com.skillatlas.finder.exception.InvalidSkillLevelException;
 import com.skillatlas.finder.exception.NoSkillsSelectedException;
+import com.skillatlas.graph.exception.InvalidNodeTypeException;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.people.exception.SkillAlreadyMasteredException;
@@ -82,6 +83,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidSkillLevelException.class)
     public ResponseEntity<Map<String, Object>> onInvalidSkillLevel(InvalidSkillLevelException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidNodeTypeException.class)
+    public ResponseEntity<Map<String, Object>> onInvalidNodeType(InvalidNodeTypeException ex) {
         return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

@@ -16,8 +16,8 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [2] | E2.3 · Moji skillovi — stvara `KNOWS` / `WANTS_TO_LEARN` | [E2.3](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ PR #8 |
 | [3] | E4.1 · Expert finder | [E4.1](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #10, dorada u #12 |
 | [4] | E4.2 · Bogat profil osobe | [E4.2](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #17 |
-| **[5]** | **E5.1 · Graf endpoint + explorer** | [E5.1](spec.md#e5--graf-vizualizacija-core) | ⬅️ **sljedeći** |
-| [6] | E6.1/2/3 · Mentoring, learning path, dashboard | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ⬜ |
+| [5] | E5.1 · Graf endpoint + explorer | [E5.1](spec.md#e5--graf-vizualizacija-core) | ✅ PR #18 |
+| **[6]** | **E6.1/2/3 · Mentoring, learning path, dashboard** | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ⬅️ **sljedeći** |
 | [7] | E3 · Import iz VacaYAY-a | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬜ |
 | [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
 | [9] | Dopuna testova | §04.5 | ⬜ |
@@ -66,13 +66,28 @@ Odluke (potvrđene i implementirane):
 Uz to: DevSeeder sada seeda projekte (`USES`, `WORKED_ON`) i mentorstva — bez toga je pola profila
 prazno na svježoj bazi.
 
-Van opsega (ostaje): dugmad „U grafu" (traži [5]) i „Predloži mentora" (traži [6]).
+Van opsega (ostaje): dugme „Predloži mentora" (traži [6]). „U grafu" je isporučeno u [5].
 
-## [5] E5.1 · Graf endpoint — sljedeći
+## [5] E5.1 · Graf endpoint + explorer — gotovo
 
-`GET /api/v1/graph?types=&team=&limit=` — podskup čvorova i veza za force-graph. **Mora imati
-`LIMIT`.** Preuzima oblik `GraphNode`/`GraphEdge` uveden u [4] (danas ugniježđen u
-`PersonProfileResponse`; ovdje se promoviše u zaseban paket).
+`GET /api/v1/graph?types=&team=&limit=&rootId=&hops=` — kepovan podgraf za force-graph, čitljiv
+svakom prijavljenom korisniku. `GraphNode`/`GraphEdge` promovisani iz `PersonProfileResponse` u
+`com.skillatlas.graph.dto` (JSON profila nepromijenjen).
+
+Odluke (potvrđene i implementirane):
+1. **Ljudi su uvijek sjeme podgrafa**, i kad je `PERSON` isfiltriran — svaka veza osim `USES`
+   polazi od osobe. Zato `team` filter ima smisla za svaku kombinaciju tipova.
+2. Čvorovi se gejtuju **po svom tipu**, veze po **oba kraja**. Bez toga `types=team` vraća prazno
+   platno, jer timovi u graf ulaze samo preko ljudi.
+3. `rootId` + `hops` (1–2) su dodatak preko spec tabele — bez njih dugme „U grafu" sa profila
+   (E4.2) nema gdje da skoči. `hops` nije `[*1..$hops]`: Neo4j ne prima parametar za granicu
+   varijabilne dužine, a i ekspanzija bi pobjegla. Umjesto toga dva eksplicitna paterna.
+4. DISTINCT **prije** kepa: veze se skupljaju po osobi iz sjemena, pa isti `USES` stigne jednom po
+   osobi na projektu — inače duplikati troše budžet a `totalRelations` broji istu vezu više puta.
+5. Front: `d3-force` (prva runtime zavisnost u `frontend/`), layout se rješava **sinhrono** — tick
+   po frejmu bi vrtio change detection do iste slike. Zoom/pan preko `getScreenCTM()`.
+
+Uz to: `/graph` više nije `WaitingForApiComponent`, a profil je dobio „Open in the graph".
 
 ## [6] E6 · Mentoring, learning path, dashboard
 

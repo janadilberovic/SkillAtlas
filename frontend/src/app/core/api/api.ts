@@ -3,6 +3,7 @@ import {
   DashboardData,
   FinderResult,
   GraphData,
+  GraphNodeKind,
   LoginResponse,
   Me,
   MentorCandidate,
@@ -90,10 +91,13 @@ export abstract class FinderApi {
 }
 
 export interface GraphQuery {
+  /** Focus the subgraph on one person — what the profile's "In graph" jump passes. */
   rootId?: string;
+  /** Only meaningful with `rootId`: 1 is the person's own edges, 2 adds their colleagues. */
   hops?: number;
   limit?: number;
   team?: string;
+  types?: GraphNodeKind[];
 }
 
 export abstract class GraphApi {

@@ -121,23 +121,9 @@ export interface Mentoring {
   mentors: ProfileMentorship[];
 }
 
-/** No coordinates: layout is the client force-graph's job (E5.1). */
-export interface NeighbourNode {
-  id: string;
-  kind: GraphNodeKind;
-  label: string;
-  meta: string | null;
-}
-
-export interface NeighbourEdge {
-  source: string;
-  target: string;
-  type: string;
-}
-
 export interface Neighbourhood {
-  nodes: NeighbourNode[];
-  edges: NeighbourEdge[];
+  nodes: GraphNode[];
+  edges: GraphEdge[];
   /** True when the server hit its relationship cap: the picture is a sample, not the whole story. */
   truncated: boolean;
 }
@@ -242,34 +228,39 @@ export interface FinderResult {
   partial: FinderMatch[]; // PLANNED — no endpoint returns partial matches yet
 }
 
-/** PLANNED — GET /graph subgraph (server caps size; whole graph never sent). */
+/** GET /graph — a capped subgraph, shared with the profile neighbourhood (E4.2/E5.1). */
 export type GraphNodeKind = 'PERSON' | 'SKILL' | 'PROJECT' | 'TEAM';
 
+export type GraphEdgeType =
+  | 'KNOWS'
+  | 'WANTS_TO_LEARN'
+  | 'WORKED_ON'
+  | 'MEMBER_OF'
+  | 'MENTORS'
+  | 'USES';
+
+/** No coordinates: the server does not know the viewport, so layout is d3-force's job here. */
 export interface GraphNode {
   id: string;
   kind: GraphNodeKind;
   label: string;
-  meta: string;
-  path: string;
-  x: number;
-  y: number;
-  r: number;
-  edges: string[];
+  meta: string | null;
 }
 
 export interface GraphEdge {
   source: string;
   target: string;
-  type: 'KNOWS' | 'WORKED_ON' | 'USES' | 'MENTORS';
+  type: GraphEdgeType;
 }
 
 export interface GraphData {
   nodes: GraphNode[];
   edges: GraphEdge[];
-  totalNodes: number;
+  /** Relationships found before the cap — with `edges.length`, this is "showing 150 of 1204". */
   totalRelations: number;
-  rootLabel: string;
-  hops: number;
+  /** Company-wide counts per kind, unfiltered: the legend describes the map, not the view. */
+  totals: Record<GraphNodeKind, number>;
+  truncated: boolean;
 }
 
 /** GET /people/{id}/skills — a person's self-declared knowledge (My Skills feature). */

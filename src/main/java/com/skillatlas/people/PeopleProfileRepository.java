@@ -14,9 +14,10 @@ import org.neo4j.driver.Value;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Repository;
 
+import com.skillatlas.graph.dto.GraphEdge;
+import com.skillatlas.graph.dto.GraphNode;
+import com.skillatlas.graph.enums.GraphNodeKind;
 import com.skillatlas.people.dto.PersonProfileResponse;
-import com.skillatlas.people.dto.PersonProfileResponse.GraphEdge;
-import com.skillatlas.people.dto.PersonProfileResponse.GraphNode;
 import com.skillatlas.people.dto.PersonProfileResponse.KnownSkill;
 import com.skillatlas.people.dto.PersonProfileResponse.Mentoring;
 import com.skillatlas.people.dto.PersonProfileResponse.Mentorship;
@@ -231,7 +232,7 @@ public class PeopleProfileRepository {
     private static GraphNode node(Value v) {
         return new GraphNode(
                 v.get("id").asString(),
-                v.get("kind").asString(),
+                GraphNodeKind.valueOf(v.get("kind").asString()),
                 v.get("label").asString(),
                 v.get("meta").asString(null));
     }

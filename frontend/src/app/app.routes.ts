@@ -18,10 +18,9 @@ export const routes: Routes = [
           import('./features/finder/expert-finder.component').then((m) => m.ExpertFinderComponent),
       },
       {
-        // Backend not built yet (E5.1).
         path: 'graph',
         loadComponent: () =>
-          import('./shared/components/waiting-for-api/waiting-for-api.component').then((m) => m.WaitingForApiComponent),
+          import('./features/graph/graph-explorer.component').then((m) => m.GraphExplorerComponent),
       },
       {
         path: 'people',
