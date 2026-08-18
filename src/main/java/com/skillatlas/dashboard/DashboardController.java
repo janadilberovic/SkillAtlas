@@ -14,9 +14,9 @@ import com.skillatlas.dashboard.dto.DashboardResponse;
  * E6.3. Admin-only: the gap and bus-factor widgets are a readout of where the company is thin,
  * naming the single person a skill depends on.
  *
- * <p>Three of the four widgets are capped in Cypher and answered whole; the skill-gap table is the
- * one that grows with headcount, so it pages — the overview embeds its first page and
- * {@code /skill-gap} walks the rest without re-running the other three.
+ * <p>The bus factor and the mapping queue are capped in Cypher and answered whole; the skill-gap
+ * table and the mentor-request queue grow with headcount, so they page — the overview embeds their
+ * first page and the two sub-resources walk the rest without re-running the other widgets.
  */
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -44,5 +44,15 @@ public class DashboardController {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
         return service.skillGap(PageRequest.of(safePage, safeSize));
+    }
+
+    @GetMapping("/mentor-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public PageResponse<DashboardResponse.MentorRequestRow> mentorRequests(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
+        return service.mentorRequests(PageRequest.of(safePage, safeSize));
     }
 }

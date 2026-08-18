@@ -31,7 +31,7 @@ import com.skillatlas.skills.exception.SkillNotFoundException;
 public class MentoringService {
 
     /** 4.3: a candidate has to know the skill at 3 or better to be offered as a mentor. */
-    static final int MIN_MENTOR_LEVEL = 3;
+    public static final int MIN_MENTOR_LEVEL = 3;
     static final int DEFAULT_CANDIDATE_LIMIT = 10;
     static final int MAX_CANDIDATE_LIMIT = 50;
     /** Past a handful of hops a "path" stops being something a person can act on. */

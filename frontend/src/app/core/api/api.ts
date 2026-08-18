@@ -8,6 +8,7 @@ import {
   LoginResponse,
   Me,
   MentorCandidates,
+  MentorRequestRow,
   MySkills,
   Page,
   Person,
@@ -115,6 +116,7 @@ export abstract class MentoringApi {
 
 export abstract class DashboardApi {
   abstract overview(): Observable<DashboardData>;
-  /** The gap table pages on its own, so walking it does not re-run the other three widgets. */
+  /** The two long tables page on their own, so walking one does not re-run the other widgets. */
   abstract skillGap(page: number, size: number): Observable<Page<SkillGapRow>>;
+  abstract mentorRequests(page: number, size: number): Observable<Page<MentorRequestRow>>;
 }

@@ -116,7 +116,12 @@ Odluke (potvrđene i implementirane):
    redova, a to je jedini widget koji raste s brojem ljudi. Overview nosi prvu stranicu (prvi paint
    ostaje jedan poziv), a okretanje stranice ne pokreće ponovo ostala tri widgeta. Najveće rupe
    (`knownBy = 0`) idu prve, pa je prva stranica ona koju vrijedi čitati.
-9. Bus factor kartica na dashboardu više ne otvara modal za mentore (ranije `menteeId=""`, što je
+9. **Kartica „čeka mentora"** (`GET /dashboard/mentor-requests`) — želje (`WANTS_TO_LEARN`) za koje
+   ne postoji živa `MENTORS` veza, sa brojem kandidata po redu i dugmetom koje otvara isti modal.
+   Admin više ne mora da obilazi profile da bi vidio ko čeka. Mentor koji je u međuvremenu obrisan
+   ne računa se kao odgovor — želja se vraća u red. Red je FIFO (najstarija želja prva) i paginira
+   se kao i skill gap.
+10. Bus factor kartica na dashboardu više ne otvara modal za mentore (ranije `menteeId=""`, što je
    prolazilo samo dok je API bio mock): matching kreće od mentija, a skill nije menti. Red vodi na
    profil osobe od koje skill zavisi, a mentor flow kreće s profila.
 

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.skillatlas.common.PageResponse;
 import com.skillatlas.dashboard.dto.DashboardResponse;
+import com.skillatlas.mentoring.MentoringService;
 
 @Service
 public class DashboardService {
@@ -18,6 +19,7 @@ public class DashboardService {
     static final int GAP_THRESHOLD = 1;
     /** What the overview embeds: enough to see the shape, few enough to read. */
     static final int GAP_PAGE_SIZE = 10;
+    static final int REQUEST_PAGE_SIZE = 10;
     static final int ROW_LIMIT = 50;
     static final int QUEUE_PREVIEW = 12;
 
@@ -32,6 +34,7 @@ public class DashboardService {
         return new DashboardResponse(
                 repository.metrics(),
                 skillGap(PageRequest.of(0, GAP_PAGE_SIZE)),
+                mentorRequests(PageRequest.of(0, REQUEST_PAGE_SIZE)),
                 repository.busFactor(ROW_LIMIT),
                 repository.mappingQueue(QUEUE_PREVIEW));
     }
@@ -47,5 +50,18 @@ public class DashboardService {
         // Skips the count query when the first page already holds the whole result.
         return PageResponse.from(PageableExecutionUtils.getPage(rows, pageable,
                 () -> repository.countSkillGap(GAP_THRESHOLD)));
+    }
+
+    /**
+     * Wishes waiting for a mentor. The level bar comes from {@link MentoringService} rather than a
+     * copy: the count on a row promises what the matching endpoint will actually offer, and two
+     * constants would eventually disagree.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<DashboardResponse.MentorRequestRow> mentorRequests(Pageable pageable) {
+        List<DashboardResponse.MentorRequestRow> rows = repository.mentorRequests(
+                MentoringService.MIN_MENTOR_LEVEL, pageable.getOffset(), pageable.getPageSize());
+        return PageResponse.from(PageableExecutionUtils.getPage(rows, pageable,
+                repository::countMentorRequests));
     }
 }

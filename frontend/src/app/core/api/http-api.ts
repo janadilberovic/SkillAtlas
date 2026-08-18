@@ -10,6 +10,7 @@ import {
   LearningPath,
   LoginResponse,
   MentorCandidates,
+  MentorRequestRow,
   Me,
   MySkills,
   Page,
@@ -244,9 +245,17 @@ export class HttpDashboardApi extends DashboardApi {
     return this.http.get<DashboardData>(`${BASE}/dashboard`);
   }
   skillGap(page: number, size: number): Observable<Page<SkillGapRow>> {
-    const params = new HttpParams().set('page', String(page)).set('size', String(size));
-    return this.http.get<Page<SkillGapRow>>(`${BASE}/dashboard/skill-gap`, { params });
+    return this.http.get<Page<SkillGapRow>>(`${BASE}/dashboard/skill-gap`, { params: paging(page, size) });
   }
+  mentorRequests(page: number, size: number): Observable<Page<MentorRequestRow>> {
+    return this.http.get<Page<MentorRequestRow>>(`${BASE}/dashboard/mentor-requests`, {
+      params: paging(page, size),
+    });
+  }
+}
+
+function paging(page: number, size: number): HttpParams {
+  return new HttpParams().set('page', String(page)).set('size', String(size));
 }
 
 function emptyResult(parsed: string): FinderResult {

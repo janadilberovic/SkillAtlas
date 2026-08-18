@@ -346,6 +346,17 @@ export interface SkillGapRow {
   knownBy: number;
 }
 
+/** One unanswered "wants to learn" — the admin's queue. */
+export interface MentorRequestRow {
+  personId: string;
+  personName: string;
+  skillId: string;
+  skillName: string;
+  wantedSince: string | null;
+  /** How many people could mentor it today; zero means there is nobody to pick. */
+  candidates: number;
+}
+
 export interface BusFactorEntry {
   skill: string;
   personId: string;
@@ -359,8 +370,9 @@ export interface MappingQueue {
 
 export interface DashboardData {
   metrics: DashboardMetrics;
-  /** Paged: the only widget that grows with headcount. The overview carries its first page. */
+  /** Paged: these two grow with headcount. The overview carries their first page. */
   skillGap: Page<SkillGapRow>;
+  mentorRequests: Page<MentorRequestRow>;
   busFactor: BusFactorEntry[];
   mappingQueue: MappingQueue;
 }

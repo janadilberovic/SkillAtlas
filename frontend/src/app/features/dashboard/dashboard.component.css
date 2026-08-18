@@ -66,6 +66,22 @@ h1 {
   border-top: 1px solid var(--border);
   font-size: 14px;
 }
+.reqrow {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.8fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+.reqwho {
+  color: var(--text);
+  text-decoration: none;
+}
+.reqwho:hover {
+  color: var(--accent-text);
+}
 .pager {
   display: flex;
   align-items: center;

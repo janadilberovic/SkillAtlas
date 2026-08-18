@@ -12,9 +12,9 @@ import org.springframework.stereotype.Repository;
 import com.skillatlas.dashboard.dto.DashboardResponse;
 
 /**
- * The only place dashboard Cypher lives: four aggregate queries, each answering one widget in one
- * round trip. No query runs per team, per skill or per person — the whole point of the screen is
- * the shape of the company, and asking per row would not survive a real headcount.
+ * The only place dashboard Cypher lives: one aggregate query per widget, each answered in one round
+ * trip. No query runs per team, per skill or per person — the whole point of the screen is the
+ * shape of the company, and asking per row would not survive a real headcount.
  */
 @Repository
 public class DashboardRepository {
@@ -48,6 +48,32 @@ public class DashboardRepository {
             """;
 
     private static final String COUNT_SKILL_GAP = SKILL_GAP_MATCH + "RETURN count(*) AS total";
+
+    // The admin's queue: a wish with no mentorship behind it. "No mentorship" means no *live* one -
+    // a mentor who has since been deleted leaves the wish unanswered, not answered.
+    // The candidate count applies the same 4.3 rule the matching endpoint does, so a row cannot
+    // promise a modal that turns out empty.
+    private static final String MENTOR_REQUESTS_MATCH = """
+            MATCH (p:Person)-[w:WANTS_TO_LEARN]->(s:Skill)
+            WHERE p.isDeleted = false
+              AND NOT EXISTS {
+                    MATCH (mentor:Person)-[m:MENTORS {skillId: s.id}]->(p)
+                    WHERE mentor.isDeleted = false }
+            """;
+
+    // Oldest wish first: this is a queue, and the person who asked in March should not sit behind
+    // the one who asked yesterday.
+    private static final String MENTOR_REQUESTS = MENTOR_REQUESTS_MATCH + """
+            RETURN p.id AS personId, p.firstName + ' ' + p.lastName AS personName,
+                   s.id AS skillId, s.name AS skillName, w.createdAt AS wantedSince,
+                   count { MATCH (c:Person)-[k:KNOWS]->(s)
+                           WHERE c.isDeleted = false AND c.id <> p.id
+                             AND k.level >= $minLevel } AS candidates
+            ORDER BY wantedSince ASC, personName ASC, skillName ASC
+            SKIP $skip LIMIT $limit
+            """;
+
+    private static final String COUNT_MENTOR_REQUESTS = MENTOR_REQUESTS_MATCH + "RETURN count(*) AS total";
 
     private static final String BUS_FACTOR = """
             MATCH (p:Person)-[:KNOWS]->(s:Skill)
@@ -100,6 +126,31 @@ public class DashboardRepository {
     public long countSkillGap(int threshold) {
         return client.query(COUNT_SKILL_GAP)
                 .bind(threshold).to("threshold")
+                .fetchAs(Long.class)
+                .mappedBy((typeSystem, record) -> record.get("total").asLong())
+                .one()
+                .orElse(0L);
+    }
+
+    /** @param minLevel the KNOWS level that makes someone mentor material (spec 4.3) */
+    public List<DashboardResponse.MentorRequestRow> mentorRequests(int minLevel, long skip, int limit) {
+        return List.copyOf(client.query(MENTOR_REQUESTS)
+                .bindAll(Map.of("minLevel", minLevel, "skip", skip, "limit", limit))
+                .fetchAs(DashboardResponse.MentorRequestRow.class)
+                .mappedBy((typeSystem, record) -> new DashboardResponse.MentorRequestRow(
+                        record.get("personId").asString(),
+                        record.get("personName").asString(),
+                        record.get("skillId").asString(),
+                        record.get("skillName").asString(),
+                        record.get("wantedSince").isNull()
+                                ? null
+                                : record.get("wantedSince").asZonedDateTime().toInstant(),
+                        record.get("candidates").asLong()))
+                .all());
+    }
+
+    public long countMentorRequests() {
+        return client.query(COUNT_MENTOR_REQUESTS)
                 .fetchAs(Long.class)
                 .mappedBy((typeSystem, record) -> record.get("total").asLong())
                 .one()

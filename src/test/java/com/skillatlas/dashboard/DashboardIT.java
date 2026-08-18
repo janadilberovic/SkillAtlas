@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillatlas.mentoring.MentorshipsRepository;
 import com.skillatlas.people.PeopleService;
 import com.skillatlas.people.PeopleSkillsService;
 import com.skillatlas.people.domain.Person;
@@ -62,6 +63,8 @@ class DashboardIT extends AbstractNeo4jIT {
     TeamsService teamsService;
     @Autowired
     ProjectsService projectsService;
+    @Autowired
+    MentorshipsRepository mentorshipsRepository;
     @Autowired
     JwtService jwtService;
     @Autowired
@@ -126,6 +129,14 @@ class DashboardIT extends AbstractNeo4jIT {
                 new ProjectMemberRequest("Backend Engineer", LocalDate.of(2025, 1, 13), null));
         projectsService.assignMember(projectId, carlId,
                 new ProjectMemberRequest("Backend Engineer", LocalDate.of(2025, 1, 13), null));
+
+        // The mentor-request queue: three wishes, only one of which is actually waiting.
+        peopleSkillsService.addWish(bobId, neo4jSkillId);       // nobody mentors it -> waiting
+        peopleSkillsService.addWish(carlId, neo4jSkillId);      // Ada already mentors him on it
+        peopleSkillsService.addWish(adaId, kafkaSkillId);       // her only mentor is soft-deleted
+        peopleSkillsService.addWish(danaId, dockerSkillId);     // she is soft-deleted herself
+        mentorshipsRepository.upsertMentorship(adaId, carlId, neo4jSkillId, LocalDate.of(2025, 2, 1));
+        mentorshipsRepository.upsertMentorship(danaId, adaId, kafkaSkillId, LocalDate.of(2025, 2, 1));
 
         peopleService.softDelete(danaId);
 
@@ -215,6 +226,45 @@ class DashboardIT extends AbstractNeo4jIT {
     }
 
     @Test
+    void mentorRequests_listOnlyTheWishesNobodyIsMentoringYet() throws Exception {
+        JsonNode waiting = findRequest(bobId, neo4jSkill);
+        assertThat(waiting).isNotNull();
+        // Ada is the only live person who knows it at level 3+; Dana knows it too but is deleted.
+        assertThat(waiting.path("candidates").asLong()).isEqualTo(1);
+        assertThat(waiting.path("personName").asText()).isEqualTo("bob Byte");
+        assertThat(waiting.path("skillId").asText()).isEqualTo(neo4jSkillId);
+
+        // Carl wants the same skill, but Ada already mentors him on it.
+        assertThat(findRequest(carlId, neo4jSkill)).isNull();
+        // Dana is soft-deleted, so her wish is nobody's queue.
+        assertThat(findRequest(danaId, dockerSkill)).isNull();
+    }
+
+    @Test
+    void mentorRequests_countADeletedMentorAsNoMentorAtAll() throws Exception {
+        // Ada's only Kafka mentor is Dana, who has been deleted — the wish is unanswered again.
+        JsonNode row = findRequest(adaId, kafkaSkill);
+
+        assertThat(row).isNotNull();
+        // Nobody on this database knows the fixture's Kafka at all, let alone at level 3.
+        assertThat(row.path("candidates").asLong()).isZero();
+    }
+
+    @Test
+    void mentorRequests_pageAndAreAdminOnly() throws Exception {
+        JsonNode wide = requestsPage(0, 100);
+        assertThat(wide.path("totalElements").asLong()).isGreaterThanOrEqualTo(2);
+        assertThat(requestsPage(0, 5000).path("size").asInt()).isEqualTo(100);
+        assertThat(requestsPage(0, 1).path("content")).hasSize(1);
+
+        mvc.perform(get("/api/v1/dashboard/mentor-requests")
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/dashboard/mentor-requests"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void busFactor_namesTheSinglePersonASkillDependsOn() throws Exception {
         // Dana knows Neo4j as well, but she is soft-deleted: the skill still hangs on Ada alone.
         mvc.perform(get("/api/v1/dashboard").header("Authorization", "Bearer " + adminToken))
@@ -245,6 +295,33 @@ class DashboardIT extends AbstractNeo4jIT {
         peopleService.softDelete(carlId);
 
         assertThat(overview().path("metrics").path("people").asLong()).isEqualTo(before - 1);
+    }
+
+    /**
+     * Walks the queue rather than reading page one: the wishes seeded by whatever else lives in
+     * this database are older, and the oldest wish sorts first.
+     */
+    private JsonNode findRequest(String personId, String skillName) throws Exception {
+        JsonNode first = requestsPage(0, 100);
+        for (int p = 0; p < first.path("totalPages").asInt(); p++) {
+            for (JsonNode row : (p == 0 ? first : requestsPage(p, 100)).path("content")) {
+                if (row.path("personId").asText().equals(personId)
+                        && row.path("skillName").asText().equals(skillName)) {
+                    return row;
+                }
+            }
+        }
+        return null;
+    }
+
+    private JsonNode requestsPage(int page, int size) throws Exception {
+        String json = mvc.perform(get("/api/v1/dashboard/mentor-requests")
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size))
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(json);
     }
 
     private JsonNode page(int page, int size) throws Exception {
