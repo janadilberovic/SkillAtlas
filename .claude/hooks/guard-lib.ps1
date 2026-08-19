@@ -51,11 +51,13 @@ function Get-LineAnalysis {
 
     $out = New-Object System.Collections.Generic.List[psobject]
     $inTextBlock = $false
+    $blockText = ''
 
     foreach ($raw in $Lines) {
         $line = [string]$raw
         $literal = ''
         $code = $line
+        $closedBlock = $false
 
         if ($TextBlocks) {
             $idx = $line.IndexOf('"""')
@@ -63,14 +65,18 @@ function Get-LineAnalysis {
                 if ($idx -ge 0) {
                     $literal = $line.Substring(0, $idx)
                     $code = $line.Substring($idx + 3)
+                    $blockText = $blockText + ' ' + $literal
                     $inTextBlock = $false
+                    $closedBlock = $true
                 } else {
                     $literal = $line
+                    $blockText = $blockText + ' ' + $line
                     $code = ''
                 }
             } elseif ($idx -ge 0) {
                 $code = $line.Substring(0, $idx)
                 $literal = $line.Substring($idx + 3)
+                $blockText = $literal
                 $inTextBlock = $true
             }
         }
@@ -78,12 +84,33 @@ function Get-LineAnalysis {
         $trimmed = $code.TrimStart()
         $isComment = $trimmed.StartsWith('//') -or $trimmed.StartsWith('*') -or $trimmed.StartsWith('/*')
 
+        # Two tokens, not one. @Q@ marks a literal that carries a query, @S@ any
+        # other string. Without that distinction a nearby `"Bearer " + token`
+        # reads as query concatenation - which is exactly what the injection
+        # regression tests look like, since their payload IS Cypher.
         $skeleton = ''
         if (-not $isComment -and $code) {
+            $buf = ''
+            $last = 0
             foreach ($m in [regex]::Matches($code, $script:LiteralRegex)) {
-                $literal = $literal + ' ' + $m.Value.Substring(1, $m.Value.Length - 2)
+                $buf += $code.Substring($last, $m.Index - $last)
+                $inner = $m.Value.Substring(1, $m.Value.Length - 2)
+                $literal = $literal + ' ' + $inner
+                if (Test-Cypher $inner) { $buf += '@Q@' } else { $buf += '@S@' }
+                $last = $m.Index + $m.Length
             }
-            $skeleton = [regex]::Replace($code, $script:LiteralRegex, '@S@')
+            $buf += $code.Substring($last)
+            $skeleton = $buf
+        }
+
+        # A text block is one literal value. Standing the whole block in as a
+        # single token on the line that closes it is what lets a rule see
+        # `""" ... """ + name`; without it the closing line reads as a bare
+        # `+ name` and the concatenation is invisible.
+        if ($closedBlock) {
+            $token = '@S@'
+            if (Test-Cypher $blockText) { $token = '@Q@' }
+            $skeleton = $token + $skeleton
         }
 
         $out.Add([pscustomobject]@{
@@ -93,7 +120,10 @@ function Get-LineAnalysis {
             IsComment = $isComment
         })
     }
-    return $out
+    # The comma matters. Without it PowerShell unrolls the list, a one-line file
+    # comes back as a bare object with no .Count, and every rule loop silently
+    # runs zero times.
+    return ,$out
 }
 
 # -------------------------------------------------------------- detection ---
@@ -146,15 +176,25 @@ function Get-LiteralWindow {
 # ---------------------------------------------------------------- markers ---
 
 # // guard:allow <rule-id> - reason
-# Honoured on the line itself, the line above, or anywhere in the first 15 lines
-# (file-scoped). Same syntax inside <!-- --> for html/css/ts.
+# Honoured on the line itself, the three lines above, or anywhere in the first 15
+# lines (file-scoped). Same syntax inside <!-- --> for html/css/ts.
+#
+# Three lines, not one, because the flagged line is often inside a text block:
+#     // count() aggregates over an empty match too ...
+#     // guard:allow soft-delete - both ids are checked by the caller
+#     @Query("""
+#             MATCH (:Person {id: $mentorId})-[r:MENTORS]->(:Person {id: $menteeId})
+# A // comment on the reported line, or on the line directly above it, would end
+# up inside the query string.
 function Test-AllowMarker {
     param([string[]]$Lines, [int]$Index, [string]$Rule)
 
     $pattern = 'guard:allow\s+' + [regex]::Escape($Rule) + '\b'
 
-    if ($Index -ge 0 -and $Index -lt $Lines.Count -and $Lines[$Index] -match $pattern) { return $true }
-    if ($Index -ge 1 -and $Lines[$Index - 1] -match $pattern) { return $true }
+    $from = [Math]::Max(0, $Index - 3)
+    for ($i = $from; $i -le $Index; $i++) {
+        if ($i -lt $Lines.Count -and $Lines[$i] -match $pattern) { return $true }
+    }
 
     $head = [Math]::Min(15, $Lines.Count)
     for ($i = 0; $i -lt $head; $i++) {
@@ -187,7 +227,7 @@ function New-GuardContext {
         FileName   = Split-Path -Leaf $Path
         Ext        = $ext
         Lines      = $Lines
-        Analysis   = (Get-LineAnalysis -Lines $Lines -TextBlocks:($ext -eq '.java'))
+        Analysis   = Get-LineAnalysis -Lines $Lines -TextBlocks:($ext -eq '.java')
         Touched    = $TouchedContent
         All        = [bool]$All
         Violations = (New-Object System.Collections.Generic.List[psobject])

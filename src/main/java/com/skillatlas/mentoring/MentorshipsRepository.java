@@ -24,6 +24,7 @@ public interface MentorshipsRepository extends Neo4jRepository<Person, String> {
             @Param("since") LocalDate since);
 
     // count() aggregates over an empty match too, so a missing mentorship is false, not no row.
+    // guard:allow soft-delete - existence of the edge, not a read of either person; the write path checks both.
     @Query("""
             MATCH (:Person {id: $mentorId})-[r:MENTORS {skillId: $skillId}]->(:Person {id: $menteeId})
             RETURN count(r) > 0

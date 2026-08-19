@@ -41,6 +41,7 @@ public interface PeopleSkillsRepository extends Neo4jRepository<Person, String> 
             @Param("today") LocalDate today);
 
     // Level of an existing KNOWS, or null when the person doesn't know the skill.
+    // guard:allow soft-delete - the caller already resolved the person through a filtered read.
     @Query("MATCH (:Person {id: $personId})-[r:KNOWS]->(:Skill {id: $skillId}) RETURN r.level")
     Integer knownLevel(@Param("personId") String personId, @Param("skillId") String skillId);
 
