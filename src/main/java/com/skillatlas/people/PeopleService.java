@@ -13,6 +13,8 @@ import com.skillatlas.people.dto.PersonCreateRequest;
 import com.skillatlas.people.dto.PersonUpdateRequest;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
+import com.skillatlas.people.exception.SelfDeleteNotAllowedException;
+import com.skillatlas.security.SecurityUtil;
 
 @Service
 public class PeopleService {
@@ -38,7 +40,10 @@ public class PeopleService {
 
     @Transactional
     public Person create(PersonCreateRequest request) {
-        if (repository.existsByEmailAndDeletedFalse(request.email())) {
+        // Deliberately ignores the soft-delete flag: the unique constraint on Person.email does
+        // too, so an email freed by a soft delete would pass this check and then blow up as a
+        // constraint violation (500) instead of a 409.
+        if (repository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException(request.email());
         }
         Person person = new Person();
@@ -65,6 +70,11 @@ public class PeopleService {
 
     @Transactional
     public void softDelete(String id) {
+        // An admin who deletes themselves keeps a valid token for a person every read filters out,
+        // so the next GET /me 404s and the client falls apart with no way back.
+        if (id.equals(SecurityUtil.currentUserId())) {
+            throw new SelfDeleteNotAllowedException();
+        }
         Person person = getById(id);
         person.setDeleted(true);
         person.setDeletedAt(Instant.now());

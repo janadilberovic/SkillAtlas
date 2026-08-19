@@ -20,7 +20,7 @@ public interface PeopleRepository extends Neo4jRepository<Person, String> {
     boolean existsByEmailAndDeletedFalse(String email);
 
     // Deliberately ignores the soft-delete filter: the unique constraint on Person.email ignores it
-    // too, so "can I insert this email?" has to look at deleted rows as well. Seeding only.
+    // too, so "can I insert this email?" has to look at deleted rows as well.
     // guard:allow soft-delete - the unique constraint ignores the flag, so this probe must too.
     boolean existsByEmail(String email);
 }

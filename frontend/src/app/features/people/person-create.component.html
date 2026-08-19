@@ -1,0 +1,84 @@
+<div class="backdrop" (click)="closed.emit(false)">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="mhead">
+      <div class="titles">
+        <span class="mtitle">New person</span>
+        <span class="muted small">Admin only · the password is stored hashed, never in plain text</span>
+      </div>
+      <button class="x" (click)="closed.emit(false)">✕</button>
+    </div>
+
+    @if (error()) {
+      <div class="err-banner">
+        <span class="mark"></span>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <div class="pair">
+      <div class="field-row">
+        <span class="label">First name</span>
+        <input class="field" [(ngModel)]="firstName" placeholder="Nina" />
+      </div>
+      <div class="field-row">
+        <span class="label">Last name</span>
+        <input class="field" [(ngModel)]="lastName" placeholder="Hodžić" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <span class="label">Email</span>
+      <input class="field" [(ngModel)]="email" placeholder="nina.hodzic@skillatlas.dev" />
+      @if (emailInvalid()) {
+        <span class="hint err">That is not a valid email address.</span>
+      } @else {
+        <span class="hint dim">Unique in the graph — the VacaYAY import dedups on it too.</span>
+      }
+    </div>
+
+    <div class="field-row">
+      <span class="label">Temporary password</span>
+      <input class="field" type="password" [(ngModel)]="password" placeholder="At least 8 characters" />
+      @if (passwordShort()) {
+        <span class="hint err">Too short — the server requires at least 8 characters.</span>
+      } @else {
+        <span class="hint dim">Minimum 8 characters. Hashed before it is stored.</span>
+      }
+    </div>
+
+    <div class="pair">
+      <div class="field-row">
+        <span class="label">Position · optional</span>
+        <input class="field" [(ngModel)]="position" placeholder="Frontend Engineer" />
+      </div>
+      <div class="field-row">
+        <span class="label">Role</span>
+        <sa-select placeholder="Pick a role" [options]="roleOptions" [value]="role" (valueChange)="role = $event" />
+      </div>
+    </div>
+
+    <div class="preview">
+      <span class="eyebrow eyebrow-mute">Row that will appear in the list</span>
+      <div class="prow">
+        <div class="pwho">
+          <span [class.dim]="!previewName()">{{ previewName() || 'Name will appear here' }}</span>
+          <span class="dim small">{{ email.trim() || 'email@skillatlas.dev' }}</span>
+        </div>
+        <span class="dim">—</span>
+        <span [class.muted]="position.trim()" [class.dim]="!position.trim()">{{ position.trim() || '—' }}</span>
+        <span class="fresh small">No skills yet</span>
+      </div>
+    </div>
+
+    <span class="dim small">
+      Team membership and profile picture are not part of this form — a person is created first, then assigned.
+    </span>
+
+    <div class="foot">
+      <button class="btn btn-ghost" (click)="closed.emit(false)">Cancel</button>
+      <button class="btn" [disabled]="!canSubmit()" (click)="create()">
+        {{ submitting() ? 'Creating…' : 'Create person' }}
+      </button>
+    </div>
+  </div>
+</div>

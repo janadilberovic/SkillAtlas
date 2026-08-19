@@ -33,6 +33,7 @@ import {
   PeopleApi,
   PeopleQuery,
   PeopleSkillsApi,
+  PersonInput,
   ProjectApi,
   SkillApi,
   SkillInput,
@@ -70,6 +71,12 @@ export class HttpPeopleApi extends PeopleApi {
   }
   profile(id: string): Observable<PersonProfile> {
     return this.http.get<PersonProfile>(`${BASE}/people/${id}`);
+  }
+  create(input: PersonInput): Observable<Person> {
+    return this.http.post<Person>(`${BASE}/people`, input);
+  }
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/people/${id}`);
   }
 }
 
