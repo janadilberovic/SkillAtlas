@@ -178,6 +178,63 @@ $hits = Get-Rules @('public PersonProfileResponse get(@PathVariable String id) {
 Assert-That 'entity-returned ignores DTOs and constructors' ($hits -notcontains 'entity-returned') ($hits -join ',')
 
 Write-Host ''
+Write-Host 'frontend rules - do they fire when they should?'
+
+. "$PSScriptRoot\rules-frontend.ps1"
+
+function Get-FeRules {
+    param([string[]]$Source, [string]$Path)
+    $ctx = New-GuardContext -Path $Path -Lines $Source -TouchedContent '' -All
+    Invoke-FrontendRules -Ctx $ctx
+    return @($ctx.Violations | ForEach-Object { $_.Rule })
+}
+
+$feat = "$repo\frontend\src\app\features\x\x.component.ts"
+$seam = "$repo\frontend\src\app\core\api\http-api.ts"
+
+$hits = Get-FeRules @('private readonly http = inject(HttpClient);') -Path $feat
+Assert-That 'http-outside-seam fires in a component' ($hits -contains 'http-outside-seam') ($hits -join ',')
+
+$hits = Get-FeRules @('private readonly http = inject(HttpClient);') -Path $seam
+Assert-That 'http-outside-seam stays quiet in core/api' ($hits -notcontains 'http-outside-seam') ($hits -join ',')
+
+$hits = Get-FeRules @('  constructor(private readonly api: PeopleApi) {}') -Path $feat
+Assert-That 'constructor-di fires on parameter injection' ($hits -contains 'constructor-di') ($hits -join ',')
+
+$hits = Get-FeRules @('  constructor() { this.load(); }') -Path $feat
+Assert-That 'constructor-di allows a bare constructor' ($hits -notcontains 'constructor-di') ($hits -join ',')
+
+$hits = Get-FeRules @('<div *ngIf="loading()">') -Path "$repo\frontend\src\app\features\x\x.component.html"
+Assert-That 'legacy-control-flow fires on *ngIf' ($hits -contains 'legacy-control-flow') ($hits -join ',')
+
+$hits = Get-FeRules @('.err { color: #e2777a; }') -Path "$repo\frontend\src\app\features\x\x.component.css"
+Assert-That 'hardcoded-color fires in a component stylesheet' ($hits -contains 'hardcoded-color') ($hits -join ',')
+
+$hits = Get-FeRules @('  --accent: #9184d9;') -Path "$repo\frontend\src\styles.scss"
+Assert-That 'hardcoded-color spares styles.scss' ($hits -notcontains 'hardcoded-color') ($hits -join ',')
+
+$hits = Get-FeRules @('<select class="field" [(ngModel)]="x">') -Path "$repo\frontend\src\app\shared\components\select\select.component.html"
+Assert-That 'native-select spares sa-select itself' ($hits -notcontains 'native-select') ($hits -join ',')
+
+$hits = Get-FeRules @("  { path: 'import', component: ImportComponent },") -Path "$repo\frontend\src\app\app.routes.ts"
+Assert-That 'route-not-lazy fires on an eager route' ($hits -contains 'route-not-lazy') ($hits -join ',')
+
+$hits = Get-FeRules @('@Component({', "  selector: 'import-page',", "  templateUrl: './x.html',", '})') -Path $feat
+Assert-That 'component-shape catches a missing standalone' ($hits -contains 'component-shape') ($hits -join ',')
+
+$hits = Get-FeRules @('@Component({', "  selector: 'sa-x',", '  standalone: true,', "  styleUrl: './x.component.css',", '})') -Path $feat
+Assert-That 'component-shape accepts the house shape' ($hits -notcontains 'component-shape') ($hits -join ',')
+
+$hits = Get-FeRules @('export abstract class NeverBoundApi { }') -Path "$repo\frontend\src\app\core\api\api.ts"
+Assert-That 'api-token-unbound fires on an unbound token' ($hits -contains 'api-token-unbound') ($hits -join ',')
+
+$hits = Get-FeRules @('export abstract class PeopleApi { }') -Path "$repo\frontend\src\app\core\api\api.ts"
+Assert-That 'api-token-unbound stays quiet on a bound token' ($hits -notcontains 'api-token-unbound') ($hits -join ',')
+
+$hits = Get-FeRules @('    { provide: PeopleApi, useClass: MockPeopleApi },') -Path "$repo\frontend\src\app\app.config.ts"
+Assert-That 'mock-api-bound fires when a mock is wired' ($hits -contains 'mock-api-bound') ($hits -join ',')
+
+Write-Host ''
 if ($script:Fail -gt 0) {
     Write-Host "$script:Fail assertion(s) failed" -ForegroundColor Red
     exit 1
