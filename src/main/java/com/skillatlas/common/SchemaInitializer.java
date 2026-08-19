@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 // Enforces uniqueness at the database level (spec §4: constraints on email and skill name).
 // Runs before DevSeeder (@Order 0) so the constraints exist before any data is inserted.
 // IF NOT EXISTS makes every startup idempotent.
-// guard:allow cypher-location - startup DDL; constraints must exist before any repository is wired.
 @Component
 @Order(0)
 public class SchemaInitializer implements CommandLineRunner {
@@ -21,14 +20,17 @@ public class SchemaInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // guard:allow cypher-location - startup DDL, not a data query
         client.query(
                 "CREATE CONSTRAINT person_email_unique IF NOT EXISTS "
                         + "FOR (p:Person) REQUIRE p.email IS UNIQUE")
                 .run();
+        // guard:allow cypher-location - startup DDL, not a data query
         client.query(
                 "CREATE CONSTRAINT skill_name_unique IF NOT EXISTS "
                         + "FOR (s:Skill) REQUIRE s.name IS UNIQUE")
                 .run();
+        // guard:allow cypher-location - startup DDL, not a data query
         client.query(
                 "CREATE CONSTRAINT team_name_unique IF NOT EXISTS "
                         + "FOR (t:Team) REQUIRE t.name IS UNIQUE")
