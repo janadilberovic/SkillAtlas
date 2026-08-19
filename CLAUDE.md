@@ -49,11 +49,14 @@ One tight sentence beats a paragraph; match the sparse density of the file you a
 ## Frontend (`frontend/`)
 Angular 20, standalone components only — there are no NgModules. Mirror an existing screen rather
 than inventing a shape; `features/people/people-list.component.ts` is the reference.
+**The long form — file checklist, seam wiring, the three screen states, the Nocturne token list —
+is the [`new-screen`](.claude/skills/new-screen/SKILL.md) skill.** The rules below are the short version.
 
 **Components** — `sa-` selector prefix, `standalone: true`, `templateUrl` + `styleUrl` as sibling
-files (inline `template:` only for the small `shared/components/*`). Dependencies via `inject()`,
-not constructor parameters. Screen state is **signals** (`signal`, `computed`), not plain fields —
-except two-way `[(ngModel)]` form bindings, which stay plain.
+files (`.css`, not `.scss`; inline `template:` only for the small `shared/components/*`).
+Dependencies via `inject()`, not constructor parameters. Screen state is **signals** (`signal`,
+`computed`), not plain fields — except two-way `[(ngModel)]` form bindings, which stay plain.
+Control flow is `@if` / `@for` / `@empty`; there is no `*ngIf` or `CommonModule` in the codebase.
 
 **The API seam is the rule that matters.** Components inject the abstract classes from
 [`core/api/api.ts`](frontend/src/app/core/api/api.ts) (`PeopleApi`, `FinderApi`, …) and **never
@@ -70,15 +73,16 @@ shell route, `adminGuard` on the admin-only children. Guards are **UX, not secur
 enforces access regardless, and a slice is not done because the menu item is hidden.
 
 **Styling — Nocturne.** All colour, radius and font values are CSS variables on `:root` in
-[`styles.scss`](frontend/src/styles.scss). Never hardcode a hex in a component. Reuse the shared
-primitives before writing new CSS: `.btn` / `.btn-ghost` / `.btn-sm`, `.field`, `.label`, `.card` /
-`.card-flat`, `.tag` / `.tag-outline` / `.tag-mute`, `.eyebrow`, `.muted` / `.dim`, `.divider`.
-Use `sa-select` (`shared/components/select/`) instead of a native `<select>` — the native popup
-cannot be themed.
+[`styles.scss`](frontend/src/styles.scss). Never hardcode a hex in a component, and never put a
+palette array in a `.ts` file. Reuse the shared primitives before writing new CSS: `.btn` /
+`.btn-ghost` / `.btn-sm`, `.field`, `.label`, `.card` / `.card-flat`, `.tag` / `.tag-outline` /
+`.tag-mute`, `.eyebrow`, `.muted` / `.dim`, `.divider`. Use `sa-select`
+(`shared/components/select/`) instead of a native `<select>` — the native popup cannot be themed.
 
 **Verifying** — `npm run build` in `frontend/` is the check that counts; it defaults to the
 production configuration, so it runs the full AOT template typecheck and enforces the bundle
-budgets from `angular.json`. Node 22 (`.nvmrc`). CI runs it on every PR.
+budgets from `angular.json`. There is no test framework in `frontend/`. Node 22 (`.nvmrc`).
+CI runs it on every PR.
 
 ## Git workflow (branching)
 - **Always branch each feature directly off `main`.** One feature = one branch = one PR targeting `main`.

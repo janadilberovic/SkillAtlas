@@ -20,14 +20,17 @@ public class SchemaInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // guard:allow cypher-location - startup DDL, not a data query
         client.query(
                 "CREATE CONSTRAINT person_email_unique IF NOT EXISTS "
                         + "FOR (p:Person) REQUIRE p.email IS UNIQUE")
                 .run();
+        // guard:allow cypher-location - startup DDL, not a data query
         client.query(
                 "CREATE CONSTRAINT skill_name_unique IF NOT EXISTS "
                         + "FOR (s:Skill) REQUIRE s.name IS UNIQUE")
                 .run();
+        // guard:allow cypher-location - startup DDL, not a data query
         client.query(
                 "CREATE CONSTRAINT team_name_unique IF NOT EXISTS "
                         + "FOR (t:Team) REQUIRE t.name IS UNIQUE")

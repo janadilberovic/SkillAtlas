@@ -33,7 +33,11 @@
       "Bash(docker info:*)",
       "Bash(docker version:*)",
       "Bash(curl.exe:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/guard.ps1:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/guard-selftest.ps1:*)"
     ],
     "deny": [
       "Read(./.env)",
@@ -41,7 +45,9 @@
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
-      "Bash(docker compose down -v:*)"
+      "Bash(docker compose down -v:*)",
+      "Write(./.env)",
+      "Edit(./.env)"
     ]
   },
   "hooks": {
@@ -51,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\cypher-guard.ps1\""
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\guard.ps1\""
           }
         ]
       }

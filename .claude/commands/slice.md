@@ -1,7 +1,7 @@
 ---
 description: Run one roadmap slice end to end, from branch off main to open PR
 argument-hint: <roadmap step number, e.g. 4>
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(./mvnw:*), Bash(.\mvnw.cmd:*), Bash(curl.exe:*), Bash(npm:*), Read, Edit, Write, Glob, Grep
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(./mvnw:*), Bash(.\mvnw.cmd:*), Bash(curl.exe:*), Bash(npm:*), Read, Edit, Write, Glob, Grep, Agent, Skill
 ---
 
 Current branch: !`git rev-parse --abbrev-ref HEAD`
@@ -59,29 +59,37 @@ lot of work to one bad turn.
 
 ## 6. Prove it
 
-- `.\mvnw.cmd -B verify` green — unit tests and integration tests both.
-- Boot the app against the local Neo4j and curl the new endpoints, including the 401/403/404
-  paths. Compilation and green tests do not catch Neo4j mapping failures at startup.
-- If the slice touches `frontend/`, `npm run build` in `frontend/` as well.
+Run **`/verify`**. It does the Neo4j preflight (a dead Bolt connection reads exactly like a broken
+slice), `.\mvnw.cmd -B verify`, the live endpoints including the 401/403/404 paths, and the
+frontend build when the diff touches `frontend/`. It has no `Edit` or `Write`, so it cannot work
+its way to green — its result is the result.
+
+Then run the **`spec-checker`** agent on step $1. It reads the spec section and the numbered
+*Odluke* lists from this and every earlier step, and reports criterion by criterion:
+
+- *missing* / *deviates* → work, not commentary.
+- *contradicts an earlier decision* → stop and fix, or say why the decision no longer holds.
+- *spec is silent* → a question for the user. Answer it before the PR; do not settle it silently.
 
 Report failures honestly with their output. A red `verify` is a result to show, not a problem to
 work around.
 
 ## 7. Open the PR
 
+Fill [`.github/pull_request_template.md`](../../.github/pull_request_template.md) — Why, What
+changed, Reviewer notes, Security, Tests, Roadmap — write it to a file, and pass that file:
+
 ```
-gh pr create --base main
+gh pr create --base main --body-file <filled template>
 ```
 
-Body shape, matching the PRs already in this repo:
+**`--body-file`, not `--body`.** Passing `--body` bypasses the template entirely, which is how a
+PR ends up missing the Security table nobody noticed was gone.
 
-- **Why** — the problem, in the reviewer's terms.
-- **What changed** — by area (backend / frontend / tests), with the non-obvious decisions and the
-  reasoning behind them.
-- **Reviewer notes** — anything deliberate that looks wrong at a glance, anything deferred and why.
-- **Security** — which of the mandated cases (injection, IDOR, soft delete, mass assignment) apply
-  to this slice and how each is covered.
-- **Tests** — counts and what they actually assert.
+For the **Security** section, run the **`security-reviewer`** agent. It runs the six checks spec §5
+mandates and returns the table in the shape the template expects, with `file:line` evidence for
+every "covered". Read its *rejected candidates* section as well — §5 puts the judgement on the
+human, so the rejections are yours to confirm, not the agent's to bury.
 
 Then update the step's status in `docs/roadmap.md` and include it in the PR.
 
