@@ -1,15 +1,20 @@
 package com.skillatlas.people;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Locale;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
+import com.skillatlas.people.dto.PersonResponse;
 import com.skillatlas.people.dto.PersonUpdateRequest;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
@@ -20,10 +25,13 @@ import com.skillatlas.security.SecurityUtil;
 public class PeopleService {
 
     private final PeopleRepository repository;
+    private final PeopleSearchRepository searchRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public PeopleService(PeopleRepository repository, PasswordEncoder passwordEncoder) {
+    public PeopleService(PeopleRepository repository, PeopleSearchRepository searchRepository,
+            PasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.searchRepository = searchRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -33,9 +41,15 @@ public class PeopleService {
                 .orElseThrow(() -> new PersonNotFoundException(id));
     }
 
+    /** Each filter is optional; blank is "no filter". Ordering lives in the query, not the pageable. */
     @Transactional(readOnly = true)
-    public Page<Person> list(Pageable pageable) {
-        return repository.findByDeletedFalse(pageable);
+    public Page<PersonResponse> list(String search, String team, String skill, Pageable pageable) {
+        String s = normalise(search);
+        String t = normalise(team);
+        String k = normalise(skill);
+        List<PersonResponse> content =
+                searchRepository.find(s, t, k, pageable.getOffset(), pageable.getPageSize());
+        return new PageImpl<>(content, pageable, searchRepository.count(s, t, k));
     }
 
     @Transactional
@@ -55,6 +69,7 @@ public class PeopleService {
         person.setProfilePicture(request.profilePicture());
         person.setRole(request.role());
         person.setActive(true);
+        person.setCreatedAt(Instant.now());
         return repository.save(person);
     }
 
@@ -79,5 +94,10 @@ public class PeopleService {
         person.setDeleted(true);
         person.setDeletedAt(Instant.now());
         repository.save(person);
+    }
+
+    // The query compares lowercased, so the caller's casing and padding are normalised here.
+    private static String normalise(String value) {
+        return StringUtils.hasText(value) ? value.trim().toLowerCase(Locale.ROOT) : null;
     }
 }

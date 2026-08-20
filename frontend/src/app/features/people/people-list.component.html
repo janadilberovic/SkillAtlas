@@ -12,19 +12,19 @@
   }
 
   <div class="filters">
-    <input class="field" [(ngModel)]="search" (ngModelChange)="onFilter()" placeholder="Search by name or email" />
-    <select class="field team" [(ngModel)]="team" (ngModelChange)="onFilter()">
-      <option value="">All teams</option>
-      @for (t of teams(); track t.id) {
-        <option [value]="t.name">{{ t.name }}</option>
-      }
-    </select>
-    <select class="field team" [(ngModel)]="skill" (ngModelChange)="onFilter()">
-      <option value="">Any skill</option>
-      @for (s of skills(); track s.id) {
-        <option [value]="s.name">{{ s.name }}</option>
-      }
-    </select>
+    <input class="field" [(ngModel)]="search" (ngModelChange)="onSearch()" placeholder="Search by name or email" />
+    <sa-select
+      class="team"
+      placeholder="All teams"
+      [options]="teamOptions()"
+      [value]="team"
+      (valueChange)="team = $event; onFilter()" />
+    <sa-select
+      class="team"
+      placeholder="Any skill"
+      [options]="skillOptions()"
+      [value]="skill"
+      (valueChange)="skill = $event; onFilter()" />
   </div>
 
   <div class="row head-row">

@@ -28,18 +28,24 @@ public record PersonResponse(
     private static final int TOP_SKILLS = 3;
 
     public static PersonResponse from(Person p) {
-        List<String> teams = p.getTeams().stream()
-                .map(t -> t.getName())
-                .sorted()
-                .toList();
-        List<TopSkill> topSkills = p.getKnows().stream()
-                .map(k -> new TopSkill(k.getSkill().getId(), k.getSkill().getName(), k.getLevel()))
-                .sorted(Comparator.comparingInt(TopSkill::level).reversed()
-                        .thenComparing(TopSkill::name))
-                .limit(TOP_SKILLS)
-                .toList();
-        return new PersonResponse(
-                p.getId(), p.getEmail(), p.getFirstName(), p.getLastName(),
-                p.getPosition(), p.getRole(), p.isActive(), teams, topSkills);
+        return of(p.getId(), p.getEmail(), p.getFirstName(), p.getLastName(), p.getPosition(),
+                p.getRole(), p.isActive(),
+                p.getTeams().stream().map(t -> t.getName()).toList(),
+                p.getKnows().stream()
+                        .map(k -> new TopSkill(k.getSkill().getId(), k.getSkill().getName(),
+                                k.getLevel()))
+                        .toList());
+    }
+
+    /** Same row from an already-flattened projection, so the ordering rules live in one place. */
+    public static PersonResponse of(String id, String email, String firstName, String lastName,
+            String position, Role role, boolean active, List<String> teams, List<TopSkill> skills) {
+        return new PersonResponse(id, email, firstName, lastName, position, role, active,
+                teams.stream().sorted().toList(),
+                skills.stream()
+                        .sorted(Comparator.comparingInt(TopSkill::level).reversed()
+                                .thenComparing(TopSkill::name))
+                        .limit(TOP_SKILLS)
+                        .toList());
     }
 }

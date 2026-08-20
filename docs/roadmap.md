@@ -164,9 +164,12 @@ DTO-ve iz live OpenAPI spec-a starog sistema.
 
 ## [8] Dorade
 
-Change-password, logout, people search/filter po timu i skillu, person↔team dodjela.
-Uz to: migrirati preostale native `<select>`-ove (people, skills, projects, graph filteri) na
-`sa-select`.
+Change-password, logout, person↔team dodjela. Uz to: migrirati preostale native `<select>`-ove
+(skills, projects, graph filteri) na `sa-select`.
+
+People search/filter je urađen ranije, van reda: `GET /people?search=&team=&skill=` filtrira u
+Cypheru (`PeopleSearchRepository`), a lista je sortirana `createdAt DESC` pa abecedno — nova osoba
+sleti na vrh prve strane. People filteri su prešli na `sa-select`.
 
 ## [9] Dopuna testova
 

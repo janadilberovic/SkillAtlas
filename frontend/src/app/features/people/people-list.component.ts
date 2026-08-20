@@ -4,13 +4,14 @@ import { RouterLink } from '@angular/router';
 import { PeopleApi, SkillApi, TeamApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
 import { Page, Person, Skill, Team } from '../../core/models/models';
+import { SelectComponent, SelectOption } from '../../shared/components/select/select.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { PersonCreateComponent } from './person-create.component';
 
 @Component({
   selector: 'sa-people-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, SkeletonComponent, PersonCreateComponent],
+  imports: [FormsModule, RouterLink, SelectComponent, SkeletonComponent, PersonCreateComponent],
   templateUrl: './people-list.component.html',
   styleUrl: './people-list.component.css',
 })
@@ -20,6 +21,7 @@ export class PeopleListComponent {
   private readonly skillApi = inject(SkillApi);
   private readonly auth = inject(AuthService);
   private readonly size = 6;
+  private searchDebounce?: ReturnType<typeof setTimeout>;
 
   search = '';
   team = '';
@@ -31,6 +33,13 @@ export class PeopleListComponent {
   readonly skills = signal<Skill[]>([]);
   readonly showCreate = signal(false);
   readonly error = signal('');
+
+  readonly teamOptions = computed<SelectOption[]>(() =>
+    this.teams().map((t) => ({ value: t.name, label: t.name })),
+  );
+  readonly skillOptions = computed<SelectOption[]>(() =>
+    this.skills().map((s) => ({ value: s.name, label: s.name })),
+  );
 
   readonly subtitle = computed(() => {
     const d = this.data();
@@ -46,6 +55,12 @@ export class PeopleListComponent {
   onFilter(): void {
     this.page.set(0);
     this.load();
+  }
+
+  // Every keystroke is a real query now, so let the typing settle before asking.
+  onSearch(): void {
+    clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => this.onFilter(), 250);
   }
 
   go(n: number): void {
@@ -92,7 +107,8 @@ export class PeopleListComponent {
 
   onCreated(created: boolean): void {
     this.showCreate.set(false);
-    if (created) this.load();
+    // The new person sorts to the top of the first page, so go there rather than reload page 4.
+    if (created) this.onFilter();
   }
 
   rangeLabel(): string {

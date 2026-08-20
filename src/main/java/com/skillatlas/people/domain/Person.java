@@ -45,6 +45,8 @@ public class Person {
 
     private String profilePicture;
 
+    private Instant createdAt;
+
     @Property("isDeleted") // graph property name the read-filters depend on
     private boolean deleted = false;
 
