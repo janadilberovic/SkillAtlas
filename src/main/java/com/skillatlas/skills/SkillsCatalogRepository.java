@@ -41,6 +41,10 @@ public class SkillsCatalogRepository {
 
     private static final String ORDER_BY_WANTED = "ORDER BY wantedBy DESC, knownBy ASC, toLower(s.name)\n";
 
+    // Wishes break the tie: of two skills nobody knows, the one people are asking for is the
+    // one worth acting on first.
+    private static final String ORDER_BY_KNOWN = "ORDER BY knownBy ASC, wantedBy DESC, toLower(s.name)\n";
+
     private static final String RETURN_ROWS = """
             SKIP $skip LIMIT $limit
             RETURN s.id AS id, s.name AS name, s.category AS category, s.color AS color,
@@ -51,6 +55,8 @@ public class SkillsCatalogRepository {
     private static final String FIND_BY_NAME = MATCH_SKILLS + PROJECTION + ORDER_BY_NAME + RETURN_ROWS;
 
     private static final String FIND_BY_WANTED = MATCH_SKILLS + PROJECTION + ORDER_BY_WANTED + RETURN_ROWS;
+
+    private static final String FIND_BY_KNOWN = MATCH_SKILLS + PROJECTION + ORDER_BY_KNOWN + RETURN_ROWS;
 
     private static final String COUNT_SKILLS = MATCH_SKILLS + "RETURN count(s) AS total";
 
@@ -69,7 +75,7 @@ public class SkillsCatalogRepository {
         Map<String, Object> params = params(search, category);
         params.put("skip", skip);
         params.put("limit", limit);
-        return List.copyOf(client.query(sort == SkillSort.WANTED ? FIND_BY_WANTED : FIND_BY_NAME)
+        return List.copyOf(client.query(query(sort))
                 .bindAll(params)
                 .fetchAs(SkillCatalogResponse.class)
                 .mappedBy((typeSystem, record) -> new SkillCatalogResponse(
@@ -81,6 +87,14 @@ public class SkillsCatalogRepository {
                         record.get("wantedBy").asLong(),
                         record.get("usedBy").asList(Value::asString)))
                 .all());
+    }
+
+    private static String query(SkillSort sort) {
+        return switch (sort) {
+            case WANTED -> FIND_BY_WANTED;
+            case KNOWN -> FIND_BY_KNOWN;
+            case NAME -> FIND_BY_NAME;
+        };
     }
 
     public long count(String search, SkillCategory category) {

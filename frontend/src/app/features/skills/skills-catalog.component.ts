@@ -45,6 +45,8 @@ export class SkillsCatalogComponent {
   readonly error = signal('');
   /** Its own query (sort=wanted): the ranking is company-wide, not a re-sort of the page on screen. */
   readonly mostWanted = signal<Skill[]>([]);
+  /** Same, by thinnest coverage — the bus factor the dashboard warns about, read off the catalog. */
+  readonly leastKnown = signal<Skill[]>([]);
 
   readonly subtitle = computed(() => {
     const d = this.data();
@@ -53,10 +55,11 @@ export class SkillsCatalogComponent {
       : 'Loading…';
   });
   readonly maxWanted = computed(() => Math.max(1, ...this.mostWanted().map((s) => s.wantedBy ?? 0)));
+  readonly maxKnown = computed(() => Math.max(1, ...this.leastKnown().map((s) => s.knownBy ?? 0)));
 
   constructor() {
     this.load();
-    this.loadMostWanted();
+    this.loadRails();
   }
 
   onFilter(): void {
@@ -103,10 +106,15 @@ export class SkillsCatalogComponent {
       });
   }
 
-  private loadMostWanted(): void {
+  // Both cards rank the whole catalog, so every write that can move a count refreshes both.
+  private loadRails(): void {
     this.api.page({ sort: 'wanted', size: 5 }).subscribe({
       next: (res) => this.mostWanted.set(res.content),
       error: () => this.mostWanted.set([]),
+    });
+    this.api.page({ sort: 'known', size: 5 }).subscribe({
+      next: (res) => this.leastKnown.set(res.content),
+      error: () => this.leastKnown.set([]),
     });
   }
 
@@ -118,7 +126,7 @@ export class SkillsCatalogComponent {
       next: () => {
         this.newName = '';
         this.onFilter();
-        this.loadMostWanted();
+        this.loadRails();
       },
       // Unique name is enforced server-side (Skill.name has a unique constraint), so the 409 is the
       // answer rather than a client-side scan of the page currently loaded.
@@ -142,7 +150,7 @@ export class SkillsCatalogComponent {
     this.api.update(s.id, { name, category: this.editCategory, color: this.editColor }).subscribe({
       next: () => {
         this.load();
-        this.loadMostWanted();
+        this.loadRails();
       },
       error: (err) => this.editError.set(err?.error?.error ?? 'Could not save that skill.'),
     });
@@ -157,7 +165,7 @@ export class SkillsCatalogComponent {
       next: () => {
         if (this.focus()?.id === s.id) this.focus.set(null);
         this.load();
-        this.loadMostWanted();
+        this.loadRails();
       },
       error: (err) => this.error.set(err?.error?.error ?? `Could not delete ${s.name}.`),
     });

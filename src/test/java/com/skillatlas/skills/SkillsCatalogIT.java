@@ -184,6 +184,31 @@ class SkillsCatalogIT extends AbstractNeo4jIT {
     }
 
     @Test
+    void sortKnown_putsTheThinnestCoverageFirst() throws Exception {
+        // Alphabetically Ada-lang leads and nobody-knows-it Fortran trails, so a default ordering
+        // that leaked through would put Ada-lang first and fail here.
+        Skill known = skillsService.create(
+                new SkillCreateRequest("Ada-lang-" + suffix, SkillCategory.LANGUAGE, "#02569B"));
+        try {
+            peopleSkillsService.setSkillLevel(adaId, known.getId(), 4);
+
+            mvc.perform(get("/api/v1/skills").param("search", suffix).param("sort", "known")
+                    .param("size", "100")
+                    .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[0].id").value(quietSkillId))
+                    .andExpect(jsonPath("$.content[0].knownBy").value(0))
+                    // Neo4j and Ada-lang both sit at 1 with no wishes, so the name breaks the tie.
+                    .andExpect(jsonPath("$.content[1].id").value(known.getId()))
+                    .andExpect(jsonPath("$.content[2].id").value(graphSkillId));
+        } finally {
+            neo4jClient.query("MATCH (n) WHERE n.id = $id DETACH DELETE n")
+                    .bindAll(Map.of("id", known.getId()))
+                    .run();
+        }
+    }
+
+    @Test
     void paging_reportsTheFullTotal_notThePageSize() throws Exception {
         mvc.perform(get("/api/v1/skills").param("search", suffix).param("size", "1")
                 .header("Authorization", "Bearer " + token))

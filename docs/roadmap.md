@@ -174,8 +174,9 @@ sleti na vrh prve strane. People filteri su prešli na `sa-select`.
 Skills katalog (E2.2) je dorađen isto van reda: `GET /skills` dobija `search`, `category` i
 `sort=wanted` uz paging, a red nosi `knownBy` / `wantedBy` / `usedBy` iz jednog Cyphera
 (`SkillsCatalogRepository`) — brojači isključuju soft-obrisane osobe. Ekran je dobio paginaciju,
-`sa-select` umjesto native `<select>`-a i pravi edit preko `PUT /skills/{id}`; „most wanted" ide
-zasebnim upitom jer je rang firmo-wide, a ne presortirana strana. Ostaju projects/graph filteri.
+`sa-select` umjesto native `<select>`-a i pravi edit preko `PUT /skills/{id}`; „most wanted"
+(`sort=wanted`) i „thinnest coverage" (`sort=known`) idu zasebnim upitima jer je rang firmo-wide, a
+ne presortirana strana. Ostaju projects/graph filteri.
 
 ## [9] Dopuna testova
 

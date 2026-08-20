@@ -71,8 +71,8 @@ export interface SkillInput {
 export interface SkillQuery {
   search?: string;
   category?: SkillCategory | '';
-  /** `wanted` is the most-wanted ranking; anything else is alphabetical. */
-  sort?: 'name' | 'wanted';
+  /** `wanted` ranks by wishes, `known` by thinnest coverage; anything else is alphabetical. */
+  sort?: 'name' | 'wanted' | 'known';
   page?: number;
   size?: number;
 }
