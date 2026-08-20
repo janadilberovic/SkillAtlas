@@ -23,6 +23,10 @@ h1 {
 .small {
   font-size: 12px;
 }
+.err {
+  color: var(--accent-text);
+  margin: 0;
+}
 .filters {
   display: flex;
   gap: 10px;

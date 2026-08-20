@@ -1,5 +1,6 @@
 package com.skillatlas.people;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
@@ -90,6 +92,33 @@ class PeopleListIT extends AbstractNeo4jIT {
                 .run();
     }
 
+    private void expectRows(MockHttpServletRequestBuilder request, String id, boolean present)
+            throws Exception {
+        var result = mvc.perform(request.param("size", "100")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        String row = "$.content[?(@.id == '" + id + "')]";
+        result.andExpect(present ? jsonPath(row).exists() : jsonPath(row).doesNotExist());
+    }
+
+    private void wipe(String id) {
+        neo4jClient.query("MATCH (n) WHERE n.id = $id DETACH DELETE n")
+                .bindAll(Map.of("id", id))
+                .run();
+    }
+
+    private long countNodes() {
+        return neo4jClient.query("MATCH (n) RETURN count(n) AS total")
+                .fetchAs(Long.class)
+                .mappedBy((typeSystem, record) -> record.get("total").asLong())
+                .one()
+                .orElse(0L);
+    }
+
+    private String skillName(String skillId) {
+        return skillsService.getById(skillId).getName();
+    }
+
     private String createPerson(String first, String suffix, String last) {
         Person person = peopleService.create(new PersonCreateRequest(
                 first + "-" + suffix + "@test.com", "Password123!", first, last, "Engineer", null,
@@ -131,6 +160,71 @@ class PeopleListIT extends AbstractNeo4jIT {
                     .bindAll(Map.of("id", plain))
                     .run();
         }
+    }
+
+    @Test
+    void searchFilter_matchesNameAndEmail_ignoringCase() throws Exception {
+        expectRows(get("/api/v1/people").param("search", "LOVELACE"), adaId, true);
+        expectRows(get("/api/v1/people").param("search", "ada-"), adaId, true);
+        expectRows(get("/api/v1/people").param("search", "nobody-by-that-name"), adaId, false);
+    }
+
+    @Test
+    void teamFilter_keepsOnlyMembers() throws Exception {
+        String outsider = createPerson("outsider", UUID.randomUUID().toString().substring(0, 8), "Person");
+        try {
+            expectRows(get("/api/v1/people").param("team", teamName.toUpperCase()), adaId, true);
+            expectRows(get("/api/v1/people").param("team", teamName), outsider, false);
+        } finally {
+            wipe(outsider);
+        }
+    }
+
+    @Test
+    void skillFilter_keepsOnlyPeopleWhoKnowIt() throws Exception {
+        String unskilled = createPerson("unskilled", UUID.randomUUID().toString().substring(0, 8), "Person");
+        try {
+            String skill = skillName(skillIds.get(0));
+            expectRows(get("/api/v1/people").param("skill", skill), adaId, true);
+            expectRows(get("/api/v1/people").param("skill", skill), unskilled, false);
+        } finally {
+            wipe(unskilled);
+        }
+    }
+
+    @Test
+    void mostRecentlyAdded_sortsFirst_thenAlphabetically() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String older = createPerson("aaa", suffix, "Aaa");
+        String newer = createPerson("zzz", suffix, "Zzz");
+        try {
+            // Alphabetically Zzz trails Aaa; it leads because it was added last.
+            mvc.perform(get("/api/v1/people").param("search", suffix).param("size", "100")
+                    .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content.length()").value(2))
+                    .andExpect(jsonPath("$.content[0].id").value(newer))
+                    .andExpect(jsonPath("$.content[1].id").value(older));
+        } finally {
+            wipe(older);
+            wipe(newer);
+        }
+    }
+
+    @Test
+    void cypherInjection_throughSearchTeamAndSkill_deletesNothing() throws Exception {
+        String payload = "React'}) DETACH DELETE (n) //";
+        long before = countNodes();
+
+        for (String filter : List.of("search", "team", "skill")) {
+            mvc.perform(get("/api/v1/people").param(filter, payload)
+                    .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isEmpty());
+        }
+
+        // An empty page alone would also be true of a wiped database — the count is the assertion.
+        assertThat(countNodes()).isEqualTo(before);
     }
 
     @Test

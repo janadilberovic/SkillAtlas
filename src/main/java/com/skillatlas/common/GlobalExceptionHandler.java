@@ -18,6 +18,7 @@ import com.skillatlas.mentoring.exception.InvalidMentorshipException;
 import com.skillatlas.mentoring.exception.MentorshipNotFoundException;
 import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
+import com.skillatlas.people.exception.SelfDeleteNotAllowedException;
 import com.skillatlas.people.exception.SkillAlreadyMasteredException;
 import com.skillatlas.projects.exception.ProjectNotFoundException;
 import com.skillatlas.skills.exception.SkillNameAlreadyExistsException;
@@ -45,6 +46,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> onEmailExists(EmailAlreadyExistsException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SelfDeleteNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> onSelfDelete(SelfDeleteNotAllowedException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());
     }
 

@@ -33,6 +33,7 @@ import {
   PeopleApi,
   PeopleQuery,
   PeopleSkillsApi,
+  PersonInput,
   ProjectApi,
   SkillApi,
   SkillInput,
@@ -64,12 +65,19 @@ export class HttpPeopleApi extends PeopleApi {
     let params = new HttpParams()
       .set('page', String(query.page ?? 0))
       .set('size', String(query.size ?? 20));
-    // NOTE: server-side search/team filtering is planned ([8]); ignored for now.
     if (query.search) params = params.set('search', query.search);
+    if (query.team) params = params.set('team', query.team);
+    if (query.skill) params = params.set('skill', query.skill);
     return this.http.get<Page<Person>>(`${BASE}/people`, { params });
   }
   profile(id: string): Observable<PersonProfile> {
     return this.http.get<PersonProfile>(`${BASE}/people/${id}`);
+  }
+  create(input: PersonInput): Observable<Person> {
+    return this.http.post<Person>(`${BASE}/people`, input);
+  }
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/people/${id}`);
   }
 }
 

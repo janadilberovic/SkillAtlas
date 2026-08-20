@@ -1,8 +1,6 @@
 package com.skillatlas.people;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,7 +15,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.skillatlas.common.PageResponse;
-import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
 import com.skillatlas.people.dto.PersonProfileResponse;
 import com.skillatlas.people.dto.PersonResponse;
@@ -41,13 +38,15 @@ public class PeopleController {
 
     @GetMapping
     public PageResponse<PersonResponse> list(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String team,
+            @RequestParam(required = false) String skill,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
-        Page<Person> result = service.list(
-                PageRequest.of(safePage, safeSize, Sort.by("lastName", "firstName")));
-        return PageResponse.from(result.map(PersonResponse::from));
+        return PageResponse.from(
+                service.list(search, team, skill, PageRequest.of(safePage, safeSize)));
     }
 
     // E4.2: the profile, not the shallow person. A superset of PersonResponse, so callers that

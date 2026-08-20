@@ -1,0 +1,124 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  background: rgba(15, 16, 25, 0.72);
+}
+.modal {
+  width: 640px;
+  max-width: 100%;
+  /* Matches the backdrop's 40px padding, so the footer stays on screen on a short window. */
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--text-muted), 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+.small {
+  font-size: 12px;
+}
+.mhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mtitle {
+  font-size: 20px;
+  font-weight: 500;
+}
+.x {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 15px;
+}
+.x:hover {
+  background: var(--surface-mute);
+}
+/* Same shape as the sign-in error: the app has no red, errors read in the accent palette. */
+.err-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+  color: var(--accent-text);
+}
+.err-banner .mark {
+  width: 2px;
+  height: 16px;
+  flex: none;
+  background: var(--accent);
+}
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+/* The modal sits on --surface, so the inputs have to step down a level to read as fields. */
+.field-row .field {
+  background: var(--surface-2);
+}
+.hint {
+  font-size: 12px;
+}
+.err {
+  color: var(--accent-text);
+}
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 13px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.prow {
+  display: grid;
+  grid-template-columns: 1.5fr 0.7fr 1fr 1.2fr;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.pwho {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pwho span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fresh {
+  color: var(--accent);
+}
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}

@@ -4,23 +4,27 @@
       <h1>People</h1>
       <p class="muted sub">{{ subtitle() }}</p>
     </div>
-    <a routerLink="/coming-soon" [queryParams]="{ screen: 'New person' }" class="btn">New person</a>
+    <button class="btn" (click)="showCreate.set(true)">New person</button>
   </div>
 
+  @if (error()) {
+    <p class="err small">{{ error() }}</p>
+  }
+
   <div class="filters">
-    <input class="field" [(ngModel)]="search" (ngModelChange)="onFilter()" placeholder="Search by name or email" />
-    <select class="field team" [(ngModel)]="team" (ngModelChange)="onFilter()">
-      <option value="">All teams</option>
-      @for (t of teams(); track t.id) {
-        <option [value]="t.name">{{ t.name }}</option>
-      }
-    </select>
-    <select class="field team" [(ngModel)]="skill" (ngModelChange)="onFilter()">
-      <option value="">Any skill</option>
-      @for (s of skills(); track s.id) {
-        <option [value]="s.name">{{ s.name }}</option>
-      }
-    </select>
+    <input class="field" [(ngModel)]="search" (ngModelChange)="onSearch()" placeholder="Search by name or email" />
+    <sa-select
+      class="team"
+      placeholder="All teams"
+      [options]="teamOptions()"
+      [value]="team"
+      (valueChange)="team = $event; onFilter()" />
+    <sa-select
+      class="team"
+      placeholder="Any skill"
+      [options]="skillOptions()"
+      [value]="skill"
+      (valueChange)="skill = $event; onFilter()" />
   </div>
 
   <div class="row head-row">
@@ -53,7 +57,11 @@
         </div>
         <div class="actions">
           <a [routerLink]="['/people', p.id]">Profile</a>
-          <a class="muted" (click)="softDelete(p)">Delete</a>
+          <!-- Deleting yourself leaves a valid token for a person every read filters out; the
+               server refuses it too. -->
+          @if (!isSelf(p)) {
+            <a class="muted" (click)="softDelete(p)">Delete</a>
+          }
         </div>
       </div>
     } @empty {
@@ -70,5 +78,9 @@
         <button class="pg" [disabled]="page() >= data()!.totalPages - 1" (click)="go(page() + 1)">Next</button>
       </div>
     </div>
+  }
+
+  @if (showCreate()) {
+    <sa-person-create (closed)="onCreated($event)" />
   }
 </div>

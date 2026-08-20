@@ -2,13 +2,16 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PeopleApi, SkillApi, TeamApi } from '../../core/api/api';
+import { AuthService } from '../../core/auth/auth.service';
 import { Page, Person, Skill, Team } from '../../core/models/models';
+import { SelectComponent, SelectOption } from '../../shared/components/select/select.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { PersonCreateComponent } from './person-create.component';
 
 @Component({
   selector: 'sa-people-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, SkeletonComponent],
+  imports: [FormsModule, RouterLink, SelectComponent, SkeletonComponent, PersonCreateComponent],
   templateUrl: './people-list.component.html',
   styleUrl: './people-list.component.css',
 })
@@ -16,7 +19,9 @@ export class PeopleListComponent {
   private readonly peopleApi = inject(PeopleApi);
   private readonly teamApi = inject(TeamApi);
   private readonly skillApi = inject(SkillApi);
+  private readonly auth = inject(AuthService);
   private readonly size = 6;
+  private searchDebounce?: ReturnType<typeof setTimeout>;
 
   search = '';
   team = '';
@@ -26,7 +31,15 @@ export class PeopleListComponent {
   readonly loading = signal(false);
   readonly teams = signal<Team[]>([]);
   readonly skills = signal<Skill[]>([]);
-  private readonly hidden = new Set<string>();
+  readonly showCreate = signal(false);
+  readonly error = signal('');
+
+  readonly teamOptions = computed<SelectOption[]>(() =>
+    this.teams().map((t) => ({ value: t.name, label: t.name })),
+  );
+  readonly skillOptions = computed<SelectOption[]>(() =>
+    this.skills().map((s) => ({ value: s.name, label: s.name })),
+  );
 
   readonly subtitle = computed(() => {
     const d = this.data();
@@ -44,6 +57,12 @@ export class PeopleListComponent {
     this.load();
   }
 
+  // Every keystroke is a real query now, so let the typing settle before asking.
+  onSearch(): void {
+    clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => this.onFilter(), 250);
+  }
+
   go(n: number): void {
     this.page.set(n);
     this.load();
@@ -53,18 +72,43 @@ export class PeopleListComponent {
     this.loading.set(true);
     this.peopleApi
       .list({ search: this.search, team: this.team, skill: this.skill, page: this.page(), size: this.size })
-      .subscribe((res) => {
-        // Client-side soft-delete demo: drop locally-hidden rows.
-        const content = res.content.filter((p) => !this.hidden.has(p.id));
-        this.data.set({ ...res, content, totalElements: res.totalElements - this.hidden.size });
-        this.loading.set(false);
+      .subscribe({
+        next: (res) => {
+          // Deleting the last row of the last page leaves it empty — step back rather than show
+          // "no results" for filters that are fine.
+          if (!res.content.length && this.page() > 0) {
+            this.page.set(this.page() - 1);
+            this.load();
+            return;
+          }
+          this.data.set(res);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Could not load people. Check the API and try again.');
+          this.loading.set(false);
+        },
       });
   }
 
+  isSelf(p: Person): boolean {
+    return p.id === this.auth.user()?.id;
+  }
+
   softDelete(p: Person): void {
-    if (!confirm(`Soft-delete ${p.firstName} ${p.lastName}? (mock — no data is written)`)) return;
-    this.hidden.add(p.id);
-    this.load();
+    const name = `${p.firstName} ${p.lastName}`;
+    if (!confirm(`Soft-delete ${name}? They keep their relations and drop out of every list.`)) return;
+    this.error.set('');
+    this.peopleApi.remove(p.id).subscribe({
+      next: () => this.load(),
+      error: (err) => this.error.set(err?.error?.error ?? `Could not delete ${name}.`),
+    });
+  }
+
+  onCreated(created: boolean): void {
+    this.showCreate.set(false);
+    // The new person sorts to the top of the first page, so go there rather than reload page 4.
+    if (created) this.onFilter();
   }
 
   rangeLabel(): string {

@@ -14,6 +14,7 @@ import {
   Person,
   PersonProfile,
   Project,
+  Role,
   Skill,
   SkillCategory,
   SkillCoverage,
@@ -42,10 +43,23 @@ export interface PeopleQuery {
   size?: number;
 }
 
+/** Admin create (E2.1). No team here — membership is assigned after the person exists. */
+export interface PersonInput {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  position?: string;
+  role: Role;
+}
+
 export abstract class PeopleApi {
   abstract list(query: PeopleQuery): Observable<Page<Person>>;
   /** The rich profile (E4.2) — the person plus skills, projects, mentoring and their neighbourhood. */
   abstract profile(id: string): Observable<PersonProfile>;
+  abstract create(input: PersonInput): Observable<Person>;
+  /** Soft delete — the person keeps their relations and drops out of every read. */
+  abstract remove(id: string): Observable<void>;
 }
 
 export interface SkillInput {

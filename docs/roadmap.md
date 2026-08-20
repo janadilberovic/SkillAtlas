@@ -18,6 +18,7 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [4] | E4.2 · Bogat profil osobe | [E4.2](spec.md#e4--expert-finder-i-pretraga-core--srce-aplikacije) | ✅ PR #17 |
 | [5] | E5.1 · Graf endpoint + explorer | [E5.1](spec.md#e5--graf-vizualizacija-core) | ✅ PR #18 |
 | [6] | E6.1/2/3 · Mentoring, learning path, dashboard | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ✅ PR #19 |
+| [6b] | E2.1 · Admin CRUD nad osobama — new person + delete | [E2.1](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ `feat/people-admin-crud` |
 | **[7]** | **E3 · Import iz VacaYAY-a** | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬅️ **sljedeći** |
 | [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
 | [9] | Dopuna testova | §04.5 | ⬜ |
@@ -129,6 +130,33 @@ Uz to: `MentorshipsRepository` preseljen iz `people` u `mentoring`, `/dashboard`
 `WaitingForApiComponent`, profil je dobio „mentor" (admin) i „path" akcije, a mentoring/dashboard
 mockovi su **obrisani**, ne preoblikovani.
 
+## [6b] E2.1 · Admin CRUD nad osobama — gotovo
+
+`POST /people` i `DELETE /people/{id}` su postojali od početka, ali ih niko nije zvao: „New person"
+je vodio na `/coming-soon`, a „Delete" je krio red u `Set`-u u memoriji komponente. Sada oba
+dugmeta pišu u bazu.
+
+Odluke (potvrđene i implementirane):
+1. `PeopleApi` je dobio `create` i `remove`; modal je `sa-person-create` u `features/people/`, po
+   uzoru na `sa-mentor-matching` — lista ostaje iza njega, bez nove rute i bez novog guarda.
+2. **Bez optimističnog uklanjanja reda.** Poslije brisanja se lista ponovo čita; stranica ima 6
+   redova, pa optimizam pomjera numeraciju i pager prijavljuje pogrešan raspon. Ako brisanje
+   isprazni zadnju stranicu, `load()` se vrati korak nazad umjesto da pokaže „No results".
+3. **Provjera emaila pri kreiranju sada ignoriše soft-delete** (`existsByEmail`, ne
+   `existsByEmailAndDeletedFalse`). Unique constraint na `Person.email` ne zna za `isDeleted`, pa je
+   email obrisane osobe ranije prolazio Java provjeru i padao na constraintu — 500 umjesto 409.
+4. **Admin ne može obrisati sebe** (`SelfDeleteNotAllowedException` → 409). Inače ostaje s važećim
+   tokenom za osobu koju svaki read filtrira, pa `GET /me` vraća 404 i klijent nema izlaz. Klijent
+   uz to sakriva „Delete" na svom redu — poruka nije jedini način da se to sazna.
+5. Greške se crtaju u accent paleti (`--surface-accent` / `--accent-text`), kao na sign-in ekranu —
+   Nocturne nema crvenu i ovaj slice je nije uvodio.
+6. Forma **nema tim ni sliku**: `PersonCreateRequest` ih ne prima, a dodjela tima je [8]. Spec E2.1
+   pominje tim pri kreiranju — svjesno odstupanje, zatvara se u [8].
+
+`PeopleAdminIT` (7 testova) pokriva 201 + pojavu u listi, 403 za membera na POST i DELETE, 400 za
+kratku lozinku, 409 za email obrisane osobe, 409 za samobrisanje, i da soft delete **ostavlja čvor**
+(`p.isDeleted = true`), a ne da ga briše.
+
 ## [7] E3 · VacaYAY import
 
 `POST /api/v1/people/import-vacayay`, idempotentno preko `MERGE` po emailu. MCP ugao: generisati
@@ -136,9 +164,12 @@ DTO-ve iz live OpenAPI spec-a starog sistema.
 
 ## [8] Dorade
 
-Change-password, logout, people search/filter po timu i skillu, person↔team dodjela.
-Uz to: migrirati preostale native `<select>`-ove (people, skills, projects, graph filteri) na
-`sa-select`.
+Change-password, logout, person↔team dodjela. Uz to: migrirati preostale native `<select>`-ove
+(skills, projects, graph filteri) na `sa-select`.
+
+People search/filter je urađen ranije, van reda: `GET /people?search=&team=&skill=` filtrira u
+Cypheru (`PeopleSearchRepository`), a lista je sortirana `createdAt DESC` pa abecedno — nova osoba
+sleti na vrh prve strane. People filteri su prešli na `sa-select`.
 
 ## [9] Dopuna testova
 
