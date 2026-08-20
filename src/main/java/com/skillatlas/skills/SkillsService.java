@@ -1,13 +1,18 @@
 package com.skillatlas.skills;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.skillatlas.skills.domain.Skill;
+import com.skillatlas.skills.dto.SkillCatalogResponse;
 import com.skillatlas.skills.dto.SkillCreateRequest;
 import com.skillatlas.skills.dto.SkillUpdateRequest;
+import com.skillatlas.skills.enums.SkillCategory;
 import com.skillatlas.skills.exception.SkillNameAlreadyExistsException;
 import com.skillatlas.skills.exception.SkillNotFoundException;
 
@@ -15,9 +20,11 @@ import com.skillatlas.skills.exception.SkillNotFoundException;
 public class SkillsService {
 
     private final SkillsRepository repository;
+    private final SkillsCatalogRepository catalogRepository;
 
-    public SkillsService(SkillsRepository repository) {
+    public SkillsService(SkillsRepository repository, SkillsCatalogRepository catalogRepository) {
         this.repository = repository;
+        this.catalogRepository = catalogRepository;
     }
 
     @Transactional(readOnly = true)
@@ -26,8 +33,12 @@ public class SkillsService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Skill> list(Pageable pageable) {
-        return repository.findAll(pageable);
+    public Page<SkillCatalogResponse> list(String search, SkillCategory category, SkillSort sort,
+            Pageable pageable) {
+        String s = normalise(search);
+        List<SkillCatalogResponse> content =
+                catalogRepository.find(s, category, sort, pageable.getOffset(), pageable.getPageSize());
+        return new PageImpl<>(content, pageable, catalogRepository.count(s, category));
     }
 
     @Transactional
@@ -58,5 +69,9 @@ public class SkillsService {
     public void delete(String id) {
         Skill skill = getById(id);
         repository.delete(skill);
+    }
+
+    private static String normalise(String value) {
+        return value == null || value.isBlank() ? null : value.trim().toLowerCase();
     }
 }

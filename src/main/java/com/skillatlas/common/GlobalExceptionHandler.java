@@ -21,6 +21,7 @@ import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.people.exception.SelfDeleteNotAllowedException;
 import com.skillatlas.people.exception.SkillAlreadyMasteredException;
 import com.skillatlas.projects.exception.ProjectNotFoundException;
+import com.skillatlas.skills.exception.InvalidSkillCategoryException;
 import com.skillatlas.skills.exception.SkillNameAlreadyExistsException;
 import com.skillatlas.skills.exception.SkillNotFoundException;
 import com.skillatlas.teams.exception.TeamNameAlreadyExistsException;
@@ -91,6 +92,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidSkillLevelException.class)
     public ResponseEntity<Map<String, Object>> onInvalidSkillLevel(InvalidSkillLevelException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSkillCategoryException.class)
+    public ResponseEntity<Map<String, Object>> onInvalidSkillCategory(InvalidSkillCategoryException ex) {
         return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

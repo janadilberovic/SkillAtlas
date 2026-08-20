@@ -1,65 +1,114 @@
 <div class="page">
   <div class="main">
     <h1>Skills</h1>
-    <p class="muted sub">{{ skills().length }} skills · unique name + category + graph colour · merging duplicates is out of scope</p>
+
+    @if (error()) {
+      <p class="err small">{{ error() }}</p>
+    }
 
     <div class="createbar">
       <input class="field name" [(ngModel)]="newName" placeholder="Skill name" />
-      <select class="field cat" [(ngModel)]="newCategory">
-        @for (c of categories; track c) {
-          <option [value]="c">Category — {{ c.toLowerCase() }}</option>
-        }
-      </select>
+      <sa-select
+        class="cat"
+        placeholder="Category"
+        [options]="categoryOptions"
+        [value]="newCategory"
+        (valueChange)="newCategory = $any($event)" />
       <div class="swatches">
         @for (col of palette; track col) {
           <span class="sw" [style.background]="col" [class.on]="newColor === col" (click)="newColor = col"></span>
         }
       </div>
-      <button class="btn" [disabled]="!newName.trim()" (click)="add()">Add skill</button>
+      <button class="btn" [disabled]="!newName.trim() || !newCategory" (click)="add()">Add skill</button>
     </div>
     @if (addError()) {
       <span class="err small">{{ addError() }}</span>
     }
 
+    <div class="filters">
+      <input class="field" [(ngModel)]="search" (ngModelChange)="onSearch()" placeholder="Search skills" />
+      <sa-select
+        class="cat"
+        placeholder="All categories"
+        [options]="categoryOptions"
+        [value]="category"
+        (valueChange)="category = $any($event); onFilter()" />
+    </div>
+
+    <div class="row head-row">
+      <span class="col-head">Skill</span>
+      <span class="col-head">Category</span>
+      <span class="col-head">Known by</span>
+      <span class="col-head">Wanted by</span>
+      <span class="col-head">Used on</span>
+      <span class="col-head">Actions</span>
+    </div>
+
     @if (loading()) {
       <div class="pad"><sa-skeleton [rows]="6" /></div>
-    } @else {
-      <div class="row head-row">
-        <span class="col-head">Skill</span>
-        <span class="col-head">Category</span>
-        <span class="col-head">Known by</span>
-        <span class="col-head">Wanted by</span>
-        <span class="col-head">Actions</span>
-      </div>
-      @for (s of skills(); track s.id) {
+    } @else if (data()) {
+      @for (s of data()!.content; track s.id) {
         <div class="row data">
           <div class="skill">
             <span class="dot" [style.background]="s.color"></span>{{ s.name }}
           </div>
           <span class="muted">{{ s.category.toLowerCase() }}</span>
+          <!-- One person knowing a skill is the bus factor the dashboard warns about. -->
           <span [class.accent]="(s.knownBy ?? 0) <= 1" [class.muted]="(s.knownBy ?? 0) > 1">{{ s.knownBy ?? 0 }}</span>
           <span class="muted">{{ s.wantedBy ?? 0 }}</span>
+          <span class="muted usedon">{{ s.usedBy?.length ? s.usedBy!.join(', ') : '—' }}</span>
           <div class="acts">
-            <a (click)="focus.set(s)">Edit</a>
+            <a (click)="edit(s)">Edit</a>
             <a class="muted" (click)="remove(s)">Delete</a>
           </div>
         </div>
+      } @empty {
+        <p class="dim pad">No skills match those filters.</p>
       }
+
+      <div class="pager">
+        <span class="dim small">{{ rangeLabel() }}</span>
+        <div class="pagebtns">
+          <button class="pg" [disabled]="page() === 0" (click)="go(page() - 1)">Prev</button>
+          @for (n of pageNumbers(); track n) {
+            <button class="pg" [class.active]="n === page()" (click)="go(n)">{{ n + 1 }}</button>
+          }
+          <button class="pg" [disabled]="page() >= data()!.totalPages - 1" (click)="go(page() + 1)">Next</button>
+        </div>
+      </div>
     }
   </div>
 
   <aside class="rail">
     @if (focus(); as f) {
       <div class="card">
-        <span class="eyebrow">Deleting {{ f.name }}</span>
+        <span class="eyebrow">Editing {{ f.name }}</span>
         <span class="rail-title">{{ f.knownBy ?? 0 }} know it, {{ f.wantedBy ?? 0 }} want to learn it</span>
+
+        <input class="field" [(ngModel)]="editName" placeholder="Skill name" />
+        <sa-select
+          placeholder="Category"
+          [options]="categoryOptions"
+          [value]="editCategory"
+          (valueChange)="editCategory = $any($event)" />
+        <div class="swatches">
+          @for (col of palette; track col) {
+            <span class="sw" [style.background]="col" [class.on]="editColor === col" (click)="editColor = col"></span>
+          }
+        </div>
+        @if (editError()) {
+          <span class="err small">{{ editError() }}</span>
+        }
+        <button class="btn btn-block" [disabled]="!editName.trim()" (click)="save()">Save changes</button>
+
+        <div class="divider"></div>
         <p class="muted small m0">
           Deleting removes {{ (f.knownBy ?? 0) + (f.wantedBy ?? 0) }} relations.
-          @if (projectsUsing(f).length) {
-            Projects {{ projectsUsing(f).join(', ') }} still USE it.
+          @if (f.usedBy?.length) {
+            {{ f.usedBy!.join(', ') }} still USE it.
           }
         </p>
-        <button class="btn btn-ghost btn-block" (click)="remove(f)">Review &amp; delete {{ f.name }}</button>
+        <button class="btn btn-ghost btn-block" (click)="remove(f)">Delete {{ f.name }}</button>
       </div>
     }
 
@@ -71,7 +120,23 @@
           <div class="track"><div class="fill" [style.width.%]="(s.wantedBy ?? 0) / maxWanted() * 100"></div></div>
           <span class="muted num">{{ s.wantedBy ?? 0 }}</span>
         </div>
+      } @empty {
+        <span class="dim small">Nobody has a "wants to learn" on record yet.</span>
       }
+    </div>
+
+    <div class="card-flat">
+      <span class="eyebrow eyebrow-mute">Thinnest coverage</span>
+      @for (s of leastKnown(); track s.id) {
+        <div class="wantrow">
+          <span class="wflex">{{ s.name }}</span>
+          <div class="track"><div class="fill" [style.width.%]="(s.knownBy ?? 0) / maxKnown() * 100"></div></div>
+          <span class="num" [class.accent]="(s.knownBy ?? 0) <= 1" [class.muted]="(s.knownBy ?? 0) > 1">{{ s.knownBy ?? 0 }}</span>
+        </div>
+      } @empty {
+        <span class="dim small">No skills in the catalog yet.</span>
+      }
+      <span class="dim small">One person deep or less is a bus factor.</span>
     </div>
   </aside>
 </div>
