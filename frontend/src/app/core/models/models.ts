@@ -33,14 +33,17 @@ export interface LoginResponse {
   role: Role;
 }
 
-/** SkillResponse */
+/** SkillResponse; the catalog list adds the `SkillCatalogResponse` counts. */
 export interface Skill {
   id: string;
   name: string;
   category: SkillCategory;
   color: string;
-  knownBy?: number; // PLANNED — count of active KNOWS
-  wantedBy?: number; // PLANNED — count of WANTS_TO_LEARN
+  /** Non-deleted people with a KNOWS edge. Absent on the single-skill endpoints. */
+  knownBy?: number;
+  wantedBy?: number;
+  /** Names of the projects that still USE it — what a delete would strand. */
+  usedBy?: string[];
 }
 
 /** `PersonResponse.topSkills` — a KNOWS edge flattened to what a list row prints. */

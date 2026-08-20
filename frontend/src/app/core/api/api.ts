@@ -68,9 +68,22 @@ export interface SkillInput {
   color: string;
 }
 
+export interface SkillQuery {
+  search?: string;
+  category?: SkillCategory | '';
+  /** `wanted` is the most-wanted ranking; anything else is alphabetical. */
+  sort?: 'name' | 'wanted';
+  page?: number;
+  size?: number;
+}
+
 export abstract class SkillApi {
+  /** The flat catalog every skill picker needs — first page, large size. */
   abstract list(): Observable<Skill[]>;
+  /** The paged catalog with its counts, for the skills screen. */
+  abstract page(query: SkillQuery): Observable<Page<Skill>>;
   abstract create(input: SkillInput): Observable<Skill>;
+  abstract update(id: string, input: SkillInput): Observable<Skill>;
   abstract remove(id: string): Observable<void>;
 }
 

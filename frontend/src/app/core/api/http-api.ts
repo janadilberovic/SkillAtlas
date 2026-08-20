@@ -37,6 +37,7 @@ import {
   ProjectApi,
   SkillApi,
   SkillInput,
+  SkillQuery,
   TeamApi,
 } from './api';
 import { SkillTerm, formatSkillTerm, toSkillParam } from './finder-query';
@@ -85,12 +86,22 @@ export class HttpPeopleApi extends PeopleApi {
 export class HttpSkillApi extends SkillApi {
   private readonly http = inject(HttpClient);
   list(): Observable<Skill[]> {
-    return this.http
-      .get<Page<Skill>>(`${BASE}/skills`, { params: new HttpParams().set('size', '100') })
-      .pipe(map((page) => page.content));
+    return this.page({ size: 100 }).pipe(map((page) => page.content));
+  }
+  page(query: SkillQuery): Observable<Page<Skill>> {
+    let params = new HttpParams()
+      .set('page', String(query.page ?? 0))
+      .set('size', String(query.size ?? 20));
+    if (query.search) params = params.set('search', query.search);
+    if (query.category) params = params.set('category', query.category);
+    if (query.sort) params = params.set('sort', query.sort);
+    return this.http.get<Page<Skill>>(`${BASE}/skills`, { params });
   }
   create(input: SkillInput): Observable<Skill> {
     return this.http.post<Skill>(`${BASE}/skills`, input);
+  }
+  update(id: string, input: SkillInput): Observable<Skill> {
+    return this.http.put<Skill>(`${BASE}/skills/${id}`, input);
   }
   remove(id: string): Observable<void> {
     return this.http.delete<void>(`${BASE}/skills/${id}`);

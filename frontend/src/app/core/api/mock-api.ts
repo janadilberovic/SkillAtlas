@@ -25,6 +25,7 @@ import {
   ProjectApi,
   SkillApi,
   SkillInput,
+  SkillQuery,
   TeamApi,
 } from './api';
 import {
@@ -134,8 +135,22 @@ export class MockSkillApi extends SkillApi {
   list(): Observable<Skill[]> {
     return respond([...SKILLS]);
   }
+  page(query: SkillQuery): Observable<Page<Skill>> {
+    const size = query.size ?? 20;
+    const page = query.page ?? 0;
+    return respond({
+      content: SKILLS.slice(page * size, page * size + size),
+      page,
+      size,
+      totalElements: SKILLS.length,
+      totalPages: Math.ceil(SKILLS.length / size),
+    });
+  }
   create(input: SkillInput): Observable<Skill> {
     return respond(addSkillMock(input));
+  }
+  update(id: string, input: SkillInput): Observable<Skill> {
+    return respond({ id, ...input });
   }
   remove(id: string): Observable<void> {
     removeSkillMock(id);
