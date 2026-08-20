@@ -48,12 +48,6 @@ export class SkillsCatalogComponent {
   /** Same, by thinnest coverage — the bus factor the dashboard warns about, read off the catalog. */
   readonly leastKnown = signal<Skill[]>([]);
 
-  readonly subtitle = computed(() => {
-    const d = this.data();
-    return d
-      ? `${d.totalElements} skills · unique name + category + graph colour · merging duplicates is out of scope`
-      : 'Loading…';
-  });
   readonly maxWanted = computed(() => Math.max(1, ...this.mostWanted().map((s) => s.wantedBy ?? 0)));
   readonly maxKnown = computed(() => Math.max(1, ...this.leastKnown().map((s) => s.knownBy ?? 0)));
 
