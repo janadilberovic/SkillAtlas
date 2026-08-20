@@ -1,0 +1,158 @@
+:host {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 11px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+}
+.control:hover { border-color: var(--border-strong); }
+.control.is-open,
+.control:focus-visible { border-color: var(--accent); }
+.control.is-placeholder .label { color: var(--text-dim); }
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+}
+
+.sheet {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 258px;
+  padding: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+.month {
+  font-size: 14px;
+  font-weight: 500;
+}
+.nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+}
+.nav svg {
+  width: 7px;
+  height: 11px;
+}
+.nav:hover {
+  background: var(--surface-accent);
+  color: var(--text);
+}
+
+.dow,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+.dow {
+  padding-bottom: 4px;
+}
+.dow span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.day:hover:not(:disabled) { background: var(--surface-accent); }
+/* Days from the neighbouring months are blank rather than dimmed — nothing competes with the
+   selection, and the grid keeps its shape. */
+.day.out {
+  pointer-events: none;
+}
+.day.today {
+  border-color: var(--accent-deep);
+}
+.day.cursor:not(.sel) {
+  border-color: var(--border-strong);
+}
+.day.sel {
+  background: var(--surface-accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 500;
+}
+.day:disabled {
+  color: var(--text-dim);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 9px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 12px;
+}
+.link.dim { color: var(--text-dim); }
+.link:hover { color: var(--accent-2); }

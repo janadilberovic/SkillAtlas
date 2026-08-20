@@ -10,6 +10,10 @@
   justify-content: space-between;
   gap: 20px;
 }
+.acts {
+  display: flex;
+  gap: 8px;
+}
 h1 {
   font-size: 38px;
   font-weight: 500;

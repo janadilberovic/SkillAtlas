@@ -23,6 +23,7 @@ import {
   PeopleApi,
   PeopleQuery,
   ProjectApi,
+  ProjectInput,
   SkillApi,
   SkillInput,
   SkillQuery,
@@ -168,6 +169,20 @@ export class MockProjectApi extends ProjectApi {
     if (!pr) return throwError(() => new Error('Project not found')).pipe(delay(LATENCY));
     return respond(pr);
   }
+  create(input: ProjectInput): Observable<Project> {
+    const created: Project = {
+      id: `pr-${input.name.toLowerCase().replace(/\s+/g, '-')}`,
+      name: input.name,
+      description: input.description ?? null,
+      startDate: input.startDate ?? null,
+      endDate: input.endDate ?? null,
+      active: input.active ?? true,
+      skills: SKILLS.filter((s) => input.skillIds.includes(s.id)),
+      members: [],
+    };
+    PROJECTS.unshift(created);
+    return respond(created);
+  }
   assignMember(projectId: string, personId: string, input: MemberInput): Observable<void> {
     assignMemberMock(projectId, personId, input);
     return respond(undefined);
@@ -187,6 +202,9 @@ export class MockProjectApi extends ProjectApi {
 export class MockTeamApi extends TeamApi {
   list(): Observable<Team[]> {
     return respond(TEAMS);
+  }
+  addMember(): Observable<void> {
+    return respond(undefined);
   }
 }
 

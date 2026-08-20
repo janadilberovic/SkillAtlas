@@ -6,12 +6,13 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Page, Person, Skill, Team } from '../../core/models/models';
 import { SelectComponent, SelectOption } from '../../shared/components/select/select.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { TeamMembersComponent } from '../teams/team-members.component';
 import { PersonCreateComponent } from './person-create.component';
 
 @Component({
   selector: 'sa-people-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, SelectComponent, SkeletonComponent, PersonCreateComponent],
+  imports: [FormsModule, RouterLink, SelectComponent, SkeletonComponent, PersonCreateComponent, TeamMembersComponent],
   templateUrl: './people-list.component.html',
   styleUrl: './people-list.component.css',
 })
@@ -32,6 +33,7 @@ export class PeopleListComponent {
   readonly teams = signal<Team[]>([]);
   readonly skills = signal<Skill[]>([]);
   readonly showCreate = signal(false);
+  readonly showTeamAdd = signal(false);
   readonly error = signal('');
 
   readonly teamOptions = computed<SelectOption[]>(() =>
@@ -109,6 +111,12 @@ export class PeopleListComponent {
     this.showCreate.set(false);
     // The new person sorts to the top of the first page, so go there rather than reload page 4.
     if (created) this.onFilter();
+  }
+
+  onTeamAdd(added: boolean): void {
+    this.showTeamAdd.set(false);
+    // Team membership is a column on this list, so a successful add changes what is on screen.
+    if (added) this.load();
   }
 
   rangeLabel(): string {

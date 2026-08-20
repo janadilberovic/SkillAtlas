@@ -35,6 +35,7 @@ import {
   PeopleSkillsApi,
   PersonInput,
   ProjectApi,
+  ProjectInput,
   SkillApi,
   SkillInput,
   SkillQuery,
@@ -119,6 +120,9 @@ export class HttpProjectApi extends ProjectApi {
   get(id: string): Observable<Project> {
     return this.http.get<Project>(`${BASE}/projects/${id}`);
   }
+  create(input: ProjectInput): Observable<Project> {
+    return this.http.post<Project>(`${BASE}/projects`, input);
+  }
   assignMember(projectId: string, personId: string, input: MemberInput): Observable<void> {
     return this.http.post<void>(`${BASE}/projects/${projectId}/members/${personId}`, input);
   }
@@ -149,6 +153,9 @@ export class HttpTeamApi extends TeamApi {
     return this.http
       .get<Page<Team>>(`${BASE}/teams`, { params: new HttpParams().set('size', '100') })
       .pipe(map((page) => page.content.map((t) => ({ ...t, memberCount: t.memberCount ?? 0 }))));
+  }
+  addMember(teamId: string, personId: string): Observable<void> {
+    return this.http.post<void>(`${BASE}/teams/${teamId}/members/${personId}`, {});
   }
 }
 

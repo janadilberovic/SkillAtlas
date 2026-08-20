@@ -1,0 +1,72 @@
+<div class="backdrop" (click)="closed.emit(false)">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="mhead">
+      <div class="titles">
+        <span class="mtitle">Add people to a team</span>
+        <span class="muted small">Admin only · MEMBER_OF carries no role and no period</span>
+      </div>
+      <button class="x" (click)="closed.emit(false)">✕</button>
+    </div>
+
+    @if (error()) {
+      <div class="err-banner">
+        <span class="mark"></span>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <div class="pair">
+      <div class="field-row">
+        <span class="label">Team</span>
+        <sa-select
+          placeholder="Pick a team"
+          [options]="teamOptions()"
+          [value]="teamId()"
+          (valueChange)="onTeamChange($event)" />
+      </div>
+      <div class="field-row">
+        <span class="label">Find people</span>
+        <input class="field" [(ngModel)]="search" (ngModelChange)="term.set(search)" placeholder="Name or position" />
+      </div>
+    </div>
+
+    <div class="listhead">
+      <span class="col-head">{{ teamName() ? 'Everyone, ' + teamName() + ' marked' : 'Everyone' }}</span>
+      <span class="dim small">{{ countLabel() }}</span>
+    </div>
+
+    @if (loading()) {
+      <span class="dim small">Loading people…</span>
+    } @else {
+      <div class="list">
+        @for (c of candidates(); track c.id) {
+          <div class="cand" [class.sel]="isPicked(c.id)" [class.off]="c.already" (click)="toggle(c)">
+            <sa-avatar [initials]="c.initials" [size]="34" />
+            <div class="who">
+              <span class="cname">{{ c.name }}</span>
+              <span class="muted small">{{ c.position }}</span>
+            </div>
+            <span class="tag" [class.tag-mute]="!c.already">{{ c.tag }}</span>
+            <span class="box" [class.on]="isPicked(c.id)">
+              @if (isPicked(c.id)) {
+                <svg viewBox="0 0 14 11" aria-hidden="true">
+                  <path d="M1 5.5 5 9.5 13 1.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              }
+            </span>
+          </div>
+        } @empty {
+          <span class="dim small pad">Nobody matches that. The search reads name and position.</span>
+        }
+      </div>
+    }
+
+    <span class="dim small">A person can sit on more than one team — adding here never takes them off another.</span>
+
+    <div class="foot">
+      <button class="btn btn-ghost" (click)="closed.emit(false)">Cancel</button>
+      <button class="btn" [disabled]="!canSubmit()" (click)="add()">{{ submitLabel() }}</button>
+    </div>
+  </div>
+</div>

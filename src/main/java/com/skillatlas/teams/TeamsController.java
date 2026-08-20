@@ -70,4 +70,12 @@ public class TeamsController {
     public void delete(@PathVariable String id) {
         service.delete(id);
     }
+
+    // No body: MEMBER_OF carries no properties, unlike WORKED_ON on a project.
+    @PostMapping("/{id}/members/{personId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addMember(@PathVariable String id, @PathVariable String personId) {
+        service.addMember(id, personId);
+    }
 }

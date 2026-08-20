@@ -37,17 +37,6 @@ h1 {
   display: flex;
   gap: 8px;
 }
-.assign {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-.assign .field:first-of-type {
-  flex: 1;
-}
-.assign .role {
-  flex: 1;
-}
 .sep {
   margin: 22px 0 18px;
 }

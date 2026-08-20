@@ -1,0 +1,194 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  background: rgba(15, 16, 25, 0.72);
+}
+.modal {
+  width: 640px;
+  max-width: 100%;
+  /* Matches the backdrop's 40px padding, so the footer stays on screen on a short window. */
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--text-muted), 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+.small {
+  font-size: 12px;
+}
+.mhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mtitle {
+  font-size: 20px;
+  font-weight: 500;
+}
+.x {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 15px;
+}
+.x:hover {
+  background: var(--surface-mute);
+}
+/* Same shape as the sign-in error: the app has no red, errors read in the accent palette. */
+.err-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+  color: var(--accent-text);
+}
+.err-banner .mark {
+  width: 2px;
+  height: 16px;
+  flex: none;
+  background: var(--accent);
+}
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+/* The modal sits on --surface, so the inputs have to step down a level to read as fields. */
+.field-row .field {
+  background: var(--surface-2);
+}
+.hint {
+  font-size: 12px;
+}
+.err {
+  color: var(--accent-text);
+}
+.self-end {
+  padding-top: 22px;
+}
+.uses-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* The technologies picker. sa-select is single-value, so this control is local to the modal:
+   the list stays open across picks and the choice is carried by the chips below it. */
+.picker {
+  position: relative;
+}
+.ctl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 11px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+}
+.ctl:hover { border-color: var(--border-strong); }
+.ctl.is-open { border-color: var(--accent); }
+.chev {
+  flex: none;
+  width: 11px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+.ctl.is-open .chev { transform: rotate(180deg); }
+
+/* Opens upward: this is the last field in the modal, and a downward list is cut off by the
+   modal's own scroll box. */
+.list {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 232px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+.opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 14px;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.opt:hover { background: var(--surface-accent); }
+.opt.is-picked { color: var(--accent-text); }
+.tick {
+  flex: none;
+  width: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+}
+.chip {
+  gap: 6px;
+  padding-right: 6px;
+}
+.rm {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1;
+}
+.rm:hover { color: var(--accent-text); }
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}

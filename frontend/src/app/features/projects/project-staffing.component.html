@@ -1,0 +1,86 @@
+<div class="backdrop" (click)="closed.emit(false)">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="mhead">
+      <div class="titles">
+        <span class="mtitle">Staff {{ projectName() }}</span>
+        <span class="muted small">Admin only · WORKED_ON carries the role and the period, so each person is added on their own terms</span>
+      </div>
+      <button class="x" (click)="closed.emit(false)">✕</button>
+    </div>
+
+    @if (error()) {
+      <div class="err-banner">
+        <span class="mark"></span>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <div class="draft">
+      <div class="pair">
+        <div class="field-row">
+          <span class="label">Person</span>
+          <sa-select
+            placeholder="Select a person…"
+            [options]="candidates()"
+            [value]="personId"
+            (valueChange)="personId = $event" />
+        </div>
+        <div class="field-row">
+          <span class="label">Role on the project</span>
+          <input class="field" [(ngModel)]="role" placeholder="Backend dev" />
+        </div>
+      </div>
+
+      <div class="dates">
+        <div class="field-row">
+          <span class="label">From</span>
+          <sa-datepicker [value]="from()" (valueChange)="from.set($event)" />
+        </div>
+        <div class="field-row">
+          <span class="label">To · optional</span>
+          <sa-datepicker
+            [value]="to()"
+            (valueChange)="to.set($event)"
+            [min]="from()"
+            [clearable]="true"
+            placeholder="Still on it" />
+        </div>
+        <button class="btn btn-sm add" [disabled]="!canAdd()" (click)="addRow()">Add</button>
+      </div>
+
+      @if (datesInverted()) {
+        <span class="hint err">The end of the period is before its start.</span>
+      }
+    </div>
+
+    <div class="divider"></div>
+
+    @if (rows().length) {
+      <div class="rows">
+        <div class="row head-row">
+          <span class="col-head">Person</span>
+          <span class="col-head">Role</span>
+          <span class="col-head">Period</span>
+          <span></span>
+        </div>
+        @for (r of rows(); track r.personId) {
+          <div class="row data">
+            <span>{{ r.name }}</span>
+            <span class="muted small">{{ r.role }}</span>
+            <span class="muted small">{{ period(r) }}</span>
+            <button class="rm" (click)="removeRow(r.personId)" [title]="'Remove ' + r.name">✕</button>
+          </div>
+        }
+      </div>
+    } @else if (loading()) {
+      <span class="dim small">Loading people…</span>
+    } @else {
+      <span class="dim small">Nobody queued yet. Pick a person, give them a role and a start date, then Add.</span>
+    }
+
+    <div class="foot">
+      <button class="btn btn-ghost" (click)="closed.emit(false)">Cancel</button>
+      <button class="btn" [disabled]="!rows().length || submitting()" (click)="assign()">{{ submitLabel() }}</button>
+    </div>
+  </div>
+</div>

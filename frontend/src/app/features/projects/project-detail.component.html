@@ -14,24 +14,10 @@
         @if (auth.isAdmin()) {
           <div class="acts">
             <button class="btn btn-ghost" (click)="toggleArchive(p)">{{ p.active ? 'Archive' : 'Restore' }}</button>
-            <button class="btn" (click)="openAssign()">Assign person</button>
+            <button class="btn" (click)="staffingOpen.set(true)">Assign people</button>
           </div>
         }
       </div>
-
-      @if (assignOpen()) {
-        <div class="assign">
-          <select class="field" [(ngModel)]="assignPersonId">
-            <option value="">Select a person…</option>
-            @for (cand of assignable(); track cand.id) {
-              <option [value]="cand.id">{{ cand.firstName }} {{ cand.lastName }} · {{ cand.team }}</option>
-            }
-          </select>
-          <input class="field role" [(ngModel)]="assignRole" placeholder="Role (e.g. Backend dev)" />
-          <button class="btn" (click)="assign(p)">Add</button>
-          <button class="btn btn-ghost" (click)="assignOpen.set(false)">Cancel</button>
-        </div>
-      }
 
       <div class="divider-fade sep"></div>
 
@@ -106,3 +92,13 @@
     <p class="dim pad">Project not found.</p>
   }
 </div>
+
+@if (staffingOpen()) {
+  @if (project(); as p) {
+    <sa-project-staffing
+      [projectId]="p.id"
+      [projectName]="p.name"
+      [memberIds]="memberIds()"
+      (closed)="onStaffingClosed($event)" />
+  }
+}
