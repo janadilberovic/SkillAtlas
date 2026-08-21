@@ -103,10 +103,19 @@ export interface ProjectInput {
   active?: boolean;
 }
 
+export interface ProjectQuery {
+  search?: string;
+  page?: number;
+  size?: number;
+}
+
 export abstract class ProjectApi {
-  abstract list(): Observable<Project[]>;
+  abstract page(query: ProjectQuery): Observable<Page<Project>>;
+  /** The detail: the same project plus its roster. */
   abstract get(id: string): Observable<Project>;
   abstract create(input: ProjectInput): Observable<Project>;
+  /** Replaces the USES edges wholesale — the backend PUT has no partial form. */
+  abstract setSkills(projectId: string, skillIds: string[]): Observable<Project>;
   abstract assignMember(projectId: string, personId: string, input: MemberInput): Observable<void>;
   abstract removeMember(projectId: string, personId: string): Observable<void>;
   abstract setActive(projectId: string, active: boolean): Observable<Project>;

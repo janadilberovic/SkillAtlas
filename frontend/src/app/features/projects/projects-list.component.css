@@ -51,3 +51,55 @@ h1 {
   flex-wrap: wrap;
   gap: 6px;
 }
+.search {
+  max-width: 420px;
+}
+.err-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+  color: var(--accent-text);
+}
+.err-banner .mark {
+  width: 2px;
+  height: 16px;
+  flex: none;
+  background: var(--accent);
+}
+.pad {
+  padding: 18px 2px;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.pagebtns {
+  display: flex;
+  gap: 6px;
+}
+.pg {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+}
+.pg:hover:not(:disabled) {
+  background: var(--surface);
+}
+.pg.active {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.pg:disabled {
+  opacity: 0.4;
+}

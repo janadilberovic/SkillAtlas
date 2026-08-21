@@ -14,15 +14,21 @@ public record ProjectResponse(
         LocalDate startDate,
         LocalDate endDate,
         boolean active,
-        List<SkillResponse> skills
+        List<SkillResponse> skills,
+        int memberCount
 ) {
-    public static ProjectResponse from(Project p) {
+    public static ProjectResponse from(Project p, int memberCount) {
         List<SkillResponse> skills = p.getUses().stream()
                 .map(SkillResponse::from)
                 .sorted(Comparator.comparing(SkillResponse::name))
                 .toList();
         return new ProjectResponse(
                 p.getId(), p.getName(), p.getDescription(),
-                p.getStartDate(), p.getEndDate(), p.isActive(), skills);
+                p.getStartDate(), p.getEndDate(), p.isActive(), skills, memberCount);
+    }
+
+    /** A project nobody can have been assigned to yet — what create answers with. */
+    public static ProjectResponse from(Project p) {
+        return from(p, 0);
     }
 }

@@ -150,7 +150,7 @@ export interface Mentorship {
   direction: 'MENTORED_BY' | 'MENTORS';
 }
 
-/** ProjectResponse + PLANNED members. */
+/** ProjectResponse; `GET /projects/{id}` answers with the `ProjectDetailResponse` superset. */
 export interface Project {
   id: string;
   name: string;
@@ -159,7 +159,10 @@ export interface Project {
   endDate: string | null;
   active: boolean;
   skills: Skill[];
-  members?: ProjectMember[]; // PLANNED
+  /** Live staff — people who left the company are listed below but not counted. */
+  memberCount: number;
+  /** Detail only: a list row carries `memberCount` and no roster. */
+  members?: ProjectMember[];
 }
 
 export interface ProjectMember {
@@ -168,7 +171,16 @@ export interface ProjectMember {
   role: string;
   from?: string | null;
   to?: string | null;
+  /** Soft-deleted. Spec §4.6 keeps their WORKED_ON history here and drops them everywhere else. */
   left: boolean;
+  /** The project's own skills this person KNOWS — what the subgraph draws as KNOWS edges. */
+  knows: MemberSkill[];
+}
+
+export interface MemberSkill {
+  skillId: string;
+  name: string;
+  level: number;
 }
 
 /** PLANNED — Team feature slice. */

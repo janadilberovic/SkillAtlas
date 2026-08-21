@@ -1,6 +1,5 @@
 package com.skillatlas.projects;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -17,8 +16,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.skillatlas.common.PageResponse;
-import com.skillatlas.projects.domain.Project;
 import com.skillatlas.projects.dto.ProjectCreateRequest;
+import com.skillatlas.projects.dto.ProjectDetailResponse;
 import com.skillatlas.projects.dto.ProjectMemberRequest;
 import com.skillatlas.projects.dto.ProjectResponse;
 import com.skillatlas.projects.dto.ProjectUpdateRequest;
@@ -44,13 +43,12 @@ public class ProjectsController {
             @RequestParam(defaultValue = "20") int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
-        Page<Project> result = service.list(search, PageRequest.of(safePage, safeSize, Sort.by("name")));
-        return PageResponse.from(result.map(ProjectResponse::from));
+        return PageResponse.from(service.list(search, PageRequest.of(safePage, safeSize, Sort.by("name"))));
     }
 
     @GetMapping("/{id}")
-    public ProjectResponse get(@PathVariable String id) {
-        return ProjectResponse.from(service.getById(id));
+    public ProjectDetailResponse get(@PathVariable String id) {
+        return service.detail(id);
     }
 
     @PostMapping
@@ -62,8 +60,12 @@ public class ProjectsController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ProjectResponse update(@PathVariable String id, @Valid @RequestBody ProjectUpdateRequest request) {
-        return ProjectResponse.from(service.update(id, request));
+    public ProjectDetailResponse update(@PathVariable String id,
+            @Valid @RequestBody ProjectUpdateRequest request) {
+        // Answers with the roster too: the project screen writes here and would otherwise have to
+        // re-read the project just to keep the people it is already showing.
+        service.update(id, request);
+        return service.detail(id);
     }
 
     @DeleteMapping("/{id}")

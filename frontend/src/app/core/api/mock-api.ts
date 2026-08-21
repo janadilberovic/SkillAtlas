@@ -24,6 +24,7 @@ import {
   PeopleQuery,
   ProjectApi,
   ProjectInput,
+  ProjectQuery,
   SkillApi,
   SkillInput,
   SkillQuery,
@@ -161,8 +162,18 @@ export class MockSkillApi extends SkillApi {
 
 @Injectable()
 export class MockProjectApi extends ProjectApi {
-  list(): Observable<Project[]> {
-    return respond([...PROJECTS]);
+  page(query: ProjectQuery): Observable<Page<Project>> {
+    const size = query.size ?? 12;
+    const page = query.page ?? 0;
+    const search = (query.search ?? '').trim().toLowerCase();
+    const all = PROJECTS.filter((p) => !search || p.name.toLowerCase().includes(search));
+    return respond({
+      content: all.slice(page * size, page * size + size),
+      page,
+      size,
+      totalElements: all.length,
+      totalPages: Math.max(1, Math.ceil(all.length / size)),
+    });
   }
   get(id: string): Observable<Project> {
     const pr = PROJECTS.find((x) => x.id === id);
@@ -178,10 +189,17 @@ export class MockProjectApi extends ProjectApi {
       endDate: input.endDate ?? null,
       active: input.active ?? true,
       skills: SKILLS.filter((s) => input.skillIds.includes(s.id)),
+      memberCount: 0,
       members: [],
     };
     PROJECTS.unshift(created);
     return respond(created);
+  }
+  setSkills(projectId: string, skillIds: string[]): Observable<Project> {
+    const pr = PROJECTS.find((x) => x.id === projectId);
+    if (!pr) return throwError(() => new Error('Project not found')).pipe(delay(LATENCY));
+    pr.skills = SKILLS.filter((s) => skillIds.includes(s.id));
+    return respond(pr);
   }
   assignMember(projectId: string, personId: string, input: MemberInput): Observable<void> {
     assignMemberMock(projectId, personId, input);

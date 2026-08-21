@@ -36,6 +36,7 @@ import {
   PersonInput,
   ProjectApi,
   ProjectInput,
+  ProjectQuery,
   SkillApi,
   SkillInput,
   SkillQuery,
@@ -112,10 +113,12 @@ export class HttpSkillApi extends SkillApi {
 @Injectable()
 export class HttpProjectApi extends ProjectApi {
   private readonly http = inject(HttpClient);
-  list(): Observable<Project[]> {
-    return this.http
-      .get<Page<Project>>(`${BASE}/projects`, { params: new HttpParams().set('size', '100') })
-      .pipe(map((page) => page.content));
+  page(query: ProjectQuery): Observable<Page<Project>> {
+    let params = new HttpParams()
+      .set('page', String(query.page ?? 0))
+      .set('size', String(query.size ?? 12));
+    if (query.search) params = params.set('search', query.search);
+    return this.http.get<Page<Project>>(`${BASE}/projects`, { params });
   }
   get(id: string): Observable<Project> {
     return this.http.get<Project>(`${BASE}/projects/${id}`);
@@ -123,14 +126,22 @@ export class HttpProjectApi extends ProjectApi {
   create(input: ProjectInput): Observable<Project> {
     return this.http.post<Project>(`${BASE}/projects`, input);
   }
+  setSkills(projectId: string, skillIds: string[]): Observable<Project> {
+    return this.replace(projectId, { skillIds });
+  }
+  setActive(projectId: string, active: boolean): Observable<Project> {
+    return this.replace(projectId, { active });
+  }
   assignMember(projectId: string, personId: string, input: MemberInput): Observable<void> {
     return this.http.post<void>(`${BASE}/projects/${projectId}/members/${personId}`, input);
   }
   removeMember(projectId: string, personId: string): Observable<void> {
     return this.http.delete<void>(`${BASE}/projects/${projectId}/members/${personId}`);
   }
-  // Backend PUT is a full replacement, so read the project first, then write it back toggled.
-  setActive(projectId: string, active: boolean): Observable<Project> {
+
+  // Backend PUT is a full replacement — fields left out are cleared — so read the project first
+  // and write it back with one field changed. The answer carries the roster, not just the project.
+  private replace(projectId: string, change: Partial<ProjectInput>): Observable<Project> {
     return this.get(projectId).pipe(
       switchMap((p) =>
         this.http.put<Project>(`${BASE}/projects/${projectId}`, {
@@ -138,8 +149,9 @@ export class HttpProjectApi extends ProjectApi {
           description: p.description,
           startDate: p.startDate,
           endDate: p.endDate,
-          active,
+          active: p.active,
           skillIds: (p.skills ?? []).map((s) => s.id),
+          ...change,
         }),
       ),
     );
