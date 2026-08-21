@@ -1,0 +1,65 @@
+<button
+  type="button"
+  class="control"
+  [class.is-open]="open()"
+  [class.is-placeholder]="!value()"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="dialog"
+  (click)="toggle()"
+  (keydown)="onKeydown($event)">
+  <span class="label">{{ label() }}</span>
+  <svg class="cal" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6" />
+    <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+  </svg>
+</button>
+
+@if (open()) {
+  <div class="sheet" role="dialog">
+    <div class="head">
+      <button type="button" class="nav" aria-label="Previous month" (click)="shiftMonth(-1)">
+        <svg viewBox="0 0 8 12" fill="none" aria-hidden="true">
+          <path d="M6.25 1 1.75 6l4.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <span class="month">{{ monthLabel() }}</span>
+      <button type="button" class="nav" aria-label="Next month" (click)="shiftMonth(1)">
+        <svg viewBox="0 0 8 12" fill="none" aria-hidden="true">
+          <path d="M1.75 1 6.25 6l-4.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="dow">
+      @for (w of weekdays; track w) {
+        <span>{{ w }}</span>
+      }
+    </div>
+
+    <div class="grid">
+      @for (c of cells(); track c.key) {
+        @if (c.inMonth) {
+          <button
+            type="button"
+            class="day"
+            [class.sel]="c.selected"
+            [class.today]="c.today"
+            [class.cursor]="cursor() === c.key"
+            [disabled]="c.disabled"
+            (click)="pick(c.key)">
+            {{ c.day }}
+          </button>
+        } @else {
+          <span class="day out"></span>
+        }
+      }
+    </div>
+
+    <div class="foot">
+      <button type="button" class="link" (click)="pickToday()">Today</button>
+      @if (clearable()) {
+        <button type="button" class="link dim" (click)="clear()">Clear</button>
+      }
+    </div>
+  </div>
+}

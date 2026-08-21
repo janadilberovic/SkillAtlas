@@ -1,16 +1,16 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { FinderApi, PeopleApi, ProjectApi } from '../../core/api/api';
+import { FinderApi, ProjectApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
-import { Person, Project, ProjectMember } from '../../core/models/models';
+import { Project, ProjectMember } from '../../core/models/models';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { ProjectStaffingComponent } from './project-staffing.component';
 
 @Component({
   selector: 'sa-project-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink, SkeletonComponent],
+  imports: [RouterLink, SkeletonComponent, ProjectStaffingComponent],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.css',
 })
@@ -18,17 +18,12 @@ export class ProjectDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(ProjectApi);
   private readonly finder = inject(FinderApi);
-  private readonly peopleApi = inject(PeopleApi);
   readonly auth = inject(AuthService);
 
   readonly project = signal<Project | null>(null);
   readonly loading = signal(true);
   readonly coverage = signal<{ skill: string; count: number }[]>([]);
-  readonly assignOpen = signal(false);
-  private readonly people = signal<Person[]>([]);
-
-  assignPersonId = '';
-  assignRole = '';
+  readonly staffingOpen = signal(false);
 
   readonly coveredCount = computed(() => this.coverage().filter((c) => c.count >= 2).length);
   readonly weakest = computed(() => {
@@ -36,10 +31,8 @@ export class ProjectDetailComponent {
     if (!cov.length) return null;
     return cov.reduce((min, c) => (c.count < min.count ? c : min)).skill;
   });
-  readonly assignable = computed(() => {
-    const memberIds = new Set((this.project()?.members ?? []).map((m) => m.personId));
-    return this.people().filter((p) => !memberIds.has(p.id));
-  });
+  /** Everyone with a WORKED_ON edge already, closed periods included — the staffing modal hides them. */
+  readonly memberIds = computed(() => (this.project()?.members ?? []).map((m) => m.personId));
 
   constructor() {
     this.route.paramMap.subscribe((pm) => this.load(pm.get('id') ?? ''));
@@ -73,20 +66,10 @@ export class ProjectDetailComponent {
     });
   }
 
-  openAssign(): void {
-    this.assignOpen.set(true);
-    if (!this.people().length) this.peopleApi.list({ size: 100 }).subscribe((r) => this.people.set(r.content));
-  }
-
-  assign(p: Project): void {
-    if (!this.assignPersonId || !this.assignRole.trim()) return;
-    const today = new Date().toISOString().slice(0, 10);
-    this.api.assignMember(p.id, this.assignPersonId, { role: this.assignRole.trim(), from: today, to: null }).subscribe(() => {
-      this.assignPersonId = '';
-      this.assignRole = '';
-      this.assignOpen.set(false);
-      this.load(p.id);
-    });
+  onStaffingClosed(assigned: boolean): void {
+    this.staffingOpen.set(false);
+    const id = this.project()?.id;
+    if (assigned && id) this.load(id);
   }
 
   remove(p: Project, m: ProjectMember): void {

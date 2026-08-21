@@ -56,7 +56,7 @@ public class ProjectsService {
         project.setDescription(request.description());
         project.setStartDate(request.startDate());
         project.setEndDate(request.endDate());
-        project.setActive(true);
+        project.setActive(request.active() == null || request.active());
         project.setUses(resolveSkills(request.skillIds()));
         return repository.save(project);
     }

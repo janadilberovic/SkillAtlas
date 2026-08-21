@@ -1,0 +1,117 @@
+<div class="backdrop" (click)="closed.emit(false)">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="mhead">
+      <div class="titles">
+        <span class="mtitle">New project</span>
+        <span class="muted small">Admin only · people are staffed on the project page, not here</span>
+      </div>
+      <button class="x" (click)="closed.emit(false)">✕</button>
+    </div>
+
+    @if (error()) {
+      <div class="err-banner">
+        <span class="mark"></span>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <div class="field-row">
+      <span class="label">Name</span>
+      <input class="field" [(ngModel)]="name" (ngModelChange)="touched.set(true)" placeholder="Meridian" />
+      @if (touched() && !name.trim()) {
+        <span class="hint err">A project needs a name.</span>
+      }
+    </div>
+
+    <div class="field-row">
+      <span class="label">Description · optional</span>
+      <textarea class="field" [(ngModel)]="description" rows="2" placeholder="Internal staffing recommendations"></textarea>
+    </div>
+
+    <div class="pair">
+      <div class="field-row">
+        <span class="label">Start date</span>
+        <sa-datepicker [value]="startDate()" (valueChange)="startDate.set($event)" />
+      </div>
+      <div class="field-row">
+        <span class="label">End date · optional</span>
+        <sa-datepicker
+          [value]="endDate()"
+          (valueChange)="onEndDate($event)"
+          [min]="startDate()"
+          [clearable]="true"
+          placeholder="Still running" />
+      </div>
+    </div>
+
+    <div class="pair">
+      <div class="field-row">
+        <span class="label">Status</span>
+        <sa-select [options]="statusOptions" [value]="status" (valueChange)="status = $event" />
+      </div>
+      <span class="hint dim self-end">
+        @if (datesInverted()) {
+          The end date is before the start date.
+        } @else {
+          A new project is active. Give it an end date in the past and it archives itself.
+        }
+      </span>
+    </div>
+
+    <div class="field-row">
+      <div class="uses-head">
+        <span class="label">Technologies it USES</span>
+        <span class="hint dim">{{ usesLabel() }}</span>
+      </div>
+
+      <div class="picker">
+        <button class="ctl" [class.is-open]="pickerOpen()" (click)="pickerOpen.set(!pickerOpen())">
+          <span class="dim">Pick technologies…</span>
+          <svg class="chev" viewBox="0 0 12 8" aria-hidden="true">
+            <path d="M1 1.75 6 6.25 11 1.75" fill="none" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        @if (pickerOpen()) {
+          <ul class="list">
+            @for (s of catalog(); track s.id) {
+              <li class="opt" [class.is-picked]="isPicked(s.id)" (click)="toggleSkill(s.id)">
+                <span>{{ s.name }}</span>
+                @if (isPicked(s.id)) {
+                  <svg class="tick" viewBox="0 0 14 11" aria-hidden="true">
+                    <path d="M1 5.5 5 9.5 13 1.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                          stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                }
+              </li>
+            } @empty {
+              <li class="opt dim">The skill catalog is empty.</li>
+            }
+          </ul>
+        }
+      </div>
+
+      @if (chosen().length) {
+        <div class="chips">
+          @for (s of chosen(); track s.id) {
+            <span class="tag chip">
+              {{ s.name }}
+              <button class="rm" (click)="removeSkill(s.id)" [title]="'Remove ' + s.name">✕</button>
+            </span>
+          }
+        </div>
+      } @else if (touched()) {
+        <span class="hint err">Pick at least one — USES is what the graph and the skill gap read.</span>
+      } @else {
+        <span class="hint dim">A project can use as many as it needs.</span>
+      }
+    </div>
+
+    <div class="foot">
+      <button class="btn btn-ghost" (click)="closed.emit(false)">Cancel</button>
+      <button class="btn" [disabled]="!canSubmit()" (click)="create()">
+        {{ submitting() ? 'Creating…' : 'Create project' }}
+      </button>
+    </div>
+  </div>
+</div>

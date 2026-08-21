@@ -5,7 +5,7 @@
       <p class="muted sub">Technologies a project USES and who staffed it (WORKED_ON).</p>
     </div>
     @if (auth.isAdmin()) {
-      <a routerLink="/coming-soon" [queryParams]="{ screen: 'New project' }" class="btn">New project</a>
+      <button class="btn" (click)="createOpen.set(true)">New project</button>
     }
   </div>
 
@@ -31,3 +31,7 @@
     </div>
   }
 </div>
+
+@if (createOpen()) {
+  <sa-project-create (closed)="onCreateClosed($event)" />
+}

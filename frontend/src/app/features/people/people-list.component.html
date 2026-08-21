@@ -4,7 +4,10 @@
       <h1>People</h1>
       <p class="muted sub">{{ subtitle() }}</p>
     </div>
-    <button class="btn" (click)="showCreate.set(true)">New person</button>
+    <div class="acts">
+      <button class="btn btn-ghost" (click)="showTeamAdd.set(true)">Add to team</button>
+      <button class="btn" (click)="showCreate.set(true)">New person</button>
+    </div>
   </div>
 
   @if (error()) {
@@ -82,5 +85,9 @@
 
   @if (showCreate()) {
     <sa-person-create (closed)="onCreated($event)" />
+  }
+
+  @if (showTeamAdd()) {
+    <sa-team-members (closed)="onTeamAdd($event)" />
   }
 </div>

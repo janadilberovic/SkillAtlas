@@ -1,0 +1,159 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  background: rgba(15, 16, 25, 0.72);
+}
+.modal {
+  width: 640px;
+  max-width: 100%;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--text-muted), 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+.small {
+  font-size: 12px;
+}
+.pad {
+  padding: 8px 2px;
+}
+.mhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mtitle {
+  font-size: 20px;
+  font-weight: 500;
+}
+.x {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 15px;
+}
+.x:hover {
+  background: var(--surface-mute);
+}
+.err-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+  color: var(--accent-text);
+}
+.err-banner .mark {
+  width: 2px;
+  height: 16px;
+  flex: none;
+  background: var(--accent);
+}
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field-row .field {
+  background: var(--surface-2);
+}
+.listhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Only the list scrolls: the team picker above and the button below have to stay put while
+   the admin walks a long roster. min-height: 0 or the flex child refuses to shrink. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 6px;
+}
+.cand {
+  display: grid;
+  grid-template-columns: 34px 1.5fr 1fr 18px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.cand:hover {
+  background: var(--surface-accent);
+}
+.cand.sel {
+  background: var(--surface-accent);
+}
+.cand.off {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cand.off:hover {
+  background: var(--surface-2);
+}
+.who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cname {
+  font-size: 14px;
+  font-weight: 500;
+}
+.cand .tag {
+  justify-self: start;
+}
+.box {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  color: var(--accent-text);
+}
+.box.on {
+  border-color: var(--accent);
+  background: var(--accent-deep);
+}
+.box svg {
+  width: 11px;
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}

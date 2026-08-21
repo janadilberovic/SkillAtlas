@@ -1,0 +1,142 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  background: rgba(15, 16, 25, 0.72);
+}
+.modal {
+  width: 640px;
+  max-width: 100%;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--text-muted), 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+.small {
+  font-size: 12px;
+}
+.mhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mtitle {
+  font-size: 20px;
+  font-weight: 500;
+}
+.x {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 15px;
+}
+.x:hover {
+  background: var(--surface-mute);
+}
+.err-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-accent);
+  font-size: 13px;
+  color: var(--accent-text);
+}
+.err-banner .mark {
+  width: 2px;
+  height: 16px;
+  flex: none;
+  background: var(--accent);
+}
+
+/* The draft block is one queued assignment being composed; the rows below are the queue. */
+.draft {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 13px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.pair {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+.add {
+  min-height: 36px;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hint {
+  font-size: 12px;
+}
+.err {
+  color: var(--accent-text);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.1fr 24px;
+  gap: 12px;
+  align-items: center;
+}
+.head-row {
+  padding: 0 11px;
+}
+.data {
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.rm {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+}
+.rm:hover {
+  color: var(--accent-text);
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}

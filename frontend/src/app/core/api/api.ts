@@ -93,9 +93,20 @@ export interface MemberInput {
   to?: string | null;
 }
 
+/** Admin create (E2.4). `skillIds` are the USES edges; omitting `active` creates an active project. */
+export interface ProjectInput {
+  name: string;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  skillIds: string[];
+  active?: boolean;
+}
+
 export abstract class ProjectApi {
   abstract list(): Observable<Project[]>;
   abstract get(id: string): Observable<Project>;
+  abstract create(input: ProjectInput): Observable<Project>;
   abstract assignMember(projectId: string, personId: string, input: MemberInput): Observable<void>;
   abstract removeMember(projectId: string, personId: string): Observable<void>;
   abstract setActive(projectId: string, active: boolean): Observable<Project>;
@@ -103,6 +114,8 @@ export abstract class ProjectApi {
 
 export abstract class TeamApi {
   abstract list(): Observable<Team[]>;
+  /** MEMBER_OF, and the server MERGEs it — adding someone who is already there is a no-op, not a duplicate. */
+  abstract addMember(teamId: string, personId: string): Observable<void>;
 }
 
 /** My Skills — a person manages their own KNOWS (level 1–5) and WANTS_TO_LEARN. Owner-only writes. */
