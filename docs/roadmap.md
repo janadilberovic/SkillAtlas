@@ -19,6 +19,7 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [5] | E5.1 · Graf endpoint + explorer | [E5.1](spec.md#e5--graf-vizualizacija-core) | ✅ PR #18 |
 | [6] | E6.1/2/3 · Mentoring, learning path, dashboard | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ✅ PR #19 |
 | [6b] | E2.1 · Admin CRUD nad osobama — new person + delete | [E2.1](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ `feat/people-admin-crud` |
+| [6c] | E2.4 · Projekat: roster, USES editovanje, podgraf, paginacija liste | [E2.4](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ |
 | **[7]** | **E3 · Import iz VacaYAY-a** | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬅️ **sljedeći** |
 | [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
 | [9] | Dopuna testova | §04.5 | ⬜ |
@@ -156,6 +157,84 @@ Odluke (potvrđene i implementirane):
 `PeopleAdminIT` (7 testova) pokriva 201 + pojavu u listi, 403 za membera na POST i DELETE, 400 za
 kratku lozinku, 409 za email obrisane osobe, 409 za samobrisanje, i da soft delete **ostavlja čvor**
 (`p.isDeleted = true`), a ne da ga briše.
+
+## [6c] E2.4 · Ekran projekta — gotovo
+
+`ProjectResponse` nije nosio ljude, pa je stranica projekta imala prazan spisak, mrtvo „+ add"
+dugme i nacrtan (izmišljen) podgraf. Sada `GET /projects/{id}` vraća `ProjectDetailResponse`.
+
+Odluke (potvrđene i implementirane):
+1. **Dva DTO-a, ne jedan.** Lista nosi samo `memberCount`, detalj i `members` — `ProjectDetailResponse`
+   je nadskup `ProjectResponse`-a, isto kao `PersonProfileResponse` nad `PersonResponse`-om.
+2. **Soft-deleted osoba se na ovoj stranici vidi, i samo ovdje.** §4.6 traži oboje: „nestaje iz svih
+   listi" i „istorija `WORKED_ON` ostaje (projekat i dalje zna ko je radio)". Druga rečenica nema
+   gdje da se vidi osim ovdje, pa je roster jedini read koji ih nosi — označene (`left: true`), bez
+   linka na profil (taj read ih filtrira) i **van `memberCount`-a**, da se kartica i zaglavlje ne
+   razilaze.
+3. **Head count za cijelu stranu jednim upitom** (`UNWIND $ids`), ne `count` po projektu — inače je
+   to N+1 koji pravila zabranjuju.
+4. **`PUT /projects/{id}` sada vraća detalj.** Ekran projekta piše kroz PUT (arhiviranje, USES), a
+   odgovor bez rostera bi obrisao ljude koje ekran već prikazuje.
+5. **Dodavanje tehnologije ide kroz postojeći PUT**, read-modify-write na klijentu — isti put kojim
+   je `setActive` već išao. Bez novog `/{id}/skills/{skillId}` endpointa: spec katalog (§04) ga nema,
+   a admin ekran je jedini pisac.
+6. **Podgraf je prsten, ne zvijezda.** Ljudi se rasipaju niz lijevi luk, tehnologije niz desni, a
+   svaka `KNOWS` veza je tetiva svedena kroz centar. Projekat **nije čvor** — čvorište u sredini je
+   bilo baš ono što je sprečavalo da se osoba i tehnologija ikad dodirnu direktno; `WORKED_ON` i
+   `USES` ionako već stoje ispisani u rosteru i u „Stack" panelu iznad, pa ih crtež ne duplira.
+   Ime projekta stoji u sredini prstena, gdje mu je čvor bio.
+   - Prošli su kroz `/design` kanvas kao četiri prijedloga na pravim podacima (Ribbons / Matrix /
+     Ring / Cluster); izabran je Ring.
+   - Oba luka se čitaju **odozgo nadolje**: ljudi u redoslijedu rostera (tabela iznad), tehnologije
+     po **baricentru** (prosječna pozicija ljudi koji ih znaju), pa tetive ostaju kratke.
+     Tehnologija koju niko s rostera ne zna nema baricentar i pada na dno luka.
+   - Poluprečnik čvora raste sa brojem `KNOWS` veza; debljina tetive nosi level (1–3 / 4 / 5).
+     Prozirnost je rezervisana za stanje (mirno / istaknuto / prigušeno), da hover ostane čitljiv.
+   - Crta se prvih 8 po luku, ostatak se **prijavljuje ispod platna** umjesto da se tiho odsiječe.
+
+7. **Kompozicija stranice preraspoređena** (prošla kroz `/design` kao četiri layouta; izabran „A ·
+   Merged"). Rail od 360px je **ukinut** — držao je jednu karticu od ~200px u koloni visokoj preko
+   900, a istih pet tehnologija se crtalo tri puta (Stack čipovi, Coverage redovi, labele prstena).
+   - **Coverage se ulio u Stack**: jedan red po tehnologiji nosi tačku u njenoj boji, „bus factor 1"
+     oznaku i dubinu (`N people ≥ 3`). Jedna lista umjesto tri.
+   - Stranica je sada jedna kolona pune širine; Stack i podgraf dijele traku `1fr 1fr`, pa je
+     **prsten iznad preloma** (na 1280×720 završava na 671px). Roster ide punom širinom ispod, a
+     „Actions" je fiksiran na 140px umjesto rastegljivih `0.7fr`.
+   - Zaglavlje: `description · period · N people` razbijen u četiri figure (People, Technologies,
+     Bus factor 1, Started; + Ended kad projekat ima kraj). Bus factor je izvučen iz raila u
+     zaglavlje.
+   - Napomena o soft-delete-u se crta **samo kad neko na rosteru zaista jeste obrisan**, a ne kao
+     stalni pasus dokumentacije.
+   - `.mini` ima `max-width: 620px` = širini user-space-a, pa se crtež nikad ne skalira **iznad**
+     1:1 (na 1920 bi labele od 12px postale 24px). Ispod toga se blago smanjuje s kolonom — na
+     1280 je faktor 0,93, tj. 11,1px.
+
+8. **Višestruki izbor tehnologija → finder.** Svaki red u „Stack & coverage" ima checkbox; kad je
+   nešto štiklirano, dugme na dnu postaje `Find experts in all N` i vodi na
+   `/finder?q=Angular>=3 + React>=3`, uz `Clear` pored njega. Bez izbora ostaje staro dugme za
+   najslabiju tehnologiju.
+   - **Prag je `>=3`, ne goli naziv**: red na kojem checkbox stoji broji upravo `N people ≥ 3`, pa
+     rezultat odgovara broju koji je bio na ekranu u trenutku štikliranja. Finder na dolasku crta
+     `≥ 3` čipove i „Parsed: KNOWS … AND KNOWS …", pa se ni prag ni AND ne kriju od korisnika.
+   - Dugme za najslabiju tehnologiju je **namjerno ostavljeno na nivou 1** — to je drugo pitanje
+     („ko uopšte može pomoći"), ne isti upit s drugim brojem.
+   - Izbor se prazni pri učitavanju drugog projekta, a tehnologija uklonjena preko ✕ ispada iz
+     izbora — inače bi `all N` brojalo nešto što više ne postoji.
+
+9. **Roster se paginira po 8 redova**, isti pager kao katalog skillova i lista projekata.
+   Paginacija je **na klijentu**, nad listom koju `GET /projects/{id}` ionako vraća cijelu:
+   sve ostalo na ekranu traži **cio** roster — prvih osam za prsten, spisak za „Assign people"
+   filter, i provjeru ima li obrisanih za napomenu — pa bi server-side paging značio da se te tri
+   stvari dopremaju zaobilazno, za listu ograničenu veličinom tima na projektu. Kad roster preraste
+   jedan odgovor, potez je dashboardov: prva strana inline, `GET /projects/{id}/members?page=` za
+   ostatak.
+   - Brisanje zadnjeg reda zadnje strane **vraća korak nazad** (isto kao [6b] odluka 2), a otvaranje
+     drugog projekta vraća na prvu stranu.
+   - Prsten ostaje na **prvih osam po rosteru**, ne prati stranu tabele — okretanje strane ne
+     mijenja sliku.
+
+`ProjectDetailIT` (5 testova) pokriva roster, obrisanu osobu van `memberCount`-a, `knows` ograničen
+na stack projekta, `memberCount` bez rostera na listi, i PUT koji vraća roster.
 
 ## [7] E3 · VacaYAY import
 

@@ -321,6 +321,7 @@ export const PROJECTS: Project[] = PROJECT_SEEDS.map((s) => ({
   endDate: s.endDate,
   active: s.active,
   skills: s.uses.map((id) => skill(id)),
+  memberCount: s.members.filter((m) => !m.left).length,
   members: s.members.map((m) => ({
     personId: m.personId,
     name: personName(m.personId),
@@ -328,6 +329,7 @@ export const PROJECTS: Project[] = PROJECT_SEEDS.map((s) => ({
     from: m.from,
     to: m.to,
     left: m.left ?? false,
+    knows: [],
   })),
 }));
 
@@ -357,7 +359,7 @@ export function assignMemberMock(projectId: string, personId: string, input: { r
   if (!pr) return;
   const members: ProjectMember[] = pr.members ?? (pr.members = []);
   if (members.some((m) => m.personId === personId)) return;
-  members.push({ personId, name: personName(personId), role: input.role, from: input.from ?? null, to: input.to ?? null, left: false });
+  members.push({ personId, name: personName(personId), role: input.role, from: input.from ?? null, to: input.to ?? null, left: false, knows: [] });
 }
 export function removeMemberMock(projectId: string, personId: string): void {
   const pr = PROJECTS.find((p) => p.id === projectId);

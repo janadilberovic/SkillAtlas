@@ -2,31 +2,214 @@
   @if (loading()) {
     <div class="pad"><sa-skeleton [rows]="5" /></div>
   } @else if (project(); as p) {
-    <div class="main">
-      <div class="phead">
-        <div>
-          <div class="titlerow">
-            <h1>{{ p.name }}</h1>
-            <span class="tag" [class.tag-mute]="!p.active">{{ p.active ? 'active' : 'archived' }}</span>
-          </div>
-          <p class="muted sub">{{ p.description }} · {{ period(p.startDate, p.endDate) }} · {{ activeMembers(p).length }} people</p>
+    <div class="phead">
+      <div class="ident">
+        <div class="titlerow">
+          <h1>{{ p.name }}</h1>
+          <span class="tag" [class.tag-mute]="!p.active">{{ p.active ? 'active' : 'archived' }}</span>
         </div>
-        @if (auth.isAdmin()) {
-          <div class="acts">
-            <button class="btn btn-ghost" (click)="toggleArchive(p)">{{ p.active ? 'Archive' : 'Restore' }}</button>
-            <button class="btn" (click)="staffingOpen.set(true)">Assign people</button>
+        <p class="muted sub">{{ p.description }}</p>
+        <div class="stats">
+          <div class="stat">
+            <span class="figure">{{ p.memberCount }}</span>
+            <span class="col-head">{{ p.memberCount === 1 ? 'Person' : 'People' }}</span>
           </div>
+          <div class="stat">
+            <span class="figure">{{ p.skills.length }}</span>
+            <span class="col-head">{{ p.skills.length === 1 ? 'Technology' : 'Technologies' }}</span>
+          </div>
+          <div class="stat">
+            <span class="figure" [class.risk]="atRisk()">{{ atRisk() ?? '—' }}</span>
+            <span class="col-head">Bus factor 1</span>
+          </div>
+          <div class="stat">
+            <span class="figure">{{ monthYear(p.startDate) }}</span>
+            <span class="col-head">Started</span>
+          </div>
+          @if (p.endDate) {
+            <div class="stat">
+              <span class="figure">{{ monthYear(p.endDate) }}</span>
+              <span class="col-head">Ended</span>
+            </div>
+          }
+        </div>
+      </div>
+      @if (auth.isAdmin()) {
+        <div class="acts">
+          <button class="btn btn-ghost" (click)="toggleArchive(p)">{{ p.active ? 'Archive' : 'Restore' }}</button>
+          <button class="btn" (click)="staffingOpen.set(true)">Assign people</button>
+        </div>
+      }
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="band">
+      <div class="card-flat stack">
+        <div class="stackhead">
+          <div class="stacktitles">
+            <span class="eyebrow">Stack &amp; coverage</span>
+            <span class="stacktitle">
+              @if (coverage().length) {
+                {{ coveredCount() }} of {{ p.skills.length }} technologies safely covered
+              } @else {
+                {{ p.skills.length }} {{ p.skills.length === 1 ? 'technology' : 'technologies' }} this project USES
+              }
+            </span>
+          </div>
+          @if (auth.isAdmin()) {
+            @if (adding()) {
+              <div class="picker">
+                <sa-select
+                  placeholder="Pick a technology…"
+                  [options]="addable()"
+                  value=""
+                  (valueChange)="addSkill($event)" />
+                <button class="btn btn-ghost btn-sm" (click)="adding.set(false)">Cancel</button>
+              </div>
+            } @else {
+              <button class="btn btn-sm" [disabled]="savingSkills()" (click)="adding.set(true)">
+                {{ savingSkills() ? 'Saving…' : 'Add technology' }}
+              </button>
+            }
+          }
+        </div>
+
+        @if (skillError()) {
+          <div class="err-banner">
+            <span class="mark"></span>
+            <span>{{ skillError() }}</span>
+          </div>
+        }
+
+        @for (row of stackRows(); track row.skill.id) {
+          <div class="techrow" [class.risk]="row.count !== null && row.count <= 1" [class.picked]="picked().has(row.skill.id)">
+            <input
+              class="tick"
+              type="checkbox"
+              [id]="'tech-' + row.skill.id"
+              [checked]="picked().has(row.skill.id)"
+              (change)="togglePick(row.skill.id)" />
+            <label class="techname" [attr.for]="'tech-' + row.skill.id">
+              <span class="dot" [style.background]="row.skill.color"></span>{{ row.skill.name }}
+            </label>
+            @if (row.count !== null && row.count <= 1) {
+              <span class="tag">bus factor 1</span>
+            } @else {
+              <span></span>
+            }
+            <span class="depth">
+              @if (row.count === null) {
+                counting…
+              } @else {
+                {{ row.count }} {{ row.count === 1 ? 'person' : 'people' }} ≥ 3
+              }
+            </span>
+            @if (auth.isAdmin()) {
+              <button class="techx" [disabled]="savingSkills()" (click)="removeSkill(row.skill)" [title]="'Remove ' + row.skill.name">✕</button>
+            } @else {
+              <span></span>
+            }
+          </div>
+        } @empty {
+          <p class="dim small empty">
+            No technologies mapped yet — without USES edges this project stays out of the skill gap widget.
+          </p>
+        }
+
+        @if (picked().size; as n) {
+          <div class="pickacts">
+            <button class="btn btn-ghost btn-sm" (click)="clearPicks()">Clear</button>
+            <a class="btn center go" [routerLink]="['/finder']" [queryParams]="{ q: pickedQuery() }">
+              Find experts in all {{ n }}
+            </a>
+          </div>
+        } @else if (weakest(); as w) {
+          <a class="btn btn-block center" [routerLink]="['/finder']" [queryParams]="{ q: w }">Find experts for {{ w }}</a>
         }
       </div>
 
-      <div class="divider-fade sep"></div>
+      @if (subgraph(); as g) {
+        <div class="card-flat panel">
+          <div class="panelhead">
+            <span class="eyebrow eyebrow-mute">Project subgraph</span>
+            <div class="legend">
+              <span class="lg"><span class="dot person"></span>Person</span>
+              <span class="lg"><span class="dot skill"></span>Skill</span>
+              <span class="lg"><span class="key knows-key"></span>Knows — weight is level</span>
+            </div>
+          </div>
 
-      <div class="uses">
-        <span class="col-head">Uses</span>
-        @for (s of p.skills; track s.id) {
-          <span class="tag">{{ s.name }}</span>
-        }
-        <span class="tag add">+ add</span>
+          <svg
+            [attr.viewBox]="'0 0 ' + g.width + ' ' + g.height"
+            class="mini"
+            [style.aspect-ratio]="g.width + ' / ' + g.height"
+            (mouseleave)="hovered.set(null)">
+            <circle class="ring" [attr.cx]="g.cx" [attr.cy]="g.cy" [attr.r]="g.radius" />
+
+            @for (k of g.knows; track $index) {
+              <path
+                class="knows"
+                [class.lit]="isLit(k)"
+                [class.hushed]="hovered() && !isLit(k)"
+                [attr.d]="k.d"
+                [attr.stroke-width]="k.weight" />
+            }
+
+            <text class="lbl hub" [attr.x]="g.cx" [attr.y]="g.cy - 3">{{ p.name }}</text>
+            <text class="lbl hub sub" [attr.x]="g.cx" [attr.y]="g.cy + 15">
+              {{ g.people.length }} {{ g.people.length === 1 ? 'person' : 'people' }} ·
+              {{ g.skills.length }} {{ g.skills.length === 1 ? 'technology' : 'technologies' }}
+            </text>
+
+            @for (n of g.people; track n.id) {
+              <circle
+                class="node person"
+                [class.gone]="n.gone"
+                [class.dimmed]="litNodes().size && !litNodes().has(n.id)"
+                [attr.cx]="n.x"
+                [attr.cy]="n.y"
+                [attr.r]="n.r"
+                (mouseenter)="hovered.set(n.id)"
+                (click)="openPerson(n)" />
+              <text
+                class="lbl end"
+                [class.dimmed]="litNodes().size && !litNodes().has(n.id)"
+                [attr.x]="n.x - n.r - 9"
+                [attr.y]="n.y + 4">{{ n.label }}</text>
+            }
+
+            @for (n of g.skills; track n.id) {
+              <circle
+                class="node skill"
+                [class.dimmed]="litNodes().size && !litNodes().has(n.id)"
+                [attr.cx]="n.x"
+                [attr.cy]="n.y"
+                [attr.r]="n.r"
+                (mouseenter)="hovered.set(n.id)" />
+              <text
+                class="lbl start"
+                [class.dimmed]="litNodes().size && !litNodes().has(n.id)"
+                [attr.x]="n.x + n.r + 9"
+                [attr.y]="n.y + 4">{{ n.label }}</text>
+            }
+          </svg>
+
+          <span class="dim small">{{ knowsSummary() }}</span>
+          @if (g.hiddenPeople > 0 || g.hiddenSkills > 0) {
+            <span class="dim small">
+              Drawing the first 8 of each: {{ g.hiddenPeople }} more people and {{ g.hiddenSkills }} more
+              technologies are on this project but not on the canvas.
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="roster">
+      <div class="rosterhead">
+        <span class="col-head">Roster</span>
+        <span class="dim small">WORKED_ON · role and period per person</span>
       </div>
 
       <div class="row head-row">
@@ -35,7 +218,7 @@
         <span class="col-head">Period</span>
         <span class="col-head">Actions</span>
       </div>
-      @for (m of p.members ?? []; track m.personId) {
+      @for (m of rosterRows(); track m.personId) {
         <div class="row data" [class.left]="m.left">
           <span>{{ m.name }}</span>
           <span class="muted">{{ m.role }}</span>
@@ -51,43 +234,37 @@
             <a [routerLink]="['/people', m.personId]">Profile</a>
           }
         </div>
+      } @empty {
+        <p class="dim pad">
+          Nobody is on this project yet.
+          @if (auth.isAdmin()) {
+            Use "Assign people" to create the first WORKED_ON edge.
+          }
+        </p>
       }
-      <p class="dim small note">
-        Soft-deleted people keep their WORKED_ON history — the project still knows who built it — but never
-        appear in search, graph or recommendations.
-      </p>
-    </div>
+      @if (hasLeavers()) {
+        <p class="dim small note">
+          Soft-deleted people keep their WORKED_ON history — the project still knows who built it — but never
+          appear in search, graph or recommendations.
+        </p>
+      }
 
-    <aside class="rail">
-      <div class="card">
-        <span class="eyebrow">Coverage</span>
-        <span class="rail-title">{{ coveredCount() }} of {{ p.skills.length }} technologies safely covered</span>
-        @for (c of coverage(); track c.skill) {
-          <div class="covrow" [class.risk]="c.count <= 1">
-            <span class="cflex">{{ c.skill }}</span>
-            <span class="muted">{{ c.count === 1 ? '1 person' : c.count + ' people ≥ 3' }}</span>
+      @if (p.members?.length) {
+        <div class="pager">
+          <span class="dim small">{{ rosterRange() }}</span>
+          <div class="pagebtns">
+            <button class="pg" [disabled]="rosterPage() === 0" (click)="goToRosterPage(rosterPage() - 1)">Prev</button>
+            @for (n of rosterPages(); track n) {
+              <button class="pg" [class.active]="n === rosterPage()" (click)="goToRosterPage(n)">{{ n + 1 }}</button>
+            }
+            <button
+              class="pg"
+              [disabled]="rosterPage() >= rosterPages().length - 1"
+              (click)="goToRosterPage(rosterPage() + 1)">Next</button>
           </div>
-        }
-        @if (weakest(); as w) {
-          <a class="btn btn-block center" [routerLink]="['/finder']" [queryParams]="{ q: w }">Find experts for {{ w }}</a>
-        }
-      </div>
-
-      <div class="card-flat">
-        <span class="eyebrow eyebrow-mute">Project subgraph</span>
-        <svg viewBox="0 0 320 170" class="mini">
-          <g stroke="#595d6c" stroke-width="1">
-            <line x1="160" y1="85" x2="55" y2="40" /><line x1="160" y1="85" x2="265" y2="45" />
-            <line x1="160" y1="85" x2="60" y2="135" /><line x1="160" y1="85" x2="262" y2="132" />
-            <line x1="160" y1="85" x2="160" y2="20" /><line x1="160" y1="85" x2="160" y2="152" />
-          </g>
-          <circle cx="160" cy="85" r="13" fill="#75798c" />
-          <circle cx="55" cy="40" r="9" fill="#9184d9" /><circle cx="265" cy="45" r="9" fill="#9184d9" />
-          <circle cx="60" cy="135" r="9" fill="#9184d9" /><circle cx="262" cy="132" r="9" fill="#b5afe8" />
-          <circle cx="160" cy="20" r="8" fill="#b5afe8" /><circle cx="160" cy="152" r="8" fill="#b5afe8" />
-        </svg>
-      </div>
-    </aside>
+        </div>
+      }
+    </div>
   } @else {
     <p class="dim pad">Project not found.</p>
   }

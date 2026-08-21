@@ -2,6 +2,8 @@ package com.skillatlas.projects;
 
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -14,7 +16,9 @@ import com.skillatlas.people.PeopleRepository;
 import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.projects.domain.Project;
 import com.skillatlas.projects.dto.ProjectCreateRequest;
+import com.skillatlas.projects.dto.ProjectDetailResponse;
 import com.skillatlas.projects.dto.ProjectMemberRequest;
+import com.skillatlas.projects.dto.ProjectResponse;
 import com.skillatlas.projects.dto.ProjectUpdateRequest;
 import com.skillatlas.projects.exception.ProjectNotFoundException;
 import com.skillatlas.skills.SkillsRepository;
@@ -25,13 +29,16 @@ import com.skillatlas.skills.exception.SkillNotFoundException;
 public class ProjectsService {
 
     private final ProjectsRepository repository;
+    private final ProjectMembersRepository membersRepository;
     private final SkillsRepository skillsRepository;
     private final PeopleRepository peopleRepository;
 
     public ProjectsService(ProjectsRepository repository,
+            ProjectMembersRepository membersRepository,
             SkillsRepository skillsRepository,
             PeopleRepository peopleRepository) {
         this.repository = repository;
+        this.membersRepository = membersRepository;
         this.skillsRepository = skillsRepository;
         this.peopleRepository = peopleRepository;
     }
@@ -41,12 +48,22 @@ public class ProjectsService {
         return repository.findById(id).orElseThrow(() -> new ProjectNotFoundException(id));
     }
 
+    /** The project plus its WORKED_ON roster — two queries, never one per member. */
     @Transactional(readOnly = true)
-    public Page<Project> list(String search, Pageable pageable) {
-        if (StringUtils.hasText(search)) {
-            return repository.findByNameContainingIgnoreCase(search.trim(), pageable);
-        }
-        return repository.findAll(pageable);
+    public ProjectDetailResponse detail(String id) {
+        Project project = getById(id);
+        return ProjectDetailResponse.from(project, membersRepository.findMembers(id));
+    }
+
+    /** One page of cards. Head counts come back for the whole page in a single query. */
+    @Transactional(readOnly = true)
+    public Page<ProjectResponse> list(String search, Pageable pageable) {
+        Page<Project> page = StringUtils.hasText(search)
+                ? repository.findByNameContainingIgnoreCase(search.trim(), pageable)
+                : repository.findAll(pageable);
+        List<String> ids = page.getContent().stream().map(Project::getId).toList();
+        Map<String, Integer> counts = membersRepository.countByProject(ids);
+        return page.map(p -> ProjectResponse.from(p, counts.getOrDefault(p.getId(), 0)));
     }
 
     @Transactional

@@ -9,11 +9,20 @@
     }
   </div>
 
+  <input class="field search" [(ngModel)]="search" (ngModelChange)="onSearch()" placeholder="Search projects by name…" />
+
+  @if (error()) {
+    <div class="err-banner">
+      <span class="mark"></span>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
   @if (loading()) {
     <sa-skeleton [rows]="4" />
-  } @else {
+  } @else if (data(); as d) {
     <div class="grid">
-      @for (p of projects(); track p.id) {
+      @for (p of d.content; track p.id) {
         <a class="card projcard" [routerLink]="['/projects', p.id]">
           <div class="titlerow">
             <span class="name">{{ p.name }}</span>
@@ -23,11 +32,26 @@
           <div class="uses">
             @for (s of p.skills; track s.id) {
               <span class="tag">{{ s.name }}</span>
+            } @empty {
+              <span class="dim small">No technologies mapped yet.</span>
             }
           </div>
-          <span class="dim small">{{ p.members?.length ?? 0 }} people · {{ period(p) }}</span>
+          <span class="dim small">{{ p.memberCount }} {{ p.memberCount === 1 ? 'person' : 'people' }} · {{ period(p) }}</span>
         </a>
+      } @empty {
+        <p class="dim pad">No project matches that name.</p>
       }
+    </div>
+
+    <div class="pager">
+      <span class="dim small">{{ rangeLabel() }}</span>
+      <div class="pagebtns">
+        <button class="pg" [disabled]="page() === 0" (click)="go(page() - 1)">Prev</button>
+        @for (n of pageNumbers(); track n) {
+          <button class="pg" [class.active]="n === page()" (click)="go(n)">{{ n + 1 }}</button>
+        }
+        <button class="pg" [disabled]="page() >= d.totalPages - 1" (click)="go(page() + 1)">Next</button>
+      </div>
     </div>
   }
 </div>
