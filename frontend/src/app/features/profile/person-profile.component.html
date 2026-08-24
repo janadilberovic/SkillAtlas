@@ -79,7 +79,7 @@
                   {{ pathSkill() === w.name ? 'Hide path' : 'Learning path' }}
                 </button>
               }
-              @if (auth.isAdmin()) {
+              @if (auth.isAdmin() && !mentoredSkills().has(w.name)) {
                 <button class="btn btn-sm" (click)="openMentorMatching(w.name)">Suggest mentor</button>
               }
               @if (isOwn()) {
