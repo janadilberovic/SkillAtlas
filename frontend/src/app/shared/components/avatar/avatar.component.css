@@ -5,4 +5,13 @@
   display: grid;
   place-items: center;
   flex: none;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  /* cover, not fill: a portrait photo is cropped, never stretched into the square. */
+  object-fit: cover;
+  display: block;
 }

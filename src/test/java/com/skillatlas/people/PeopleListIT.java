@@ -121,7 +121,7 @@ class PeopleListIT extends AbstractNeo4jIT {
 
     private String createPerson(String first, String suffix, String last) {
         Person person = peopleService.create(new PersonCreateRequest(
-                first + "-" + suffix + "@test.com", "Password123!", first, last, "Engineer", null,
+                first + "-" + suffix + "@test.com", "Password123!", first, last, "Engineer",
                 Role.MEMBER));
         return person.getId();
     }

@@ -19,6 +19,8 @@ public record PersonResponse(
         String position,
         Role role,
         boolean active,
+        // The repository puts the blob key here; PeopleService signs it before the row leaves.
+        String avatarUrl,
         List<String> teams,
         List<TopSkill> topSkills
 ) {
@@ -27,9 +29,9 @@ public record PersonResponse(
 
     private static final int TOP_SKILLS = 3;
 
-    public static PersonResponse from(Person p) {
+    public static PersonResponse from(Person p, String avatarUrl) {
         return of(p.getId(), p.getEmail(), p.getFirstName(), p.getLastName(), p.getPosition(),
-                p.getRole(), p.isActive(),
+                p.getRole(), p.isActive(), avatarUrl,
                 p.getTeams().stream().map(t -> t.getName()).toList(),
                 p.getKnows().stream()
                         .map(k -> new TopSkill(k.getSkill().getId(), k.getSkill().getName(),
@@ -39,13 +41,19 @@ public record PersonResponse(
 
     /** Same row from an already-flattened projection, so the ordering rules live in one place. */
     public static PersonResponse of(String id, String email, String firstName, String lastName,
-            String position, Role role, boolean active, List<String> teams, List<TopSkill> skills) {
-        return new PersonResponse(id, email, firstName, lastName, position, role, active,
+            String position, Role role, boolean active, String avatarUrl, List<String> teams,
+            List<TopSkill> skills) {
+        return new PersonResponse(id, email, firstName, lastName, position, role, active, avatarUrl,
                 teams.stream().sorted().toList(),
                 skills.stream()
                         .sorted(Comparator.comparingInt(TopSkill::level).reversed()
                                 .thenComparing(TopSkill::name))
                         .limit(TOP_SKILLS)
                         .toList());
+    }
+
+    public PersonResponse withAvatarUrl(String value) {
+        return new PersonResponse(id, email, firstName, lastName, position, role, active, value,
+                teams, topSkills);
     }
 }

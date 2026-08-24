@@ -20,6 +20,7 @@ import com.skillatlas.people.exception.EmailAlreadyExistsException;
 import com.skillatlas.people.exception.PersonNotFoundException;
 import com.skillatlas.people.exception.SelfDeleteNotAllowedException;
 import com.skillatlas.security.SecurityUtil;
+import com.skillatlas.storage.AvatarStorage;
 
 @Service
 public class PeopleService {
@@ -27,12 +28,14 @@ public class PeopleService {
     private final PeopleRepository repository;
     private final PeopleSearchRepository searchRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AvatarStorage avatarStorage;
 
     public PeopleService(PeopleRepository repository, PeopleSearchRepository searchRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder, AvatarStorage avatarStorage) {
         this.repository = repository;
         this.searchRepository = searchRepository;
         this.passwordEncoder = passwordEncoder;
+        this.avatarStorage = avatarStorage;
     }
 
     @Transactional(readOnly = true)
@@ -48,8 +51,20 @@ public class PeopleService {
         String t = normalise(team);
         String k = normalise(skill);
         List<PersonResponse> content =
-                searchRepository.find(s, t, k, pageable.getOffset(), pageable.getPageSize());
+                searchRepository.find(s, t, k, pageable.getOffset(), pageable.getPageSize())
+                        .stream()
+                        .map(r -> r.withAvatarUrl(avatarStorage.signedUrl(r.avatarUrl())))
+                        .toList();
         return new PageImpl<>(content, pageable, searchRepository.count(s, t, k));
+    }
+
+    /** Maps an entity for a controller without letting the controller touch storage. */
+    public PersonResponse toResponse(Person person) {
+        return PersonResponse.from(person, avatarUrl(person));
+    }
+
+    public String avatarUrl(Person person) {
+        return avatarStorage.signedUrl(person.getProfilePicture());
     }
 
     @Transactional
@@ -66,7 +81,6 @@ public class PeopleService {
         person.setFirstName(request.firstName());
         person.setLastName(request.lastName());
         person.setPosition(request.position());
-        person.setProfilePicture(request.profilePicture());
         person.setRole(request.role());
         person.setActive(true);
         person.setCreatedAt(Instant.now());
@@ -79,7 +93,6 @@ public class PeopleService {
         person.setFirstName(request.firstName());
         person.setLastName(request.lastName());
         person.setPosition(request.position());
-        person.setProfilePicture(request.profilePicture());
         return repository.save(person);
     }
 

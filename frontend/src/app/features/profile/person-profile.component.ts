@@ -10,6 +10,8 @@ import { LevelBarComponent } from '../../shared/components/level-bar/level-bar.c
 import { SelectComponent } from '../../shared/components/select/select.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
 @Component({
   selector: 'sa-person-profile',
   standalone: true,
@@ -38,6 +40,8 @@ export class PersonProfileComponent {
   readonly catalog = signal<Skill[]>([]);
   readonly addOpen = signal(false);
   readonly addError = signal('');
+  readonly photoBusy = signal(false);
+  readonly photoError = signal('');
 
   /** The wish an admin is picking a mentor for (E6.1), and the wish being routed (E6.2). */
   readonly mentorSkill = signal<string | null>(null);
@@ -91,6 +95,49 @@ export class PersonProfileComponent {
       error: () => {
         this.person.set(null);
         this.loading.set(false);
+      },
+    });
+  }
+
+  /** Client-side size check is for the message only — the server decides (413). */
+  pickPhoto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.photoError.set('');
+    if (file.size > MAX_PHOTO_BYTES) {
+      this.photoError.set('Pick an image under 2 MB.');
+      return;
+    }
+    const id = this.person()!.id;
+    this.photoBusy.set(true);
+    this.peopleApi.uploadAvatar(id, file).subscribe({
+      next: (res) => {
+        this.auth.setAvatarUrl(res.avatarUrl);
+        this.photoBusy.set(false);
+        this.load(id);
+      },
+      error: () => {
+        this.photoBusy.set(false);
+        this.photoError.set('Could not upload that image. PNG, JPEG or WEBP, under 2 MB.');
+      },
+    });
+  }
+
+  removePhoto(): void {
+    const id = this.person()!.id;
+    this.photoError.set('');
+    this.photoBusy.set(true);
+    this.peopleApi.removeAvatar(id).subscribe({
+      next: () => {
+        this.auth.setAvatarUrl(null);
+        this.photoBusy.set(false);
+        this.load(id);
+      },
+      error: () => {
+        this.photoBusy.set(false);
+        this.photoError.set('Could not remove the picture.');
       },
     });
   }

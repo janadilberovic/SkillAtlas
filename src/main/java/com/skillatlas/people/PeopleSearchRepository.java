@@ -48,6 +48,7 @@ public class PeopleSearchRepository {
             SKIP $skip LIMIT $limit
             RETURN p.id AS id, p.email AS email, p.firstName AS firstName, p.lastName AS lastName,
                    p.position AS position, p.role AS role, p.active AS active,
+                   p.profilePicture AS avatarKey,
                    [(p)-[:MEMBER_OF]->(t:Team) | t.name] AS teams,
                    [(p)-[r:KNOWS]->(s:Skill) | {skillId: s.id, name: s.name, level: r.level}]
                      AS skills
@@ -81,6 +82,7 @@ public class PeopleSearchRepository {
                         record.get("position").asString(null),
                         Role.valueOf(record.get("role").asString()),
                         record.get("active").asBoolean(true),
+                        record.get("avatarKey").asString(null),
                         record.get("teams").asList(Value::asString),
                         record.get("skills").asList(v -> new TopSkill(
                                 v.get("skillId").asString(),

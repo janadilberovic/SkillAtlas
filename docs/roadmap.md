@@ -22,6 +22,7 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [6c] | E2.4 · Projekat: roster, USES editovanje, podgraf, paginacija liste | [E2.4](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ |
 | **[7]** | **E3 · Import iz VacaYAY-a** | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬅️ **sljedeći** |
 | [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
+| [8a] | Profilna slika · Azure Blob Storage + SAS | [§02 Person](spec.md#1-čvorovi-core) | ✅ `feat/person-avatar-azure-blob` |
 | [9] | Dopuna testova | §04.5 | ⬜ |
 | [10] | Jedan Advanced (E7–E13) | [Advanced](spec.md#advanced-bira-se-jedan) | ⬜ |
 
@@ -153,6 +154,8 @@ Odluke (potvrđene i implementirane):
    Nocturne nema crvenu i ovaj slice je nije uvodio.
 6. Forma **nema tim ni sliku**: `PersonCreateRequest` ih ne prima, a dodjela tima je [8]. Spec E2.1
    pominje tim pri kreiranju — svjesno odstupanje, zatvara se u [8].
+   > Dopuna iz [8a]: u trenutku pisanja ovo je bilo tačno samo za tim — `PersonCreateRequest` je
+   > **imao** `profilePicture`. [8a] ga je uklonio, pa rečenica sada stoji doslovno.
 
 `PeopleAdminIT` (7 testova) pokriva 201 + pojavu u listi, 403 za membera na POST i DELETE, 400 za
 kratku lozinku, 409 za email obrisane osobe, 409 za samobrisanje, i da soft delete **ostavlja čvor**
@@ -256,6 +259,43 @@ Skills katalog (E2.2) je dorađen isto van reda: `GET /skills` dobija `search`, 
 `sa-select` umjesto native `<select>`-a i pravi edit preko `PUT /skills/{id}`; „most wanted"
 (`sort=wanted`) i „thinnest coverage" (`sort=known`) idu zasebnim upitima jer je rang firmo-wide, a
 ne presortirana strana. Ostaju projects/graph filteri.
+
+## [8a] Profilna slika — gotovo
+
+`POST /api/v1/people/{id}/avatar` (multipart) i `DELETE` istog puta. Bajtovi idu u Azure Blob
+Storage, u bazi ostaje samo blob ključ (`Person.profilePicture`), a `avatarUrl` u odgovorima je
+**SAS link** koji ističe za 15 minuta. Lokalno: Azurite u `docker-compose.yml`, isti image u CI-ju.
+
+Odluke (potvrđene i implementirane):
+1. **Ključ u bazi, ne URL.** Potpis ističe, a URL nosi host naloga — ista baza vraćena na staging
+   pokazivala bi na produkcijski storage. URL se računa pri svakom čitanju.
+2. **SAS, ne proxy kroz Spring.** Potpisivanje je lokalni HMAC bez poziva Azureu, pa potpisati
+   stranicu ljudi nije N+1, a bajtovi nikad ne prolaze kroz aplikaciju. Cijena: link stari, zato
+   `sa-avatar` ima `(error)` fallback na inicijale.
+3. **Container je privatan** — nikad `createIfNotExists(PublicAccessType.BLOB, …)`, inače je potpis
+   ukras. `PersonAvatarIT.blobIsNotPubliclyReadableWithoutTheSignature` to i dokazuje.
+4. **Tip se njuši iz magic bajtova**, `file.getContentType()` je tvrdnja klijenta. SVG je odbijen
+   namjerno (XML sa `<script>` servirano s domena = stored XSS, §5). `Content-Type` na blobu
+   postavlja server iz iznjušenog tipa, a SAS ga još jednom nadjačava u odgovoru.
+5. **Samo sebi sam** — `requireSelf` kao u `PeopleSkillsController`, ali **bez** admin izuzetka.
+   Niko ne mijenja tuđu sliku.
+6. **Ključ se gradi samo od servera poznatih vrijednosti** (`{personId}/{uuid}.{ext}`), nikad od
+   `getOriginalFilename()` (`../../`). UUID je i cache-buster: isto ime bi vraćalo staru sliku iz
+   browser keša.
+7. Veličina se provjerava **dvaput**: `spring.servlet.multipart.max-file-size` (Tomcat prekida prije
+   kontrolera) i eksplicitno u servisu (domenska poruka, preživi promjenu transporta).
+8. Container se pravi **lijeno, pri prvom uploadu**, ne pri startu konteksta. Eager
+   `createIfNotExists()` u `@Bean`-u bi značio da nijedan `@SpringBootTest` ne diže kontekst bez
+   Azuritea — svi ITovi bi zavisili od blob storagea, ne samo avatar.
+9. `profilePicture` je **izbačen iz `PersonCreateRequest` / `PersonUpdateRequest`**. Prije ovoga je
+   bio write-only mrtav teret: admin ga je mogao postaviti na proizvoljan string, nijedan response
+   ga nije vraćao i nijedan Cypher ga nije selektovao. Jedan upisivač po polju.
+10. `AvatarStorage` je interfejs iz jednog razloga — `AzureAvatarStorage` je jedini fajl koji zna
+    za `com.azure.*`. Prelazak na S3 mijenja jedan fajl i jedan `@Bean`.
+
+Van opsega, svjesno: avatar u listi ljudi (ekran ga danas nema uopšte), crop/resize, admin koji
+mijenja tuđu sliku, brisanje blobova pri soft-deleteu osobe, čišćenje siročadi (Azure lifecycle),
+CDN.
 
 ## [9] Dopuna testova
 

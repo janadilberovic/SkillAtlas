@@ -4,7 +4,21 @@
   } @else if (person(); as p) {
     <div class="main">
       <div class="phead">
-        <sa-avatar [initials]="initials(p)" [size]="64" />
+        <div class="pphoto">
+          <sa-avatar [initials]="initials(p)" [src]="p.avatarUrl ?? null" [size]="64" />
+          @if (isOwn()) {
+            <div class="photoactions">
+              <button class="linkbtn" [disabled]="photoBusy()" (click)="picker.click()">
+                {{ photoBusy() ? 'Working…' : 'Change photo' }}
+              </button>
+              @if (p.avatarUrl) {
+                <button class="linkbtn" [disabled]="photoBusy()" (click)="removePhoto()">Remove</button>
+              }
+            </div>
+            <input #picker type="file" hidden accept="image/png,image/jpeg,image/webp"
+                   (change)="pickPhoto($event)" />
+          }
+        </div>
         <div class="pid">
           <h1>{{ p.firstName }} {{ p.lastName }}</h1>
           <span class="muted">{{ p.position || '—' }} · {{ p.email }}</span>
@@ -14,6 +28,9 @@
                 <span class="tag tag-mute">{{ t }}</span>
               }
             </span>
+          }
+          @if (photoError()) {
+            <span class="err">{{ photoError() }}</span>
           }
         </div>
       </div>

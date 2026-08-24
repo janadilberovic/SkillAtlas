@@ -50,9 +50,9 @@ class PeopleSkillsIT extends AbstractNeo4jIT {
     void seed() {
         String u = UUID.randomUUID().toString().substring(0, 8);
         Person ada = peopleService.create(new PersonCreateRequest(
-                "ada-" + u + "@test.com", "Password123!", "Ada", "Lovelace", "Engineer", null, Role.MEMBER));
+                "ada-" + u + "@test.com", "Password123!", "Ada", "Lovelace", "Engineer", Role.MEMBER));
         Person bob = peopleService.create(new PersonCreateRequest(
-                "bob-" + u + "@test.com", "Password123!", "Bob", "Byte", "Engineer", null, Role.MEMBER));
+                "bob-" + u + "@test.com", "Password123!", "Bob", "Byte", "Engineer", Role.MEMBER));
         Skill skill = skillsService.create(new SkillCreateRequest("Neo4j-" + u, SkillCategory.DATABASE, "#4581C3"));
         adaId = ada.getId();
         bobId = bob.getId();

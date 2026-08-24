@@ -52,9 +52,9 @@ class PeopleAdminIT extends AbstractNeo4jIT {
     void seed() {
         suffix = UUID.randomUUID().toString().substring(0, 8);
         Person admin = peopleService.create(new PersonCreateRequest(
-                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", null, Role.ADMIN));
+                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", Role.ADMIN));
         Person member = peopleService.create(new PersonCreateRequest(
-                "member-" + suffix + "@test.com", "Password123!", "Mia", "Member", "Engineer", null, Role.MEMBER));
+                "member-" + suffix + "@test.com", "Password123!", "Mia", "Member", "Engineer", Role.MEMBER));
         adminId = admin.getId();
         memberId = member.getId();
         adminToken = jwtService.issue(adminId, Role.ADMIN);

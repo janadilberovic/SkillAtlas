@@ -9,6 +9,9 @@ interface SessionUser {
   initials: string;
   role: Role;
   email: string;
+  // Persisted with the rest of the session even though the signature expires: after that
+  // sa-avatar falls back to the initials, which is the same thing it would show anyway.
+  avatarUrl?: string | null;
 }
 
 const STORAGE_KEY = 'skillatlas.session';
@@ -40,11 +43,21 @@ export class AuthService {
           initials: initialsFrom(me.fullName, me.email),
           role: me.role,
           email: me.email,
+          avatarUrl: me.avatarUrl ?? null,
         };
         this._user.set(user);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       }),
     );
+  }
+
+  /** Keeps the topbar and the stored session in step after the owner changes their picture. */
+  setAvatarUrl(avatarUrl: string | null): void {
+    const user = this._user();
+    if (!user) return;
+    const next = { ...user, avatarUrl };
+    this._user.set(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
   logout(): void {

@@ -23,6 +23,32 @@
   align-items: flex-start;
   gap: 16px;
 }
+.pphoto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.photoactions {
+  display: flex;
+  gap: 8px;
+}
+.linkbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.linkbtn:hover:not(:disabled) {
+  color: var(--accent-text);
+}
+.linkbtn:disabled {
+  cursor: default;
+  color: var(--text-dim);
+}
 h1 {
   font-size: 34px;
   font-weight: 500;

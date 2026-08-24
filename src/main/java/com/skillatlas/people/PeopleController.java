@@ -60,13 +60,13 @@ public class PeopleController {
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public PersonResponse create(@Valid @RequestBody PersonCreateRequest request) {
-        return PersonResponse.from(service.create(request));
+        return service.toResponse(service.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public PersonResponse update(@PathVariable String id, @Valid @RequestBody PersonUpdateRequest request) {
-        return PersonResponse.from(service.updateProfile(id, request));
+        return service.toResponse(service.updateProfile(id, request));
     }
 
     @DeleteMapping("/{id}")
