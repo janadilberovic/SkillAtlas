@@ -22,7 +22,7 @@
     }
 
     <div class="user">
-      <sa-avatar [initials]="auth.user()?.initials ?? ''" />
+      <sa-avatar [initials]="auth.user()?.initials ?? ''" [src]="auth.user()?.avatarUrl ?? null" />
       <div class="who">
         <span class="name">{{ shortName() }}</span>
         <span class="role">{{ auth.user()?.role }}</span>

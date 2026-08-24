@@ -54,9 +54,9 @@ class ProjectCreateIT extends AbstractNeo4jIT {
         suffix = UUID.randomUUID().toString().substring(0, 8);
         Skill skill = skillsService.create(new SkillCreateRequest("Cypher-" + suffix, SkillCategory.DATABASE, null));
         Person admin = peopleService.create(new PersonCreateRequest(
-                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", null, Role.ADMIN));
+                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", Role.ADMIN));
         Person member = peopleService.create(new PersonCreateRequest(
-                "member-" + suffix + "@test.com", "Password123!", "Mia", "Member", "Engineer", null, Role.MEMBER));
+                "member-" + suffix + "@test.com", "Password123!", "Mia", "Member", "Engineer", Role.MEMBER));
         skillId = skill.getId();
         adminId = admin.getId();
         memberId = member.getId();

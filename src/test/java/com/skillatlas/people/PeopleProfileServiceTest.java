@@ -27,6 +27,7 @@ import com.skillatlas.people.dto.PersonProfileResponse.Mentoring;
 import com.skillatlas.people.dto.PersonProfileResponse.Neighbourhood;
 import com.skillatlas.people.enums.Role;
 import com.skillatlas.people.exception.PersonNotFoundException;
+import com.skillatlas.storage.AvatarStorage;
 
 /** Composition rules of the profile service — no database (see PersonProfileIT for the Cypher). */
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +35,9 @@ class PeopleProfileServiceTest {
 
     @Mock
     PeopleProfileRepository repository;
+
+    @Mock
+    AvatarStorage avatarStorage;
 
     @InjectMocks
     PeopleProfileService service;
@@ -69,9 +73,19 @@ class PeopleProfileServiceTest {
         assertThat(limit.getValue()).isPositive();
     }
 
+    @Test
+    void replacesTheStoredBlobKeyWithASignedUrl() {
+        when(repository.findProfile("p1")).thenReturn(Optional.of(emptyProfile()));
+        when(repository.neighbourhood(eq("p1"), anyInt()))
+                .thenReturn(new Neighbourhood(List.of(), List.of(), false));
+        when(avatarStorage.signedUrl("p1/abc.png")).thenReturn("https://blob/p1/abc.png?sig=x");
+
+        assertThat(service.getProfile("p1").avatarUrl()).isEqualTo("https://blob/p1/abc.png?sig=x");
+    }
+
     private static PersonProfileResponse emptyProfile() {
         return new PersonProfileResponse("p1", "ada@test.com", "Ada", "Lovelace", "Engineer",
-                Role.MEMBER, true, List.of(), List.of(), List.of(), List.of(),
+                Role.MEMBER, true, "p1/abc.png", List.of(), List.of(), List.of(), List.of(),
                 new Mentoring(List.of(), List.of()),
                 new Neighbourhood(List.of(), List.of(), false));
     }

@@ -13,7 +13,6 @@ public record PersonCreateRequest(
         @NotBlank String firstName,
         @NotBlank String lastName,
         String position,
-        String profilePicture,
         @NotNull Role role
 ) {
 }

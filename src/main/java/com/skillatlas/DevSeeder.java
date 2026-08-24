@@ -93,7 +93,7 @@ public class DevSeeder implements CommandLineRunner {
     public void run(String... args) {
         if (!people.existsByEmail("admin@skillatlas.dev")) {
             peopleService.create(new PersonCreateRequest(
-                    "admin@skillatlas.dev", DEMO_PASSWORD, "Site", "Admin", "Admin", null, Role.ADMIN));
+                    "admin@skillatlas.dev", DEMO_PASSWORD, "Site", "Admin", "Admin", Role.ADMIN));
             log.info("DevSeeder: created admin@skillatlas.dev / {}", DEMO_PASSWORD);
         }
 
@@ -147,7 +147,7 @@ public class DevSeeder implements CommandLineRunner {
                 }
                 person = peopleService.create(new PersonCreateRequest(
                         demo.email(), DEMO_PASSWORD, demo.firstName(), demo.lastName(),
-                        demo.position(), null, Role.MEMBER));
+                        demo.position(), Role.MEMBER));
                 created++;
             }
             wireGraph(person.getId(), demo, teamIds, skillIds);

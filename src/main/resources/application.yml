@@ -15,6 +15,13 @@ spring:
     neo4j:
       database: ${NEO4J_DATABASE:neo4j}
 
+  # Prva odbrana od velikog uploada: Tomcat prekida prije nego kontroler vidi ijedan bajt.
+  # max-request-size je namerno veći — multipart okvir i boundary nisu besplatni.
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -23,6 +30,14 @@ security:
   jwt:
     secret: ${JWT_SECRET:change-me-dev-only-secret-please-rotate-0123456789}
     expiration-minutes: ${JWT_EXP_MINUTES:120}
+
+# Azure Blob Storage za profilne slike. Lokalno: Azurite iz docker-compose.
+# UseDevelopmentStorage=true je zvanicna SDK skracenica za Azurite na 127.0.0.1:10000.
+azure:
+  storage:
+    connection-string: ${AZURE_STORAGE_CONNECTION_STRING:UseDevelopmentStorage=true}
+    container: ${AZURE_AVATAR_CONTAINER:avatars}
+    sas-minutes: ${AZURE_AVATAR_SAS_MINUTES:15}
 
 # Actuator: /actuator/health pokazuje i status Neo4j konekcije
 management:

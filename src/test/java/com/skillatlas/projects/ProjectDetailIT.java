@@ -70,11 +70,11 @@ class ProjectDetailIT extends AbstractNeo4jIT {
         dockerId = docker.getId();
 
         Person admin = peopleService.create(new PersonCreateRequest(
-                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", null, Role.ADMIN));
+                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", Role.ADMIN));
         Person stayer = peopleService.create(new PersonCreateRequest(
-                "stayer-" + suffix + "@test.com", "Password123!", "Ada", "Stayer", "Engineer", null, Role.MEMBER));
+                "stayer-" + suffix + "@test.com", "Password123!", "Ada", "Stayer", "Engineer", Role.MEMBER));
         Person leaver = peopleService.create(new PersonCreateRequest(
-                "leaver-" + suffix + "@test.com", "Password123!", "Carl", "Leaver", "Engineer", null, Role.MEMBER));
+                "leaver-" + suffix + "@test.com", "Password123!", "Carl", "Leaver", "Engineer", Role.MEMBER));
         adminId = admin.getId();
         stayerId = stayer.getId();
         leaverId = leaver.getId();

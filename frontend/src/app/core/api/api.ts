@@ -53,6 +53,12 @@ export interface PersonInput {
   role: Role;
 }
 
+/** POST /people/{id}/avatar — the freshly signed link and the moment it stops working. */
+export interface AvatarUpload {
+  avatarUrl: string;
+  expiresAt: string;
+}
+
 export abstract class PeopleApi {
   abstract list(query: PeopleQuery): Observable<Page<Person>>;
   /** The rich profile (E4.2) — the person plus skills, projects, mentoring and their neighbourhood. */
@@ -60,6 +66,9 @@ export abstract class PeopleApi {
   abstract create(input: PersonInput): Observable<Person>;
   /** Soft delete — the person keeps their relations and drops out of every read. */
   abstract remove(id: string): Observable<void>;
+  /** Own picture only; the server checks the token, not the path. */
+  abstract uploadAvatar(personId: string, file: File): Observable<AvatarUpload>;
+  abstract removeAvatar(personId: string): Observable<void>;
 }
 
 export interface SkillInput {

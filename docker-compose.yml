@@ -16,6 +16,17 @@ services:
       - neo4j-data:/data
       - neo4j-logs:/logs
 
+  azurite:
+    # Pinned for the same reason as neo4j above: CI and local must see the same emulator.
+    image: mcr.microsoft.com/azure-storage/azurite:3.36.0
+    container_name: skillatlas-azurite
+    command: azurite-blob --blobHost 0.0.0.0 --location /data
+    ports:
+      - "10000:10000"   # Blob endpoint (profilne slike)
+    volumes:
+      - azurite-data:/data
+
 volumes:
   neo4j-data:
   neo4j-logs:
+  azurite-data:

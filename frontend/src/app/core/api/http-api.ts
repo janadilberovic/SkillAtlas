@@ -24,6 +24,7 @@ import {
 } from '../models/models';
 import {
   AuthApi,
+  AvatarUpload,
   DashboardApi,
   FinderApi,
   GraphApi,
@@ -81,6 +82,16 @@ export class HttpPeopleApi extends PeopleApi {
   }
   remove(id: string): Observable<void> {
     return this.http.delete<void>(`${BASE}/people/${id}`);
+  }
+  uploadAvatar(personId: string, file: File): Observable<AvatarUpload> {
+    const form = new FormData();
+    form.append('file', file);
+    // No Content-Type header on purpose: setting it by hand drops the multipart boundary the
+    // browser generates, and the server then cannot parse the body.
+    return this.http.post<AvatarUpload>(`${BASE}/people/${personId}/avatar`, form);
+  }
+  removeAvatar(personId: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/people/${personId}/avatar`);
   }
 }
 

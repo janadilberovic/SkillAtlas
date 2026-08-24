@@ -48,6 +48,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public MeResponse me() {
-        return MeResponse.from(peopleService.getById(SecurityUtil.currentUserId()));
+        Person person = peopleService.getById(SecurityUtil.currentUserId());
+        return MeResponse.from(person, peopleService.avatarUrl(person));
     }
 }

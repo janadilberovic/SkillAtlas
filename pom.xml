@@ -16,6 +16,8 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<!-- Pinned explicitly: spring-boot-starter-parent does not manage the Azure SDK. -->
+		<azure-storage-blob.version>12.30.0</azure-storage-blob.version>
 	</properties>
 
 	<dependencies>
@@ -55,6 +57,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-storage-blob</artifactId>
+			<version>${azure-storage-blob.version}</version>
 		</dependency>
 
 		<dependency>

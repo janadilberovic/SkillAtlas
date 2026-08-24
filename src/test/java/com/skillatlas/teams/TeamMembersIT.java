@@ -50,9 +50,9 @@ class TeamMembersIT extends AbstractNeo4jIT {
         suffix = UUID.randomUUID().toString().substring(0, 8);
         Team team = teamsService.create(new TeamCreateRequest("Platform-" + suffix));
         Person admin = peopleService.create(new PersonCreateRequest(
-                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", null, Role.ADMIN));
+                "admin-" + suffix + "@test.com", "Password123!", "Site", "Admin", "Admin", Role.ADMIN));
         Person member = peopleService.create(new PersonCreateRequest(
-                "member-" + suffix + "@test.com", "Password123!", "Mia", "Member", "Engineer", null, Role.MEMBER));
+                "member-" + suffix + "@test.com", "Password123!", "Mia", "Member", "Engineer", Role.MEMBER));
         teamId = team.getId();
         adminId = admin.getId();
         memberId = member.getId();

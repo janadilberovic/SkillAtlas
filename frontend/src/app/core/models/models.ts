@@ -24,6 +24,8 @@ export interface Me {
   email: string;
   fullName: string;
   role: Role;
+  /** Short-lived signed URL for the profile picture, or null when there is none. */
+  avatarUrl?: string | null;
 }
 
 /** POST /auth/login */
@@ -69,6 +71,8 @@ export interface Person {
   position: string | null;
   role: Role;
   active: boolean;
+  /** Short-lived signed URL for the profile picture, or null when there is none. */
+  avatarUrl?: string | null;
   /** MEMBER_OF names, flattened for a list row. */
   teams?: string[];
   /** The strongest few KNOWS, level first. */

@@ -9,6 +9,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.skillatlas.auth.exception.InvalidCredentialsException;
 import com.skillatlas.finder.exception.InvalidSkillLevelException;
@@ -24,6 +25,8 @@ import com.skillatlas.projects.exception.ProjectNotFoundException;
 import com.skillatlas.skills.exception.InvalidSkillCategoryException;
 import com.skillatlas.skills.exception.SkillNameAlreadyExistsException;
 import com.skillatlas.skills.exception.SkillNotFoundException;
+import com.skillatlas.storage.exception.ImageTooLargeException;
+import com.skillatlas.storage.exception.UnsupportedImageTypeException;
 import com.skillatlas.teams.exception.TeamNameAlreadyExistsException;
 import com.skillatlas.teams.exception.TeamNotFoundException;
 
@@ -113,6 +116,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MentorshipNotFoundException.class)
     public ResponseEntity<Map<String, Object>> onMentorshipNotFound(MentorshipNotFoundException ex) {
         return error(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(UnsupportedImageTypeException.class)
+    public ResponseEntity<Map<String, Object>> onUnsupportedImage(UnsupportedImageTypeException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ImageTooLargeException.class)
+    public ResponseEntity<Map<String, Object>> onImageTooLarge(ImageTooLargeException ex) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage());
+    }
+
+    // Tomcat rejects the body before any controller runs, so this never reaches the service check.
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> onMaxUploadSize(MaxUploadSizeExceededException ex) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "Uploaded file is too large");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

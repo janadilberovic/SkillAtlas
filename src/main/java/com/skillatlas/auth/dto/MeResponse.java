@@ -7,10 +7,11 @@ public record MeResponse(
         String id,
         String email,
         String fullName,
-        Role role
+        Role role,
+        String avatarUrl
 ) {
-    public static MeResponse from(Person p) {
+    public static MeResponse from(Person p, String avatarUrl) {
         return new MeResponse(p.getId(), p.getEmail(),
-                p.getFirstName() + " " + p.getLastName(), p.getRole());
+                p.getFirstName() + " " + p.getLastName(), p.getRole(), avatarUrl);
     }
 }

@@ -19,6 +19,8 @@ public record PersonProfileResponse(
         String position,
         Role role,
         boolean active,
+        // The repository puts the blob key here; PeopleProfileService signs it on the way out.
+        String avatarUrl,
         List<String> teams,
         List<KnownSkill> skills,
         List<WishedSkill> wishes,
@@ -51,6 +53,11 @@ public record PersonProfileResponse(
 
     public PersonProfileResponse withNeighbourhood(Neighbourhood value) {
         return new PersonProfileResponse(id, email, firstName, lastName, position, role, active,
-                teams, skills, wishes, projects, mentoring, value);
+                avatarUrl, teams, skills, wishes, projects, mentoring, value);
+    }
+
+    public PersonProfileResponse withAvatarUrl(String value) {
+        return new PersonProfileResponse(id, email, firstName, lastName, position, role, active,
+                value, teams, skills, wishes, projects, mentoring, neighbourhood);
     }
 }
