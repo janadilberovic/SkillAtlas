@@ -65,6 +65,9 @@ export class PersonProfileComponent {
   readonly projects = computed(() => this.person()?.projects ?? []);
   readonly mentees = computed(() => this.person()?.mentoring?.mentees ?? []);
   readonly mentors = computed(() => this.person()?.mentoring?.mentors ?? []);
+  readonly mentoredSkills = computed(
+    () => new Set(this.mentors().map((m) => m.skill).filter((s): s is string => s !== null)),
+  );
   readonly teams = computed(() => this.person()?.teams ?? []);
   readonly neighbours = computed(() => this.person()?.neighbourhood?.nodes.slice(1) ?? []);
   readonly neighbourCount = computed(() => this.person()?.neighbourhood?.edges.length ?? 0);
