@@ -7,6 +7,7 @@ import {
   Expert,
   FinderResult,
   GraphData,
+  ImportResult,
   LearningPath,
   LoginResponse,
   MentorCandidates,
@@ -21,6 +22,7 @@ import {
   SkillCoverage,
   SkillGapRow,
   Team,
+  VacaYayRosterRow,
 } from '../models/models';
 import {
   AuthApi,
@@ -42,6 +44,7 @@ import {
   SkillInput,
   SkillQuery,
   TeamApi,
+  VacaYayApi,
 } from './api';
 import { SkillTerm, formatSkillTerm, toSkillParam } from './finder-query';
 
@@ -300,6 +303,19 @@ export class HttpDashboardApi extends DashboardApi {
     return this.http.get<Page<MentorRequestRow>>(`${BASE}/dashboard/mentor-requests`, {
       params: paging(page, size),
     });
+  }
+}
+
+@Injectable()
+export class HttpVacaYayApi extends VacaYayApi {
+  private readonly http = inject(HttpClient);
+  roster(page: number, size: number): Observable<Page<VacaYayRosterRow>> {
+    return this.http.get<Page<VacaYayRosterRow>>(`${BASE}/people/vacayay-roster`, {
+      params: paging(page, size),
+    });
+  }
+  import(ids: number[]): Observable<ImportResult> {
+    return this.http.post<ImportResult>(`${BASE}/people/import-vacayay`, { ids });
   }
 }
 

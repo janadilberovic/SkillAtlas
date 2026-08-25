@@ -29,6 +29,7 @@ import com.skillatlas.storage.exception.ImageTooLargeException;
 import com.skillatlas.storage.exception.UnsupportedImageTypeException;
 import com.skillatlas.teams.exception.TeamNameAlreadyExistsException;
 import com.skillatlas.teams.exception.TeamNotFoundException;
+import com.skillatlas.vacayay.exception.VacaYayUnavailableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -132,6 +133,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> onMaxUploadSize(MaxUploadSizeExceededException ex) {
         return error(HttpStatus.PAYLOAD_TOO_LARGE, "Uploaded file is too large");
+    }
+
+    // 502, not 500: the difference is what the import modal can tell the admin - start the old
+    // system, rather than "something broke".
+    @ExceptionHandler(VacaYayUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> onVacaYayDown(VacaYayUnavailableException ex) {
+        return error(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

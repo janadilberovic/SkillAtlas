@@ -39,6 +39,17 @@ azure:
     container: ${AZURE_AVATAR_CONTAINER:avatars}
     sas-minutes: ${AZURE_AVATAR_SAS_MINUTES:15}
 
+# Stari sistem (E3). Kredencijali servisnog HR naloga NIKAD u repo — .env, kao i Neo4j.
+# page-size 100 je plafon koji VacaYAY-ev validator dozvoljava; max-pages je zaštita od beskonačne vrtnje.
+vacayay:
+  base-url: ${VACAYAY_BASE_URL:http://localhost:5266}
+  email: ${VACAYAY_USER:}
+  password: ${VACAYAY_PASSWORD:}
+  page-size: ${VACAYAY_PAGE_SIZE:100}
+  max-pages: ${VACAYAY_MAX_PAGES:20}
+  connect-timeout-seconds: ${VACAYAY_CONNECT_TIMEOUT:3}
+  read-timeout-seconds: ${VACAYAY_READ_TIMEOUT:10}
+
 # Actuator: /actuator/health pokazuje i status Neo4j konekcije
 management:
   endpoints:

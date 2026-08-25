@@ -14,6 +14,7 @@ import {
   ProjectApi,
   SkillApi,
   TeamApi,
+  VacaYayApi,
 } from './core/api/api';
 import {
   HttpAuthApi,
@@ -26,6 +27,7 @@ import {
   HttpProjectApi,
   HttpSkillApi,
   HttpTeamApi,
+  HttpVacaYayApi,
 } from './core/api/http-api';
 
 export const appConfig: ApplicationConfig = {
@@ -47,5 +49,6 @@ export const appConfig: ApplicationConfig = {
     { provide: TeamApi, useClass: HttpTeamApi },
     { provide: MentoringApi, useClass: HttpMentoringApi },
     { provide: DashboardApi, useClass: HttpDashboardApi },
+    { provide: VacaYayApi, useClass: HttpVacaYayApi },
   ],
 };
