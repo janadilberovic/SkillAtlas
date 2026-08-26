@@ -420,3 +420,25 @@ Popuniti rupe koje su nastale usput; e2e happy-path ako ostane vremena.
 ## [10] Jedan Advanced
 
 Bira se na kraju iz E7–E13. `E8 · Staffing predlog` je najzanimljiviji Cypher u projektu.
+
+## [11] Deploy — gotovo
+
+Docker Compose na jednom serveru, jedan artefakt: Angular build ulazi u Spring Boot jar
+(`SpaWebConfig` + `Dockerfile` stage 1→2), pa su frontend i API isti origin i CORS otpada.
+
+Odluke koje se ne vide iz koda:
+
+- `application-prod.yml` namjerno nema defaulte za `JWT_SECRET` i `NEO4J_PASSWORD` — bez njih
+  aplikacija ne startuje. Dev defaulti u `application.yml` bi inače tiho važili i u produkciji.
+- `skillatlas.seed.enabled: false` stoji u prod profilu, ne u `.env` — zaboravljena env varijabla
+  ne smije proizvesti demo podatke sa lozinkom `Password123!`.
+- `AdminBootstrap` postoji jer gašenje seedera ostavlja bazu bez ijednog admina, a kroz aplikaciju
+  se prvi ne može napraviti (login traži osobu, kreiranje osobe traži admin token).
+- `docker-compose.prod.yml` ima vlastiti `name:` — bez njega dijeli namespace sa dev compose fajlom
+  i preuzme mu kontejnere i volumene.
+- Vrijednost koju dijele dva servisa ide kroz interpolaciju, nikad samo kroz `env_file`: shell
+  varijabla nadjačava `--env-file`, a `env_file` čita fajl doslovno, pa se isti secret razilazi.
+- Blob ostaje na Azuriteu (bez Azure pretplate), sa vlastitim nalogom umjesto `devstoreaccount1`
+  čiji je ključ javno objavljen. `BlobEndpoint` mora biti dohvatljiv i iz kontejnera i iz browsera.
+
+Uputstvo: [`docs/deploy.md`](deploy.md).

@@ -1,0 +1,81 @@
+# Produkcija: jedan server, jedna komanda.
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# --env-file je obavezan: bez njega ${...} ispod nema odakle da se popuni.
+# Za lokalni razvoj koristi docker-compose.yml — ovaj fajl diže i samu aplikaciju.
+# Vlastiti project name: bez njega compose dijeli namespace sa docker-compose.yml (oba se zovu po
+# folderu) i prod stack bi preuzeo i prekrstio dev kontejnere, pa i dev volumene.
+name: skillatlas-prod
+
+services:
+  neo4j:
+    image: neo4j:5.26-community
+    # Namjerno bez published portova: 7474/7687 na javnom IP-u su otvorena baza.
+    # Za debug: docker compose -f docker-compose.prod.yml exec neo4j cypher-shell
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD je obavezan}
+      # Ne NEO4J_-prefiks: neo4j image svaki NEO4J_* pretvara u config setting i pukne
+      # na nepoznatom. Ovo je samo za healthcheck ispod.
+      HEALTH_PASSWORD: ${NEO4J_PASSWORD}
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      # $$ je escape — varijablu čita shell u kontejneru, ne compose.
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$$HEALTH_PASSWORD\" 'RETURN 1' >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.36.0
+    command: azurite-blob --blobHost 0.0.0.0 --location /data
+    environment:
+      # Vlastiti nalog umjesto devstoreaccount1, čiji je ključ javno objavljen — inače bi bilo ko
+      # mogao sam potpisati SAS link za bilo koju sliku. Ključ: openssl rand -base64 32
+      AZURITE_ACCOUNTS: skillatlas:${AZURITE_KEY:?AZURITE_KEY je obavezan}
+    ports:
+      # Za razliku od Neo4ja OVAJ port mora biti dostupan izvana: SAS link otvara browser korisnika,
+      # direktno, mimo backenda. Iza TLS-a vidi docs/deploy.md (Azurite pod /blob).
+      - "10000:10000"
+    volumes:
+      - azurite-data:/data
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      neo4j:
+        # Ne obični depends_on: Neo4j se "pokrene" za sekundu, a bazu diže još 15-20s, i app bi u
+        # tom prozoru pao na SchemaInitializer-u.
+        condition: service_healthy
+      azurite:
+        condition: service_started
+    env_file: .env.prod
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Ime servisa je hostname unutar compose mreže; localhost bi za kontejner značio "ja sam".
+      NEO4J_URI: bolt://neo4j:7687
+      # Svaka vrijednost koju dijele DVA servisa mora ići kroz interpolaciju, nikad samo kroz
+      # env_file: shell varijabla nadjačava --env-file, ali env_file čita fajl doslovno. Ista
+      # lozinka bi tada stigla iz dva izvora i tiho se razišla — neo4j jedno, app drugo.
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD je obavezan}
+      # Isti razlog: AccountKey ovdje mora biti isti kao AZURITE_KEY koji dobija azurite servis.
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:?AZURE_STORAGE_CONNECTION_STRING je obavezan}
+    ports:
+      # Iza reverse proxyja stavi APP_PORT=127.0.0.1:8080 da app ne visi na javnom IP-u.
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  neo4j-data:
+  neo4j-logs:
+  # Drži SVE profilne slike — backup bez njega daje obnovljen graf u kojem svaki avatar puca na 404.
+  azurite-data:

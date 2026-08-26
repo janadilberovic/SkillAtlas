@@ -112,3 +112,18 @@ jobs:
       # `ng build` defaults to the production configuration: full AOT template typecheck
       # and the 800kb/2mb budgets from angular.json.
       - run: npm run build
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Builds only — nothing is pushed. The point is that the deploy path cannot rot unnoticed
+      # and then fail on the day it is actually needed.
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

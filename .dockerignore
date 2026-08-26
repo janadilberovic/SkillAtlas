@@ -1,0 +1,9 @@
+target/
+frontend/node_modules/
+frontend/dist/
+.git/
+.github/
+docs/
+# Not just noise: without this the file would be baked into an image layer, and layers survive rm.
+**/.env
+*.pdf
