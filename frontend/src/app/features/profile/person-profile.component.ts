@@ -56,6 +56,11 @@ export class PersonProfileComponent {
   readonly passwordError = signal('');
   readonly passwordDone = signal(false);
 
+  /** The owner's own change-password form (E1.3), which is a different rule than the panel above. */
+  readonly ownPasswordBusy = signal(false);
+  readonly ownPasswordError = signal('');
+  readonly ownPasswordDone = signal(false);
+
   /** The wish an admin is picking a mentor for (E6.1), and the wish being routed (E6.2). */
   readonly mentorSkill = signal<string | null>(null);
   readonly mentorConfirmed = signal<string | null>(null);
@@ -69,6 +74,9 @@ export class PersonProfileComponent {
   newWishId = '';
   newTeamId = '';
   newPassword = '';
+  currentPassword = '';
+  ownPassword = '';
+  confirmPassword = '';
 
   readonly skillOptions = computed(() => this.catalog().map((s) => ({ value: s.id, label: s.name })));
   readonly isOwn = computed(() => this.person()?.id === this.auth.user()?.id);
@@ -298,6 +306,35 @@ export class PersonProfileComponent {
       error: () => {
         this.passwordBusy.set(false);
         this.passwordError.set('The server refused that password.');
+      },
+    });
+  }
+
+  /** The confirmation field never leaves the browser — it guards against a typo, not the server. */
+  changeOwnPassword(): void {
+    this.ownPasswordError.set('');
+    this.ownPasswordDone.set(false);
+    if (this.ownPassword.length < MIN_PASSWORD) {
+      this.ownPasswordError.set(`At least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+    if (this.ownPassword !== this.confirmPassword) {
+      this.ownPasswordError.set('The two new passwords do not match.');
+      return;
+    }
+    this.ownPasswordBusy.set(true);
+    this.auth.changePassword(this.currentPassword, this.ownPassword).subscribe({
+      next: () => {
+        this.currentPassword = '';
+        this.ownPassword = '';
+        this.confirmPassword = '';
+        this.ownPasswordBusy.set(false);
+        this.ownPasswordDone.set(true);
+        setTimeout(() => this.ownPasswordDone.set(false), FLASH_MS);
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.ownPasswordBusy.set(false);
+        this.ownPasswordError.set(err?.error?.error ?? 'The server refused that password.');
       },
     });
   }

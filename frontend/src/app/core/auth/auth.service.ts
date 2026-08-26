@@ -60,6 +60,14 @@ export class AuthService {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
+  /**
+   * The session survives on purpose: the token carries only the person and the role, so it does
+   * not go stale when the hash behind it does.
+   */
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.api.changePassword(currentPassword, newPassword);
+  }
+
   logout(): void {
     this._user.set(null);
     this._token.set(null);

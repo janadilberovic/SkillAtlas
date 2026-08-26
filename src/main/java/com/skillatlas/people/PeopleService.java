@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.skillatlas.auth.exception.CurrentPasswordMismatchException;
+import com.skillatlas.auth.exception.PasswordUnchangedException;
 import com.skillatlas.people.domain.Person;
 import com.skillatlas.people.dto.PersonCreateRequest;
 import com.skillatlas.people.dto.PersonResponse;
@@ -104,6 +106,24 @@ public class PeopleService {
     public void setPassword(String id, String rawPassword) {
         Person person = getById(id);
         person.setPasswordHash(passwordEncoder.encode(rawPassword));
+        repository.save(person);
+    }
+
+    /**
+     * Spec E1.3: changing your own password takes the current one. Separate from
+     * {@link #setPassword} because the two callers have different inputs — an admin setting a first
+     * password does not know the old one, and cannot be asked for it.
+     */
+    @Transactional
+    public void changeOwnPassword(String id, String currentPassword, String newPassword) {
+        Person person = getById(id);
+        if (!passwordEncoder.matches(currentPassword, person.getPasswordHash())) {
+            throw new CurrentPasswordMismatchException();
+        }
+        if (passwordEncoder.matches(newPassword, person.getPasswordHash())) {
+            throw new PasswordUnchangedException();
+        }
+        person.setPasswordHash(passwordEncoder.encode(newPassword));
         repository.save(person);
     }
 

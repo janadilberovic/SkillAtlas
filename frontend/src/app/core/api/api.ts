@@ -35,6 +35,8 @@ import { SkillTerm } from './finder-query';
 export abstract class AuthApi {
   abstract login(email: string, password: string): Observable<LoginResponse>;
   abstract me(): Observable<Me>;
+  /** Self-service only — the server takes the person from the token, never from an argument. */
+  abstract changePassword(currentPassword: string, newPassword: string): Observable<void>;
 }
 
 export interface PeopleQuery {
