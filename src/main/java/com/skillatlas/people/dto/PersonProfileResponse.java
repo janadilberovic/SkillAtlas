@@ -19,6 +19,9 @@ public record PersonProfileResponse(
         String position,
         Role role,
         boolean active,
+        // Null for anyone but an admin. An imported person has no hash yet and cannot sign in,
+        // which is the one thing the admin panel has to be able to say out loud.
+        Boolean hasPassword,
         // The repository puts the blob key here; PeopleProfileService signs it on the way out.
         String avatarUrl,
         List<String> teams,
@@ -53,11 +56,16 @@ public record PersonProfileResponse(
 
     public PersonProfileResponse withNeighbourhood(Neighbourhood value) {
         return new PersonProfileResponse(id, email, firstName, lastName, position, role, active,
-                avatarUrl, teams, skills, wishes, projects, mentoring, value);
+                hasPassword, avatarUrl, teams, skills, wishes, projects, mentoring, value);
     }
 
     public PersonProfileResponse withAvatarUrl(String value) {
         return new PersonProfileResponse(id, email, firstName, lastName, position, role, active,
-                value, teams, skills, wishes, projects, mentoring, neighbourhood);
+                hasPassword, value, teams, skills, wishes, projects, mentoring, neighbourhood);
+    }
+
+    public PersonProfileResponse withHasPassword(Boolean value) {
+        return new PersonProfileResponse(id, email, firstName, lastName, position, role, active,
+                value, avatarUrl, teams, skills, wishes, projects, mentoring, neighbourhood);
     }
 }

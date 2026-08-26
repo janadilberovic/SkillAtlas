@@ -21,4 +21,11 @@ public interface TeamsRepository extends Neo4jRepository<Team, String> {
             MERGE (p)-[:MEMBER_OF]->(t)
             """)
     void addMember(@Param("teamId") String teamId, @Param("personId") String personId);
+
+    // Matches nothing when the person is not in the team, which is what makes the DELETE idempotent.
+    @Query("""
+            MATCH (:Person {id: $personId})-[r:MEMBER_OF]->(:Team {id: $teamId})
+            DELETE r
+            """)
+    void removeMember(@Param("teamId") String teamId, @Param("personId") String personId);
 }

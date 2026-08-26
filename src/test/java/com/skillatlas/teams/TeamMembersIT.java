@@ -1,6 +1,7 @@
 package com.skillatlas.teams;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,7 +25,7 @@ import com.skillatlas.support.AbstractNeo4jIT;
 import com.skillatlas.teams.domain.Team;
 import com.skillatlas.teams.dto.TeamCreateRequest;
 
-// Putting people in a team (MEMBER_OF): who may write it, and that repeating it stays one edge.
+// MEMBER_OF writes: who may add and remove, and that repeating either stays a no-op.
 class TeamMembersIT extends AbstractNeo4jIT {
 
     @Autowired
@@ -109,6 +110,45 @@ class TeamMembersIT extends AbstractNeo4jIT {
     @Test
     void addMember_toUnknownTeam_returns404() throws Exception {
         mvc.perform(post("/api/v1/teams/{id}/members/{personId}", "no-such-team", memberId)
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void removeMember_asAdmin_returns204AndDropsTheEdge() throws Exception {
+        teamsService.addMember(teamId, memberId);
+
+        mvc.perform(delete("/api/v1/teams/{id}/members/{personId}", teamId, memberId)
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(edgeCount()).isZero();
+    }
+
+    // The profile panel offers "remove" per team tag; two clicks in a row must not 404 or 500.
+    @Test
+    void removeMember_whoIsNotInTheTeam_isStillANoContentNoOp() throws Exception {
+        mvc.perform(delete("/api/v1/teams/{id}/members/{personId}", teamId, memberId)
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(edgeCount()).isZero();
+    }
+
+    @Test
+    void removeMember_asMember_isForbidden() throws Exception {
+        teamsService.addMember(teamId, memberId);
+
+        mvc.perform(delete("/api/v1/teams/{id}/members/{personId}", teamId, memberId)
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isForbidden());
+
+        assertThat(edgeCount()).isEqualTo(1);
+    }
+
+    @Test
+    void removeMember_fromUnknownTeam_returns404() throws Exception {
+        mvc.perform(delete("/api/v1/teams/{id}/members/{personId}", "no-such-team", memberId)
                 .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
     }

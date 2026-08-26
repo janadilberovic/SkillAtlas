@@ -96,6 +96,17 @@ public class PeopleService {
         return repository.save(person);
     }
 
+    /**
+     * E3 leaves imported people with {@code passwordHash == null}, so they cannot sign in at all
+     * until an admin sets one here. The raw value is encoded on arrival and never logged.
+     */
+    @Transactional
+    public void setPassword(String id, String rawPassword) {
+        Person person = getById(id);
+        person.setPasswordHash(passwordEncoder.encode(rawPassword));
+        repository.save(person);
+    }
+
     @Transactional
     public void softDelete(String id) {
         // An admin who deletes themselves keeps a valid token for a person every read filters out,

@@ -21,7 +21,7 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [6b] | E2.1 · Admin CRUD nad osobama — new person + delete | [E2.1](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ `feat/people-admin-crud` |
 | [6c] | E2.4 · Projekat: roster, USES editovanje, podgraf, paginacija liste | [E2.4](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ |
 | [7] | E3 · Import iz VacaYAY-a | [E3](spec.md#e3--import-iz-vacayay-a-core) | ✅ `feat/vacayay-import` |
-| **[8]** | **Dorade: change-password, logout, people search/filter, person↔team** | §04.3 | ⬅️ **sljedeći** |
+| **[8]** | **Dorade: change-password, logout, people search/filter, person↔team** | §04.3 | ⬅️ **u toku** — person↔team i admin lozinka ✅ |
 | [8a] | Profilna slika · Azure Blob Storage + SAS | [§02 Person](spec.md#1-čvorovi-core) | ✅ `feat/person-avatar-azure-blob` |
 | [9] | Dopuna testova | §04.5 | ⬜ |
 | [10] | Jedan Advanced (E7–E13) | [Advanced](spec.md#advanced-bira-se-jedan) | ⬜ |
@@ -287,8 +287,44 @@ importu.
 
 ## [8] Dorade
 
-Change-password, logout, person↔team dodjela. Uz to: migrirati preostale native `<select>`-ove
+Change-password (self-service), logout. Uz to: migrirati preostale native `<select>`-ove
 (skills, projects, graph filteri) na `sa-select`.
+
+### Admin panel na profilu — gotovo
+
+Uvezena osoba (E3) sleti u graf bez tima, bez skillova i bez lozinke, pa joj je profil do sada bio
+samo za gledanje — sve na njemu je stajalo iza `isOwn()`, a uvezeni se ne može ni ulogovati da to
+popuni. Profil je zato dobio `Admin` panel: dodjela tima i početna lozinka.
+
+Odluke:
+1. **`DELETE /api/v1/teams/{id}/members/{personId}`** dopunjuje postojeći `POST`. Upit koji ne
+   pogodi nijednu `MEMBER_OF` vezu ne mijenja ništa, pa je i drugi klik `204`, ne `404` — panel
+   nudi ✕ po timu i to mora biti bezopasno.
+2. **`PUT /api/v1/people/{id}/password`** je zaseban endpoint, **ne polje u `PersonUpdateRequest`**.
+   Lozinka ne smije moći da se prišunja uz izmjenu imena. Admin-only (spec §04.3 lozinku stavlja u
+   ono što admin edituje); self-service change-password je i dalje neurađen. **Sekcija `Sign-in` se
+   prikazuje samo dok osoba nema lozinku** — čim je dobije, nestaje s profila; endpoint i dalje
+   prima i zamjenu postojeće, pa reset lozinke ostaje moguć kad mu se doda ulaz.
+3. **`hasPassword` na profilu, vidljivo samo adminu.** Upit ga uvijek pročita
+   (`p.passwordHash IS NOT NULL`), a `PeopleProfileService` ga za sve osim admina vrati na `null` —
+   inače bi svako mogao da mapira ko u firmi ne može da se uloguje. Sam hash ne izlazi nikad.
+4. **Panel je na svakom profilu, ne samo na uvezenim.** Uvezenu osobu se ionako prepoznaje po
+   praznom timu i `hasPassword: false`; trag odakle je došla bi tražio novo polje na `Person`.
+5. **Skillovi u tuđe ime nisu dirani** — `PeopleSkillsController` ostaje owner-only. Popuštanje na
+   owner-or-admin je sigurnosna promjena, a mapiranje skillova ima svoj red u dashboardu.
+6. **Panel je kartica u desnoj koloni**, iznad `Mentoring` i `Around them` — glavna kolona ostaje
+   ekran za čitanje, a kartica ima mjesta da poraste (uloga, deaktivacija). Cijena je udaljenost:
+   pridruživanje se dešava 380 px od tagova u zaglavlju, pa novododijeljeni tim par sekundi ostane
+   jedini popunjen tag na stranici — i u kartici i gore u zaglavlju. Kontrole unutar kartice spuštaju
+   `--surface` na `--surface-2`; kartica i polje inače dijele pozadinu i polje nestane.
+7. **Frontend traži id tima po imenu.** `PersonProfileResponse.teams` nosi imena, a `Team.name` ima
+   unique constraint, pa katalog koji panel ionako učitava za „Add to a team" preslikava jedno u
+   drugo — jeftinije nego mijenjati oblik DTO-a koji tri ekrana već čitaju.
+
+`PersonAdminPanelIT` (8 testova): uvezeni se ne loguje dok admin ne postavi lozinku pa onda se
+loguje, hash je bcrypt a ne plain, prekratka lozinka je `400` i ne mijenja ništa, member je `403`
+(i za sebe), nepoznata osoba `404`, `hasPassword` je `false`/`true` adminu i `null` svima drugima.
+`TeamMembersIT` je dobio 4 testa za `DELETE` (204 + veza nestala, no-op, 403, 404).
 
 People search/filter je urađen ranije, van reda: `GET /people?search=&team=&skill=` filtrira u
 Cypheru (`PeopleSearchRepository`), a lista je sortirana `createdAt DESC` pa abecedno — nova osoba

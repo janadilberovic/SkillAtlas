@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.skillatlas.common.PageResponse;
 import com.skillatlas.people.dto.PersonCreateRequest;
+import com.skillatlas.people.dto.PersonPasswordRequest;
 import com.skillatlas.people.dto.PersonProfileResponse;
 import com.skillatlas.people.dto.PersonResponse;
 import com.skillatlas.people.dto.PersonUpdateRequest;
@@ -67,6 +68,15 @@ public class PeopleController {
     @PreAuthorize("hasRole('ADMIN')")
     public PersonResponse update(@PathVariable String id, @Valid @RequestBody PersonUpdateRequest request) {
         return service.toResponse(service.updateProfile(id, request));
+    }
+
+    // Spec §04.3: password is part of what an admin may edit. Separate from the profile PUT so a
+    // profile edit can never carry one.
+    @PutMapping("/{id}/password")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setPassword(@PathVariable String id, @Valid @RequestBody PersonPasswordRequest request) {
+        service.setPassword(id, request.password());
     }
 
     @DeleteMapping("/{id}")

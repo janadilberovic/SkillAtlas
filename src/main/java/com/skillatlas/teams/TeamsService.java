@@ -69,4 +69,14 @@ public class TeamsService {
         }
         repository.addMember(teamId, personId);
     }
+
+    /** Takes the MEMBER_OF edge away. Idempotent — removing a non-member changes nothing. */
+    @Transactional
+    public void removeMember(String teamId, String personId) {
+        getById(teamId);
+        if (peopleRepository.findByIdAndDeletedFalse(personId).isEmpty()) {
+            throw new PersonNotFoundException(personId);
+        }
+        repository.removeMember(teamId, personId);
+    }
 }

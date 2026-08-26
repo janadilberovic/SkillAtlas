@@ -68,6 +68,8 @@ export abstract class PeopleApi {
   abstract create(input: PersonInput): Observable<Person>;
   /** Soft delete — the person keeps their relations and drops out of every read. */
   abstract remove(id: string): Observable<void>;
+  /** Admin only. Imported people arrive without one and cannot sign in until this runs. */
+  abstract setPassword(id: string, password: string): Observable<void>;
   /** Own picture only; the server checks the token, not the path. */
   abstract uploadAvatar(personId: string, file: File): Observable<AvatarUpload>;
   abstract removeAvatar(personId: string): Observable<void>;
@@ -136,6 +138,8 @@ export abstract class TeamApi {
   abstract list(): Observable<Team[]>;
   /** MEMBER_OF, and the server MERGEs it — adding someone who is already there is a no-op, not a duplicate. */
   abstract addMember(teamId: string, personId: string): Observable<void>;
+  /** Also a no-op when they were never in the team. */
+  abstract removeMember(teamId: string, personId: string): Observable<void>;
 }
 
 /** My Skills — a person manages their own KNOWS (level 1–5) and WANTS_TO_LEARN. Owner-only writes. */

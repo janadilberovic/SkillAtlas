@@ -96,6 +96,9 @@ export class HttpPeopleApi extends PeopleApi {
   removeAvatar(personId: string): Observable<void> {
     return this.http.delete<void>(`${BASE}/people/${personId}/avatar`);
   }
+  setPassword(id: string, password: string): Observable<void> {
+    return this.http.put<void>(`${BASE}/people/${id}/password`, { password });
+  }
 }
 
 @Injectable()
@@ -182,6 +185,9 @@ export class HttpTeamApi extends TeamApi {
   }
   addMember(teamId: string, personId: string): Observable<void> {
     return this.http.post<void>(`${BASE}/teams/${teamId}/members/${personId}`, {});
+  }
+  removeMember(teamId: string, personId: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/teams/${teamId}/members/${personId}`);
   }
 }
 
