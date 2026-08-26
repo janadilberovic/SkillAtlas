@@ -21,7 +21,7 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [6b] | E2.1 · Admin CRUD nad osobama — new person + delete | [E2.1](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ `feat/people-admin-crud` |
 | [6c] | E2.4 · Projekat: roster, USES editovanje, podgraf, paginacija liste | [E2.4](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ |
 | [7] | E3 · Import iz VacaYAY-a | [E3](spec.md#e3--import-iz-vacayay-a-core) | ✅ `feat/vacayay-import` |
-| **[8]** | **Dorade: change-password, logout, people search/filter, person↔team** | §04.3 | ⬅️ **u toku** — person↔team i admin lozinka ✅ |
+| **[8]** | **Dorade: change-password, logout, people search/filter, person↔team** | §04.3 | ⬅️ **u toku** — sve ✅ osim logouta |
 | [8a] | Profilna slika · Azure Blob Storage + SAS | [§02 Person](spec.md#1-čvorovi-core) | ✅ `feat/person-avatar-azure-blob` |
 | [9] | Dopuna testova | §04.5 | ⬜ |
 | [10] | Jedan Advanced (E7–E13) | [Advanced](spec.md#advanced-bira-se-jedan) | ⬜ |
@@ -287,8 +287,47 @@ importu.
 
 ## [8] Dorade
 
-Change-password (self-service), logout. Uz to: migrirati preostale native `<select>`-ove
-(skills, projects, graph filteri) na `sa-select`.
+Ostaje logout. Uz to: migrirati preostale native `<select>`-ove (skills, projects, graph filteri)
+na `sa-select`.
+
+### E1.3 · Change password (self-service) — gotovo
+
+`POST /api/v1/auth/change-password` — jedini pisac lozinke koji traži trenutnu. Na profilu je
+kartica `Account` (rail, iza `isOwn()`), s poljima current / new / repeat.
+
+Odluke (potvrđene i implementirane):
+1. **Zaseban endpoint, ne owner-or-admin nad `PUT /people/{id}/password`.** Dva pozivaoca imaju
+   različit ulaz: admin postavlja **prvu** lozinku i staru ne zna, vlasnik mijenja svoju i mora je
+   dokazati. Jedan endpoint bi značio `currentPassword` kao opciono polje — a opciona provjera
+   identiteta je pitanje vremena kad će se preskočiti.
+2. **Nema `{id}` u putanji i nema `@PreAuthorize`.** Osoba se uzima iz tokena
+   (`SecurityUtil.currentUserId()`), pa IDOR nije spriječen provjerom nego **nepostojanjem
+   parametra** koji bi pokazao na tuđi resurs. `anyRequest().authenticated()` već traži token; ruta
+   se ne dodaje u `permitAll()`.
+3. **Pogrešna trenutna lozinka → 400, ne 401.** 401 klijentu znači „sesija ne valja", a sesija
+   ovdje valja — token je prošao filter. Čim tokeni od 120 minuta počnu isticati usred rada i
+   interceptor dobije globalni 401 → `logout()`, 401 na ovom mjestu bi značio da tipfeler u polju
+   „Current password" izbacuje čovjeka iz aplikacije. Login ostaje na 401 s generičkom porukom —
+   tamo je skrivanje razlike cijela poenta.
+4. **Nova lozinka jednaka staroj → 400.** Inače „Password changed" iskoči za akciju koja nije
+   promijenila ništa.
+5. **`repeat` polje nikad ne napušta browser.** Server nema šta da radi s dva puta istim stringom;
+   to je provjera protiv tipfelera, a tipfeler se hvata gdje se kuca. Dužina se ipak provjerava na
+   oba mjesta — klijent zbog brzine poruke, server zbog istine.
+6. **Kartica na `/me`, ne modal iz topbara.** Ostatak E1.3 (izmjena svog imena i pozicije) je opet
+   forma nad istom osobom; modal bi postao drugi ekran za profil koji već postoji. Cijena: akcija
+   sjedi ispod skillova i projekata, dvije trećine visine niže od avatara.
+7. **`AuthService.changePassword` je prolaz do `AuthApi`**, a ne novi poziv iz komponente — profil
+   već injektuje `auth`, i tu je mjesto gdje bi jednog dana stigla zamjena tokena.
+
+**Poznato ograničenje:** stari token radi i poslije promjene lozinke, do 120 minuta
+(`JWT_EXP_MINUTES`). JWT nosi samo `subject` + `role` i ne zna za hash, pa promjena lozinke ne
+poništava ukradenu sesiju. Poništavanje traži `tokenVersion` na `Person` — isti mehanizam koji treba
+pravom logoutu, pa ide s njim.
+
+`AuthChangePasswordIT` (6 testova): stara lozinka prestaje da radi a nova radi, pogrešna trenutna je
+400 i ne mijenja hash, prekratka je 400, ista je 400, bez tokena je 401, i hash je bcrypt dok je
+tuđi hash netaknut (put nema `{id}`, pa se to piše kao test a ne kao komentar).
 
 ### Admin panel na profilu — gotovo
 

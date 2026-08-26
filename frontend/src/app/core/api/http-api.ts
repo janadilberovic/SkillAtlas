@@ -63,6 +63,9 @@ export class HttpAuthApi extends AuthApi {
   me(): Observable<Me> {
     return this.http.get<Me>(`${BASE}/me`);
   }
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${BASE}/auth/change-password`, { currentPassword, newPassword });
+  }
 }
 
 @Injectable()

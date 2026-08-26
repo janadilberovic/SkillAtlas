@@ -1,11 +1,14 @@
 package com.skillatlas.auth;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.skillatlas.auth.dto.ChangePasswordRequest;
 import com.skillatlas.auth.dto.LoginRequest;
 import com.skillatlas.auth.dto.LoginResponse;
 import com.skillatlas.auth.dto.MeResponse;
@@ -44,6 +47,15 @@ public class AuthController {
                 .filter(p -> passwordEncoder.matches(request.password(), p.getPasswordHash()))
                 .orElseThrow(InvalidCredentialsException::new);
         return LoginResponse.bearer(jwtService.issue(person.getId(), person.getRole()), person.getRole());
+    }
+
+    // No {id} in the path and no @PreAuthorize: the caller comes from the token, so there is no
+    // other person's password this route could reach.
+    @PostMapping("/auth/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        peopleService.changeOwnPassword(SecurityUtil.currentUserId(), request.currentPassword(),
+                request.newPassword());
     }
 
     @GetMapping("/me")

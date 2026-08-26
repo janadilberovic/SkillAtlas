@@ -249,6 +249,31 @@
         </div>
       }
 
+      @if (isOwn()) {
+        <div class="card adminbox">
+          <span class="rail-title">Account</span>
+
+          <span class="eyebrow eyebrow-mute">Password</span>
+          @if (ownPasswordDone()) {
+            <span class="small accent">Password changed — use the new one next time you sign in.</span>
+          }
+          @if (ownPasswordError()) {
+            <span class="err small">{{ ownPasswordError() }}</span>
+          }
+          <input class="field" type="password" autocomplete="current-password" placeholder="Current password"
+                 [(ngModel)]="currentPassword" [disabled]="ownPasswordBusy()" />
+          <input class="field" type="password" autocomplete="new-password" placeholder="New password"
+                 [(ngModel)]="ownPassword" [disabled]="ownPasswordBusy()" />
+          <input class="field" type="password" autocomplete="new-password" placeholder="Repeat new password"
+                 [(ngModel)]="confirmPassword" [disabled]="ownPasswordBusy()" />
+          <button class="btn btn-sm btn-block"
+                  [disabled]="ownPasswordBusy() || !currentPassword || !ownPassword"
+                  (click)="changeOwnPassword()">
+            {{ ownPasswordBusy() ? 'Saving…' : 'Change password' }}
+          </button>
+        </div>
+      }
+
       <div class="card">
         <span class="rail-title">Mentoring</span>
         <span class="eyebrow eyebrow-mute">Mentored by</span>

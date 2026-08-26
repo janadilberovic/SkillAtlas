@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import com.skillatlas.auth.exception.CurrentPasswordMismatchException;
 import com.skillatlas.auth.exception.InvalidCredentialsException;
+import com.skillatlas.auth.exception.PasswordUnchangedException;
 import com.skillatlas.finder.exception.InvalidSkillLevelException;
 import com.skillatlas.finder.exception.NoSkillsSelectedException;
 import com.skillatlas.graph.exception.InvalidNodeTypeException;
@@ -37,6 +39,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, Object>> onInvalidCredentials(InvalidCredentialsException ex) {
         return error(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler({ CurrentPasswordMismatchException.class, PasswordUnchangedException.class })
+    public ResponseEntity<Map<String, Object>> onPasswordChangeRejected(RuntimeException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
