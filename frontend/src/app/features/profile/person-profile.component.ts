@@ -1,9 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MentoringApi, PeopleApi, PeopleSkillsApi, SkillApi } from '../../core/api/api';
+import { MentoringApi, PeopleApi, PeopleSkillsApi, SkillApi, TeamApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
-import { LearningPath, PersonProfile, Skill } from '../../core/models/models';
+import { LearningPath, PersonProfile, Skill, Team } from '../../core/models/models';
 import { MentorMatchingComponent } from '../mentoring/mentor-matching.component';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { LevelBarComponent } from '../../shared/components/level-bar/level-bar.component';
@@ -11,6 +11,8 @@ import { SelectComponent } from '../../shared/components/select/select.component
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+const MIN_PASSWORD = 8;
+const FLASH_MS = 5000;
 
 @Component({
   selector: 'sa-person-profile',
@@ -33,6 +35,7 @@ export class PersonProfileComponent {
   private readonly peopleSkillsApi = inject(PeopleSkillsApi);
   private readonly skillApi = inject(SkillApi);
   private readonly mentoringApi = inject(MentoringApi);
+  private readonly teamApi = inject(TeamApi);
   readonly auth = inject(AuthService);
 
   readonly person = signal<PersonProfile | null>(null);
@@ -42,6 +45,16 @@ export class PersonProfileComponent {
   readonly addError = signal('');
   readonly photoBusy = signal(false);
   readonly photoError = signal('');
+
+  /** The admin panel: what an imported person is missing — a team, and a way to sign in. */
+  readonly allTeams = signal<Team[]>([]);
+  readonly teamBusy = signal(false);
+  readonly teamError = signal('');
+  /** The team just joined, held long enough to be noticed and then dropped. */
+  readonly justJoined = signal<string | null>(null);
+  readonly passwordBusy = signal(false);
+  readonly passwordError = signal('');
+  readonly passwordDone = signal(false);
 
   /** The wish an admin is picking a mentor for (E6.1), and the wish being routed (E6.2). */
   readonly mentorSkill = signal<string | null>(null);
@@ -54,6 +67,8 @@ export class PersonProfileComponent {
   newSkillId = '';
   newLevel = 3;
   newWishId = '';
+  newTeamId = '';
+  newPassword = '';
 
   readonly skillOptions = computed(() => this.catalog().map((s) => ({ value: s.id, label: s.name })));
   readonly isOwn = computed(() => this.person()?.id === this.auth.user()?.id);
@@ -73,12 +88,24 @@ export class PersonProfileComponent {
     () => new Set(this.mentors().map((m) => m.skill).filter((s): s is string => s !== null)),
   );
   readonly teams = computed(() => this.person()?.teams ?? []);
+  readonly joinableTeams = computed(() => {
+    const joined = new Set(this.teams());
+    return this.allTeams()
+      .filter((t) => !joined.has(t.name))
+      .map((t) => ({ value: t.id, label: t.name }));
+  });
+  /** Null for non-admins — the server hides the field rather than answering it for everyone. */
+  readonly hasPassword = computed(() => this.person()?.hasPassword ?? null);
   readonly neighbours = computed(() => this.person()?.neighbourhood?.nodes.slice(1) ?? []);
   readonly neighbourCount = computed(() => this.person()?.neighbourhood?.edges.length ?? 0);
   readonly truncated = computed(() => this.person()?.neighbourhood?.truncated ?? false);
 
   constructor() {
     this.skillApi.list().subscribe((s) => this.catalog.set(s));
+    // Only the admin panel needs the catalog, and only an admin is served the write endpoints.
+    if (this.auth.isAdmin()) {
+      this.teamApi.list().subscribe((t) => this.allTeams.set(t));
+    }
     this.route.paramMap.subscribe((pm) => {
       const id = pm.get('id') ?? this.auth.user()?.id ?? '';
       this.loading.set(true);
@@ -199,6 +226,80 @@ export class PersonProfileComponent {
   removeWish(skillId: string): void {
     const id = this.person()!.id;
     this.peopleSkillsApi.removeWish(id, skillId).subscribe(() => this.load(id));
+  }
+
+  addTeam(): void {
+    if (!this.newTeamId) return;
+    const id = this.person()!.id;
+    this.teamError.set('');
+    this.teamBusy.set(true);
+    const name = this.allTeams().find((t) => t.id === this.newTeamId)?.name ?? null;
+    this.teamApi.addMember(this.newTeamId, id).subscribe({
+      next: () => {
+        this.newTeamId = '';
+        this.teamBusy.set(false);
+        this.flashJoined(name);
+        this.load(id);
+      },
+      error: () => {
+        this.teamBusy.set(false);
+        this.teamError.set('Could not add them to that team.');
+      },
+    });
+  }
+
+  // The profile carries team *names*; Team.name is unique in the graph, so the catalog is what
+  // turns one back into the id the endpoint needs.
+  removeTeam(name: string): void {
+    const team = this.allTeams().find((t) => t.name === name);
+    if (!team) return;
+    const id = this.person()!.id;
+    if (this.justJoined() === name) this.justJoined.set(null);
+    this.teamError.set('');
+    this.teamBusy.set(true);
+    this.teamApi.removeMember(team.id, id).subscribe({
+      next: () => {
+        this.teamBusy.set(false);
+        this.load(id);
+      },
+      error: () => {
+        this.teamBusy.set(false);
+        this.teamError.set('Could not take them out of that team.');
+      },
+    });
+  }
+
+  private flashJoined(name: string | null): void {
+    this.justJoined.set(name);
+    if (!name) return;
+    setTimeout(() => {
+      if (this.justJoined() === name) this.justJoined.set(null);
+    }, FLASH_MS);
+  }
+
+  /** Length is checked again on the server; this is only so the message arrives sooner. */
+  setPassword(): void {
+    this.passwordError.set('');
+    this.passwordDone.set(false);
+    if (this.newPassword.length < MIN_PASSWORD) {
+      this.passwordError.set(`At least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+    const id = this.person()!.id;
+    this.passwordBusy.set(true);
+    this.peopleApi.setPassword(id, this.newPassword).subscribe({
+      next: () => {
+        this.newPassword = '';
+        this.passwordBusy.set(false);
+        this.passwordDone.set(true);
+        setTimeout(() => this.passwordDone.set(false), FLASH_MS);
+        this.load(id);
+      },
+      error: () => {
+        this.passwordBusy.set(false);
+        this.passwordError.set('The server refused that password.');
+      },
+    });
   }
 
   openMentorMatching(skillName: string): void {

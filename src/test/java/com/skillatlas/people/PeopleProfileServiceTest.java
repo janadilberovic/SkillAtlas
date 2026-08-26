@@ -85,7 +85,7 @@ class PeopleProfileServiceTest {
 
     private static PersonProfileResponse emptyProfile() {
         return new PersonProfileResponse("p1", "ada@test.com", "Ada", "Lovelace", "Engineer",
-                Role.MEMBER, true, "p1/abc.png", List.of(), List.of(), List.of(), List.of(),
+                Role.MEMBER, true, true, "p1/abc.png", List.of(), List.of(), List.of(), List.of(),
                 new Mentoring(List.of(), List.of()),
                 new Neighbourhood(List.of(), List.of(), false));
     }

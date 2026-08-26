@@ -45,6 +45,7 @@ public class PeopleProfileRepository {
             WHERE p.isDeleted = false
             RETURN p.id AS id, p.email AS email, p.firstName AS firstName, p.lastName AS lastName,
                    p.position AS position, p.role AS role, p.active AS active,
+                   p.passwordHash IS NOT NULL AS hasPassword,
                    p.profilePicture AS avatarKey,
                    [(p)-[:MEMBER_OF]->(t:Team) | t.name] AS teams,
                    COLLECT {
@@ -135,6 +136,7 @@ public class PeopleProfileRepository {
                         record.get("position").asString(null),
                         Role.valueOf(record.get("role").asString()),
                         record.get("active").asBoolean(),
+                        record.get("hasPassword").asBoolean(),
                         record.get("avatarKey").asString(null),
                         sorted(record.get("teams").asList(Value::asString)),
                         record.get("skills").asList(PeopleProfileRepository::knownSkill).stream()

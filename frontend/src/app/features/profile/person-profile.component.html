@@ -25,7 +25,8 @@
           @if (teams().length) {
             <span class="teamrow">
               @for (t of teams(); track t) {
-                <span class="tag tag-mute">{{ t }}</span>
+                <span class="tag" [class.tag-mute]="justJoined() !== t"
+                      [class.joined]="justJoined() === t">{{ t }}</span>
               }
             </span>
           }
@@ -200,6 +201,54 @@
     </div>
 
     <aside class="rail">
+      @if (auth.isAdmin()) {
+        <div class="card adminbox">
+          <span class="rail-title">Admin</span>
+
+          <span class="eyebrow eyebrow-mute">Teams</span>
+          <div class="teamedit">
+            @for (t of teams(); track t) {
+              <span class="tag" [class.tag-outline]="justJoined() !== t"
+                    [class.joined]="justJoined() === t">
+                {{ t }}
+                <button class="tagx" [disabled]="teamBusy()" (click)="removeTeam(t)"
+                        [attr.aria-label]="'Remove from ' + t">✕</button>
+              </span>
+            } @empty {
+              <span class="dim small">No team yet.</span>
+            }
+          </div>
+          <sa-select placeholder="Add to a team…" [options]="joinableTeams()" [(value)]="newTeamId" />
+          <button class="btn btn-sm btn-block" [disabled]="teamBusy() || !newTeamId" (click)="addTeam()">
+            {{ teamBusy() ? 'Working…' : 'Add to team' }}
+          </button>
+          @if (teamError()) {
+            <span class="err small">{{ teamError() }}</span>
+          }
+
+          <!-- Only for someone who cannot sign in yet. Once they have a password the section is
+               gone for good — the confirmation is the last thing it ever shows. -->
+          @if (hasPassword() === false || passwordDone()) {
+            <div class="divider"></div>
+
+            <span class="eyebrow eyebrow-mute">Sign-in</span>
+            @if (passwordDone()) {
+              <span class="small accent">Password set — they sign in as {{ p.email }}.</span>
+            } @else {
+              <span class="small accent">No password yet — they cannot sign in.</span>
+              @if (passwordError()) {
+                <span class="err small">{{ passwordError() }}</span>
+              }
+              <input class="field" type="password" autocomplete="new-password" placeholder="New password"
+                     [(ngModel)]="newPassword" [disabled]="passwordBusy()" />
+              <button class="btn btn-sm btn-block" [disabled]="passwordBusy()" (click)="setPassword()">
+                {{ passwordBusy() ? 'Saving…' : 'Set password' }}
+              </button>
+            }
+          }
+        </div>
+      }
+
       <div class="card">
         <span class="rail-title">Mentoring</span>
         <span class="eyebrow eyebrow-mute">Mentored by</span>

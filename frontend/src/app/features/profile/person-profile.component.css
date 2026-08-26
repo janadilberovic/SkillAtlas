@@ -218,6 +218,66 @@ h1 {
 .tag-act:hover {
   color: var(--accent-text);
 }
+/* The rail card is already --surface, so controls dropped on it would vanish into their own
+   background. Stepping the token down on the controls keeps that a token change, not a hex. */
+.adminbox sa-select,
+.adminbox .field {
+  --surface: var(--surface-2);
+}
+.adminbox .eyebrow {
+  margin-top: 2px;
+}
+.adminbox .divider {
+  margin: 4px 0;
+}
+.teamedit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+/* Sits inside the tag, so it inherits the tag's colour instead of carrying its own. */
+.tagx {
+  background: none;
+  border: 0;
+  padding: 0 0 0 7px;
+  font: inherit;
+  font-size: 10px;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+}
+.tagx:hover:not(:disabled) {
+  opacity: 1;
+}
+.tagx:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+/* A team that was just joined is easy to miss among tags that all look alike, so for a few
+   seconds it is the one filled tag on the page — in the panel and up in the header both. */
+.tag.joined {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--bg-page);
+  animation: joined 1.4s ease-out;
+}
+@keyframes joined {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 11px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tag.joined {
+    animation: none;
+  }
+}
+.accent {
+  color: var(--accent-text);
+}
 .pathbox {
   margin-top: 18px;
   display: flex;

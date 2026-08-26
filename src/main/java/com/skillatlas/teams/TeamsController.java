@@ -78,4 +78,11 @@ public class TeamsController {
     public void addMember(@PathVariable String id, @PathVariable String personId) {
         service.addMember(id, personId);
     }
+
+    @DeleteMapping("/{id}/members/{personId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeMember(@PathVariable String id, @PathVariable String personId) {
+        service.removeMember(id, personId);
+    }
 }

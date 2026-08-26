@@ -91,6 +91,8 @@ export interface Person {
  */
 export interface PersonProfile extends Person {
   teams: string[];
+  /** Admin-only; null for everyone else. False means the person cannot sign in at all yet. */
+  hasPassword?: boolean | null;
   skills: ProfileSkill[];
   wishes: ProfileWish[];
   projects: PersonProject[];
