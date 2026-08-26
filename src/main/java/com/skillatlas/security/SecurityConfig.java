@@ -35,7 +35,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
-                        .anyRequest().authenticated())
+                        // Listed before anyRequest() so the Angular shell can be public without
+                        // dragging /actuator/info out with it. Everything left over is the bundle
+                        // itself — JS, CSS, index.html — which carries no data; the data is behind
+                        // /api/**, still authenticated.
+                        .requestMatchers("/api/**", "/actuator/**").authenticated()
+                        .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))

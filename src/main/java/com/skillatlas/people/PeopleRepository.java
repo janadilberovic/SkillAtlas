@@ -7,6 +7,7 @@ import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.skillatlas.people.domain.Person;
+import com.skillatlas.people.enums.Role;
 
 // Every read filters out soft-deleted people (CLAUDE.md).
 public interface PeopleRepository extends Neo4jRepository<Person, String> {
@@ -16,6 +17,8 @@ public interface PeopleRepository extends Neo4jRepository<Person, String> {
     Optional<Person> findByEmailAndDeletedFalse(String email);
 
     boolean existsByEmailAndDeletedFalse(String email);
+
+    boolean existsByRoleAndDeletedFalse(Role role);
 
     // Deliberately ignores the soft-delete filter: the unique constraint on Person.email ignores it
     // too, so "can I insert this email?" has to look at deleted rows as well.

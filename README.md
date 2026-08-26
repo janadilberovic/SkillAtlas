@@ -58,6 +58,18 @@ from the environment and force `skillatlas.seed.enabled=false`, so they never to
 
 CI runs both on every pull request — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
+## Deploy
+
+One Linux server, one command — Angular is bundled inside the Spring Boot jar, so the frontend and
+the API are the same process on the same port:
+
+```bash
+cp .env.prod.example .env.prod   # fill it in, then:
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+Full walkthrough, env-var table, backup and HTTPS: [docs/deploy.md](docs/deploy.md).
+
 ## Structure (feature-based)
 Packages under `com.skillatlas.<feature>`; layers `Controller → Service → Repository (Cypher only here) + dto`.
 Detailed conventions: [CLAUDE.md](CLAUDE.md). Domain model and feature spec: intern documentation.
