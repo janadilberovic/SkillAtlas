@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AvatarComponent } from '../avatar/avatar.component';
@@ -13,17 +13,12 @@ import { AvatarComponent } from '../avatar/avatar.component';
 export class AppShellComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  readonly importNote = signal(false);
 
   shortName(): string {
     const u = this.auth.user();
     if (!u) return '';
     const [first, ...rest] = u.fullName.split(' ');
     return rest.length ? `${first} ${rest[rest.length - 1][0]}.` : first;
-  }
-
-  importVacaYay(): void {
-    this.importNote.set(true);
   }
 
   logout(): void {

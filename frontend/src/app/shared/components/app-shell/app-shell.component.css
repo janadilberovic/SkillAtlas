@@ -60,29 +60,6 @@
 .signout:hover {
   color: var(--text-2);
 }
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 14px 22px 0;
-  padding: 10px 13px;
-  border-radius: var(--radius);
-  background: var(--surface-accent);
-  font-size: 13px;
-  color: var(--accent-text);
-}
-.banner .mark {
-  width: 2px;
-  height: 16px;
-  background: var(--accent);
-}
-.banner .dismiss {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  color: var(--accent-text);
-  font-size: 13px;
-}
 .content {
   flex: 1;
   min-height: 0;

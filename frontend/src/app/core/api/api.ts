@@ -4,6 +4,7 @@ import {
   FinderResult,
   GraphData,
   GraphNodeKind,
+  ImportResult,
   LearningPath,
   LoginResponse,
   Me,
@@ -20,6 +21,7 @@ import {
   SkillCoverage,
   SkillGapRow,
   Team,
+  VacaYayRosterRow,
 } from '../models/models';
 import { SkillTerm } from './finder-query';
 
@@ -177,4 +179,15 @@ export abstract class DashboardApi {
   /** The two long tables page on their own, so walking one does not re-run the other widgets. */
   abstract skillGap(page: number, size: number): Observable<Page<SkillGapRow>>;
   abstract mentorRequests(page: number, size: number): Observable<Page<MentorRequestRow>>;
+}
+
+/**
+ * The old system (E3). Its own token rather than two more methods on {@link PeopleApi}: everything
+ * behind this one can be switched off by someone else, and the seam should say so.
+ */
+export abstract class VacaYayApi {
+  /** The import picker's page — who the old system has, and who is already in the graph. */
+  abstract roster(page: number, size: number): Observable<Page<VacaYayRosterRow>>;
+  /** Ids only. The server re-reads the roster and takes every field from there. */
+  abstract import(ids: number[]): Observable<ImportResult>;
 }

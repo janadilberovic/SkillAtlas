@@ -90,4 +90,8 @@
   @if (showTeamAdd()) {
     <sa-team-members (closed)="onTeamAdd($event)" />
   }
+
+  @if (showImport()) {
+    <sa-vacayay-import (closed)="onImported($event)" />
+  }
 </div>

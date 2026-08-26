@@ -20,8 +20,8 @@ Zato prvo ide unos znanja (E2.3), pa tek onda stvari koje ga čitaju.
 | [6] | E6.1/2/3 · Mentoring, learning path, dashboard | [E6](spec.md#e6--preporuke-i-dashboard-core-sječivo-po-tempu) | ✅ PR #19 |
 | [6b] | E2.1 · Admin CRUD nad osobama — new person + delete | [E2.1](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ `feat/people-admin-crud` |
 | [6c] | E2.4 · Projekat: roster, USES editovanje, podgraf, paginacija liste | [E2.4](spec.md#e2--ljudi-skillovi-timovi-projekti-core) | ✅ |
-| **[7]** | **E3 · Import iz VacaYAY-a** | [E3](spec.md#e3--import-iz-vacayay-a-core) | ⬅️ **sljedeći** |
-| [8] | Dorade: change-password, logout, people search/filter, person↔team | §04.3 | ⬜ |
+| [7] | E3 · Import iz VacaYAY-a | [E3](spec.md#e3--import-iz-vacayay-a-core) | ✅ `feat/vacayay-import` |
+| **[8]** | **Dorade: change-password, logout, people search/filter, person↔team** | §04.3 | ⬅️ **sljedeći** |
 | [8a] | Profilna slika · Azure Blob Storage + SAS | [§02 Person](spec.md#1-čvorovi-core) | ✅ `feat/person-avatar-azure-blob` |
 | [9] | Dopuna testova | §04.5 | ⬜ |
 | [10] | Jedan Advanced (E7–E13) | [Advanced](spec.md#advanced-bira-se-jedan) | ⬜ |
@@ -239,10 +239,51 @@ Odluke (potvrđene i implementirane):
 `ProjectDetailIT` (5 testova) pokriva roster, obrisanu osobu van `memberCount`-a, `knows` ograničen
 na stack projekta, `memberCount` bez rostera na listi, i PUT koji vraća roster.
 
-## [7] E3 · VacaYAY import
+## [7] E3 · VacaYAY import — gotovo
 
-`POST /api/v1/people/import-vacayay`, idempotentno preko `MERGE` po emailu. MCP ugao: generisati
-DTO-ve iz live OpenAPI spec-a starog sistema.
+`GET /api/v1/people/vacayay-roster` (picker, paginiran) i `POST /api/v1/people/import-vacayay`
+(tijelo nosi **samo** `ids`). Odlazni HTTP živi u `com.skillatlas.vacayay`: `VacaYayClient`
+interfejs, `HttpVacaYayClient` kao jedina klasa koja zna da stari sistem stoji na URL-u — ista
+podjela kao `AvatarStorage` / `AzureAvatarStorage`. Kredencijali servisnog HR naloga idu kroz
+`VACAYAY_USER` / `VACAYAY_PASSWORD`; `application.yml` ima **prazan** default.
+
+Odluke (potvrđene i implementirane):
+1. **Picker, ne „uvezi sve"** — roster vraća `alreadyImported` i `issue` po redu, pa admin vidi
+   koga import može uzeti prije nego klikne. Isti oblik ima i VacaYAY-ov vlastiti legacy import.
+2. **Zahtjev nosi samo `ids`.** Server pri svakom POST-u ponovo povuče roster i uzme polja odatle.
+   Da klijent šalje `email`/`firstName`/`role`, uvozni put bi bio mass-assignment rupa (§5).
+3. **`role` je hardkodiran na `MEMBER`.** HR u starom sistemu ≠ admin ovdje — inače ko god može
+   upisati red u VacaYAY MySQL dobija admina u SkillAtlasu.
+4. **ON CREATE only.** `MERGE (p:Person {email: row.email})` postavlja polja samo pri kreiranju, pa
+   drugi klik ne pregazi poziciju koju je admin ručno ispravio. Ponovni import može proizvesti
+   isključivo `skipped`.
+5. **Kreirano se broji preko UUID-a, ne vremena.** `MERGE` ne kaže je li pogodio ili napravio, pa
+   upit vraća `p.id` i poziv ga poredi s UUID-om koji je sam iskovao za taj red. Poređenje
+   `p.createdAt = $now` bi slagalo brojače za dva importa u istoj milisekundi.
+6. **Email se normalizuje na lowercase.** Unique constraint na `Person.email` je case-sensitive, pa
+   bi `Nina.Hodzic@…` i `nina.hodzic@…` bila dva legalna čvora za jednog čovjeka.
+7. **Soft-obrisani se ne vaskrsavaju.** `takenEmails` namjerno gleda i obrisane (kao
+   `PeopleRepository.existsByEmail`), pa takav red ide u `skipped`, a `isDeleted` ostaje `true`.
+8. **Dva upita, ne dva po čovjeku** — jedan `takenEmails` i jedan `UNWIND … MERGE`.
+9. **Uvezeni nemaju lozinku.** `passwordHash` ostaje `null`; `BCryptPasswordEncoder.matches` za
+   `null` hash vraća `false`, pa je login **401, ne 500** (`VacaYayImportIT` to dokazuje). Do
+   koraka [8] (change-password) uvezena osoba se ne može ulogovati — svjesno ograničenje.
+10. **VacaYAY dole → 502**, ne 500: modal onda kaže *koji* sistem treba upaliti.
+11. **Lista „čeka mapiranje skillova" nije građena ponovo** — `DashboardRepository.mappingQueue()`
+    već vraća aktivne ljude bez ijedne `KNOWS` veze, pa uvezeni upadaju u nju sami. IT to provjerava
+    umjesto da pretpostavlja.
+12. **Lažno dugme iz shell-a je zamijenjeno pravim.** `app-shell` je imao „Import from VacaYAY" koji
+    je samo pokazivao „mocked in this build" baner; sada je to link na `/people?import=1` koji
+    otvara picker. Jedna oznaka, jedno mjesto.
+
+`VacaYayImportIT` (15 testova) pokriva idempotentnost, soft-delete, casing, `HR → MEMBER`,
+Cypher injection kroz prezime, 401 za uvezenog bez lozinke, 403/401, 502 i mapping queue — sve s
+`@MockitoBean VacaYayClient`, pa `mvn verify` ne traži pokrenut .NET. Žicu (login, keširanje
+tokena, paging, jedan retry na 401) pokriva `HttpVacaYayClientTest` preko `MockRestServiceServer`.
+
+Van opsega, svjesno: `Department → Team` (tim se dodjeljuje ručno postojećim „Add to team"
+ekranom), postavljanje lozinke uvezenoj osobi, i osvježavanje polja iz VacaYAY-a pri ponovnom
+importu.
 
 ## [8] Dorade
 

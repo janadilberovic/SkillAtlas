@@ -18,7 +18,8 @@
     </nav>
 
     @if (auth.isAdmin()) {
-      <button class="btn btn-sm" (click)="importVacaYay()">Import from VacaYAY</button>
+      <!-- The picker itself lives on the People screen; this is the shortcut to it. -->
+      <a class="btn btn-sm" routerLink="/people" [queryParams]="{ import: 1 }">Import from VacaYAY</a>
     }
 
     <div class="user">
@@ -30,14 +31,6 @@
       <button class="signout" title="Sign out" (click)="logout()">Sign out</button>
     </div>
   </header>
-
-  @if (importNote()) {
-    <div class="banner">
-      <span class="mark"></span>
-      <span>Import from VacaYAY is mocked in this build — no data was written.</span>
-      <button class="dismiss" (click)="importNote.set(false)">Dismiss</button>
-    </div>
-  }
 
   <main class="content">
     <router-outlet />

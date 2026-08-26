@@ -397,3 +397,26 @@ export interface DashboardData {
   busFactor: BusFactorEntry[];
   mappingQueue: MappingQueue;
 }
+
+/** GET /people/vacayay-roster — one employee in the old system, as the import picker sees them. */
+export interface VacaYayRosterRow {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  position: string | null;
+  active: boolean;
+  /** The email is already in the graph, so this row can only ever be skipped. */
+  alreadyImported: boolean;
+  /** Why the row cannot be imported (a malformed email, a blank name), or null. */
+  issue: string | null;
+}
+
+/** POST /people/import-vacayay — the four counters add up to the number of ids that were sent. */
+export interface ImportResult {
+  imported: number;
+  skipped: number;
+  invalid: number;
+  notFound: number;
+  people: Person[];
+}

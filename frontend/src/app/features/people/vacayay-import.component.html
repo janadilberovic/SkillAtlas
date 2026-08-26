@@ -1,0 +1,94 @@
+<div class="backdrop" (click)="close()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="mhead">
+      <div class="titles">
+        <span class="mtitle">Import from VacaYAY</span>
+        <span class="muted small">Admin only · dedup is by email, so pressing this twice imports nobody twice</span>
+      </div>
+      <button class="x" (click)="close()">✕</button>
+    </div>
+
+    @if (error()) {
+      <div class="err-banner">
+        <span class="mark"></span>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    @if (result(); as r) {
+      <div class="summary">
+        <span class="eyebrow eyebrow-mute">Last run</span>
+        <div class="counts">
+          <span class="fresh">Imported {{ r.imported }}</span>
+          <span class="muted">Skipped {{ r.skipped }}</span>
+          <span class="muted">Invalid {{ r.invalid }}</span>
+          <span class="muted">Not found {{ r.notFound }}</span>
+        </div>
+      </div>
+    }
+
+    <div class="row head-row">
+      <span class="col-head"></span>
+      <span class="col-head">Employee</span>
+      <span class="col-head">Position</span>
+      <span class="col-head">Status</span>
+    </div>
+
+    @if (loading()) {
+      <sa-skeleton [rows]="4" />
+    } @else if (data()) {
+      @for (r of data()!.content; track r.id) {
+        <div class="row data" [class.blocked]="!canPick(r)">
+          <input
+            type="checkbox"
+            [checked]="isPicked(r)"
+            [disabled]="!canPick(r)"
+            (change)="toggle(r)" />
+          <div class="who">
+            <span>{{ r.firstName }} {{ r.lastName }}</span>
+            <span class="dim small">{{ r.email }}</span>
+          </div>
+          <span class="muted">{{ r.position || '—' }}</span>
+          @if (r.alreadyImported) {
+            <span class="tag tag-mute">Imported</span>
+          } @else if (r.issue) {
+            <span class="tag tag-outline">{{ r.issue }}</span>
+          } @else if (!r.active) {
+            <span class="tag tag-mute">Inactive</span>
+          } @else {
+            <span class="dim small">Ready</span>
+          }
+        </div>
+      } @empty {
+        <p class="dim pad">VacaYAY returned no employees.</p>
+      }
+
+      <div class="pager">
+        <span class="dim small">{{ rangeLabel() }}</span>
+        <div class="pagebtns">
+          <button class="pg" [disabled]="!pickableOnPage().length" (click)="togglePage()">
+            {{ allOnPagePicked() ? 'Clear page' : 'Select page' }}
+          </button>
+          <button class="pg" [disabled]="page() === 0" (click)="go(page() - 1)">Prev</button>
+          @for (n of pageNumbers(); track n) {
+            <button class="pg" [class.active]="n === page()" (click)="go(n)">{{ n + 1 }}</button>
+          }
+          <button class="pg" [disabled]="page() >= data()!.totalPages - 1" (click)="go(page() + 1)">Next</button>
+        </div>
+      </div>
+    }
+
+    <span class="dim small">
+      Imported people arrive with no skills and no password — they show up in the dashboard's
+      "waiting for skill mapping" queue, and cannot sign in until someone gives them one.
+    </span>
+
+    <div class="foot">
+      <span class="muted small">{{ pickedCount() }} selected</span>
+      <button class="btn btn-ghost" (click)="close()">Close</button>
+      <button class="btn" [disabled]="!pickedCount() || submitting()" (click)="runImport()">
+        {{ submitting() ? 'Importing…' : 'Import ' + pickedCount() }}
+      </button>
+    </div>
+  </div>
+</div>

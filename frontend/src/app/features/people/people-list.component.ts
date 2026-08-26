@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PeopleApi, SkillApi, TeamApi } from '../../core/api/api';
 import { AuthService } from '../../core/auth/auth.service';
 import { Page, Person, Skill, Team } from '../../core/models/models';
@@ -8,11 +8,12 @@ import { SelectComponent, SelectOption } from '../../shared/components/select/se
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { TeamMembersComponent } from '../teams/team-members.component';
 import { PersonCreateComponent } from './person-create.component';
+import { VacaYayImportComponent } from './vacayay-import.component';
 
 @Component({
   selector: 'sa-people-list',
   standalone: true,
-  imports: [FormsModule, RouterLink, SelectComponent, SkeletonComponent, PersonCreateComponent, TeamMembersComponent],
+  imports: [FormsModule, RouterLink, SelectComponent, SkeletonComponent, PersonCreateComponent, TeamMembersComponent, VacaYayImportComponent],
   templateUrl: './people-list.component.html',
   styleUrl: './people-list.component.css',
 })
@@ -21,6 +22,8 @@ export class PeopleListComponent {
   private readonly teamApi = inject(TeamApi);
   private readonly skillApi = inject(SkillApi);
   private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly size = 6;
   private searchDebounce?: ReturnType<typeof setTimeout>;
 
@@ -34,6 +37,7 @@ export class PeopleListComponent {
   readonly skills = signal<Skill[]>([]);
   readonly showCreate = signal(false);
   readonly showTeamAdd = signal(false);
+  readonly showImport = signal(false);
   readonly error = signal('');
 
   readonly teamOptions = computed<SelectOption[]>(() =>
@@ -51,6 +55,10 @@ export class PeopleListComponent {
   constructor() {
     this.teamApi.list().subscribe((t) => this.teams.set(t));
     this.skillApi.list().subscribe((s) => this.skills.set(s));
+    // ?import=1 is how the topbar shortcut opens the picker; onImported clears it again.
+    this.route.queryParamMap.subscribe((p) => {
+      if (p.has('import')) this.showImport.set(true);
+    });
     this.load();
   }
 
@@ -111,6 +119,13 @@ export class PeopleListComponent {
     this.showCreate.set(false);
     // The new person sorts to the top of the first page, so go there rather than reload page 4.
     if (created) this.onFilter();
+  }
+
+  onImported(imported: boolean): void {
+    this.showImport.set(false);
+    this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+    // Imported people sort to the top of the first page, same as a freshly created one.
+    if (imported) this.onFilter();
   }
 
   onTeamAdd(added: boolean): void {
