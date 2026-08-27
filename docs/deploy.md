@@ -49,6 +49,40 @@ odakle da se popune i `up` odmah pukne.
 
 Prvi build traje nekoliko minuta (npm + maven). Kasniji su brži zbog keša slojeva.
 
+## Varijanta bez servera: Render + Neo4j Aura Free
+
+Ako nemaš server, cijela aplikacija staje na dva besplatna servisa, bez kartice. Compose se tu ne
+koristi — Render vodi jedan kontejner — ali `Dockerfile` je isti.
+
+```text
+browser ──→ Render (1 web servis)  ──neo4j+s://──→  Neo4j Aura Free
+            Angular + API, isti origin
+```
+
+**1. Baza.** `console.neo4j.io` → AuraDB Free. Lozinka se prikazuje **samo jednom** pri kreiranju —
+skini fajl sa kredencijalima. URI je oblika `neo4j+s://<id>.databases.neo4j.io`.
+
+**2. Aplikacija.** Render → New → **Blueprint**, poveži ovaj repo. Render pročita `render.yaml` i
+zatraži četiri vrijednosti koje nisu u repou: `JWT_SECRET`, `NEO4J_URI`, `NEO4J_USERNAME`,
+`NEO4J_PASSWORD`.
+
+**3. Prvi admin.** Na praznoj bazi dodaj još i `SKILLATLAS_ADMIN_BOOTSTRAP_EMAIL` i
+`SKILLATLAS_ADMIN_BOOTSTRAP_PASSWORD`. Ako je admin već napravljen (npr. lokalnim pokretanjem protiv
+Aure), `AdminBootstrap` ga preskače i ove dvije ne trebaju.
+
+### Šta na ovoj varijanti ne radi
+
+**Profilne slike.** Render free nema trajni disk, pa Azurite nema gdje živjeti.
+`AZURE_STORAGE_CONNECTION_STRING` ostaje na dev defaultu koji pokažuje u prazno, pa **upload avatara
+vraća 500**. Sve ostalo radi — `avatarUrl` je `null` i liste se prikazuju normalno.
+
+**Stalna dostupnost.** Render free uspavljuje instancu nakon 15 minuta neaktivnosti; prvi zahtjev
+poslije toga čeka 30–60 s. Aura Free pauzira bazu nakon ~72 sata mirovanja i budi se ručno iz
+konzole. Demo koji niko ne otvori mjesec dana može biti i obrisan — provjeri politiku u Aura konzoli.
+
+**Memorija je tijesna.** 512 MB ukupno, pa `render.yaml` postavlja `-Xmx320m`. Ako se servis ruši
+bez jasne greške, prvo posumnjaj na OOM.
+
 ## Env varijable
 
 | Varijabla | Obavezna | Napomena |

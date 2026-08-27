@@ -23,7 +23,8 @@ spring:
       max-request-size: 3MB
 
 server:
-  port: ${SERVER_PORT:8080}
+  # PORT je fallback za PaaS koji sam dodjeljuje port (Render); SERVER_PORT i dalje ima prednost.
+  port: ${SERVER_PORT:${PORT:8080}}
 
 # JWT signing (HMAC). Secret from env; dev default is not for production.
 security:
