@@ -35,6 +35,7 @@ build/
 # Local env / secrets
 .env
 .env.prod
+.env.aura
 
 # Local, per-developer Claude Code settings
 .claude/settings.local.json
